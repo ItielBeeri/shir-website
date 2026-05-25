@@ -1,0 +1,149 @@
+/* Reset & Base Styles */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Assistant', sans-serif;
+    background-image: url('background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    width: 100vw;
+    overflow-x: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Floating Background Echoes */
+.bg-echoes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.echo {
+    position: absolute;
+    color: #2c3e35;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    user-select: none;
+    white-space: nowrap;
+    --rot: 0deg;
+    animation: breathingFloat 14s ease-in-out infinite alternate;
+}
+
+@keyframes breathingFloat {
+    0%   { transform: rotate(var(--rot)) translateY(0px)   translateX(0px);  }
+    50%  { transform: rotate(var(--rot)) translateY(-12px) translateX(6px);  }
+    100% { transform: rotate(var(--rot)) translateY(6px)   translateX(-4px); }
+}
+
+/* Echo placement and subtle styling to represent echoes in space */
+.echo-1 { top: 12%; right: 8%;  font-size: 3rem;   opacity: 0.11; --rot: -4deg;  animation-delay: 0s;   }
+.echo-2 { top: 22%; left: 10%;  font-size: 2.5rem;  font-family: 'Cormorant Garamond', serif; font-style: italic; opacity: 0.14; --rot: 5deg;   animation-delay: 1.5s; }
+.echo-3 { top: 75%; right: 15%; font-size: 2rem;   opacity: 0.09; --rot: 2deg;   animation-delay: 3s;   }
+.echo-4 { top: 85%; left: 12%;  font-size: 2.2rem;  font-family: 'Cormorant Garamond', serif; opacity: 0.12; --rot: -6deg;  animation-delay: 0.5s; }
+.echo-5 { top: 48%; right: 75%; font-size: 2.8rem;  opacity: 0.08; --rot: -12deg; animation-delay: 2s;   }
+.echo-6 { top: 60%; left: 78%;  font-size: 3.2rem;  font-family: 'Cormorant Garamond', serif; font-style: italic; opacity: 0.09; --rot: 8deg;   animation-delay: 4s;   }
+.echo-7 { top: 5%;  left: 40%;  font-size: 1.8rem;  opacity: 0.08; --rot: 3deg;   animation-delay: 2.5s; }
+.echo-8 { top: 90%; right: 45%; font-size: 2rem;   font-family: 'Cormorant Garamond', serif; opacity: 0.11; --rot: -2deg;  animation-delay: 1s;   }
+
+/* Main Content Layout */
+.main-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 540px;
+    padding: 24px;
+}
+
+/* Frosted Glass Container to align calming and vitalizing theme */
+.content-card {
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 28px;
+    padding: 45px 35px;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(92, 110, 101, 0.04);
+    animation: fadeInCard 2s ease-out;
+}
+
+.main-title {
+    font-size: 2.8rem;
+    font-weight: 300;
+    color: #22332a;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.sub-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 300;
+    color: #4a5c51;
+    font-style: italic;
+    letter-spacing: 0.08em;
+}
+
+.divider {
+    width: 50px;
+    height: 1px;
+    background: rgba(34, 51, 42, 0.15);
+    margin: 30px auto;
+}
+
+.status-text {
+    font-size: 1.6rem;
+    font-weight: 300;
+    color: #2c3e35;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+}
+
+.status-text-en {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    font-style: italic;
+    color: #4a5c51;
+    letter-spacing: 0.12em;
+}
+
+/* Ethereal Animations */
+@keyframes fadeInCard {
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments for mobile viewports */
+@media (max-width: 480px) {
+    .content-card {
+        padding: 35px 20px;
+        border-radius: 22px;
+    }
+    .main-title { font-size: 2.3rem; }
+    .sub-title { font-size: 1.4rem; }
+
+    .echo-1 { top: 8%;  right: 5%;  font-size: 1.6rem; opacity: 0.16; }
+    .echo-2 { top: 18%; left: 5%;   font-size: 1.5rem; opacity: 0.18; }
+    .echo-3 { top: 70%; right: 8%;  font-size: 1.4rem; opacity: 0.14; }
+    .echo-4 { top: 82%; left: 5%;   font-size: 1.4rem; opacity: 0.16; }
+    .echo-5 { top: 45%; left: 5%;   font-size: 1.5rem; opacity: 0.13; }
+    .echo-6 { top: 58%; right: 5%;  font-size: 1.6rem; opacity: 0.14; }
+    .echo-7 { top: 3%;  left: 30%;  font-size: 1.3rem; opacity: 0.13; }
+    .echo-8 { top: 88%; left: 25%;  font-size: 1.3rem; opacity: 0.15; }
+}
