@@ -1,0 +1,37 @@
+# דף אודות — ערכי רק טקסטים בין הגרשיים
+
+[hero]
+kicker = "מעט עליי"
+title  = "אודות"
+# PLACEHOLDER: TXT_ABOUT_HERO_LINE
+intro  = "מרחב של הקשבה, מגע ושינוי."
+
+[portrait]
+image_id = "placeholder-portrait"
+# PLACEHOLDER: TXT_ABOUT_OPENING
+opening  = """
+כאן יופיע הפסקה הפותחת על שיר — רקע, דרך, ניסיון.
+"""
+
+[story]
+# PLACEHOLDER: TXT_ABOUT_STORY
+blocks = [
+  "בלוק ראשון של הסיפור האישי של שיר.",
+  "בלוק שני — המשך המסע.",
+]
+
+[training]
+title = "הכשרה והסמכות"
+# PLACEHOLDER: TXT_ABOUT_TRAINING
+items = [
+  "הכשרה בביוסינתזיס — פסיכותרפיה גופנית",
+  "הכשרה בשיאצו",
+  "לימודי פתיחת קול",
+]
+
+[philosophy]
+title = "גישה ופילוסופיה"
+# PLACEHOLDER: TXT_ABOUT_PHILOSOPHY
+quote = """
+כאן תופיע ציטטה פילוסופית או תיאור גישתה של שיר לטיפול.
+"""

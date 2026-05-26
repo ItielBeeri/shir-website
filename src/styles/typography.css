@@ -1,0 +1,80 @@
+/* ============================================================
+   TYPOGRAPHY — font loading, scale application, text styles
+   ============================================================ */
+
+/* Google Fonts — Hebrew subset only */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;600&family=Frank+Ruhl+Libre:wght@300;400;500;700&subset=hebrew&display=swap');
+
+/* Font stacks */
+.font-sans {
+  font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+}
+
+/* Scale helpers */
+.text-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-display);
+  font-weight: 300;
+}
+
+.text-h1 {
+  font-size: var(--fs-h1);
+  font-weight: 300;
+}
+
+.text-h2 {
+  font-size: var(--fs-h2);
+  font-weight: 300;
+}
+
+.text-h3 {
+  font-size: var(--fs-h3);
+  font-weight: 400;
+}
+
+.text-body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.text-small {
+  font-size: var(--fs-small);
+}
+
+.text-kicker {
+  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--color-ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.text-mist {
+  color: var(--color-mist);
+}
+
+.text-ink-soft {
+  color: var(--color-ink-soft);
+}
+
+/* No italic on Hebrew */
+em, i {
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Blockquote — Frank Ruhl Libre large */
+blockquote {
+  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-size: var(--fs-h2);
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+  padding-inline-start: 1.5rem;
+  border-inline-start: 3px solid var(--accent, var(--color-teal));
+}

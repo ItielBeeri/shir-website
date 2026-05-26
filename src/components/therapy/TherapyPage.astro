@@ -1,0 +1,201 @@
+---
+/**
+ * TherapyPage — shared template for all three therapy pages.
+ * Used by psychotherapy.astro, shiatsu.astro, voice.astro.
+ */
+import BaseLayout from '../layout/BaseLayout.astro';
+import Header from '../layout/Header.astro';
+import Footer from '../layout/Footer.astro';
+import ContactPill from '../layout/ContactPill.astro';
+import GlassCard from '../ui/GlassCard.astro';
+import SoftImage from '../ui/SoftImage.astro';
+import SectionHeading from '../ui/SectionHeading.astro';
+import BreathDivider from '../ui/BreathDivider.astro';
+import CTAButton from '../ui/CTAButton.astro';
+import ScrollReveal from '../ui/ScrollReveal.astro';
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'therapies'>;
+}
+
+const { entry } = Astro.props;
+const { title, kicker, accent, hero_image, summary } = entry.data;
+// slug comes from the collection entry (file name), not the schema
+const { Content } = await render(entry);
+
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url:   z.string(),
+    whatsapp_label: z.string(),
+    phone_href:     z.string(),
+    phone_display:  z.string(),
+    phone_label:    z.string(),
+    email_href:     z.string(),
+    email_label:    z.string(),
+  }),
+});
+const { contact } = loadToml('site.toml', siteSchema);
+---
+
+<BaseLayout
+  title={title}
+  description={summary}
+  theme={accent}
+>
+  <Header />
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="therapy-hero" aria-labelledby="therapy-h1">
+      <div class="therapy-hero__inner container">
+        <div class="therapy-hero__image" data-reveal>
+          <SoftImage id={hero_image} aspect="4/3" tint loading="eager" />
+        </div>
+        <div class="therapy-hero__text" data-reveal>
+          <GlassCard>
+            <p class="therapy-kicker">{kicker}</p>
+            <h1 id="therapy-h1" class="therapy-title">{title}</h1>
+            <p class="therapy-summary">{summary}</p>
+          </GlassCard>
+        </div>
+      </div>
+    </section>
+
+    <!-- Body content from MDX -->
+    <section class="therapy-body container" data-reveal>
+      <GlassCard>
+        <div class="prose">
+          <Content />
+        </div>
+      </GlassCard>
+    </section>
+
+    <!-- CTA strip -->
+    <section class="therapy-cta container" aria-label="תיאום פגישה">
+      <ScrollReveal>
+        <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
+        <div class="cta-group">
+          <!-- WhatsApp → Phone → Email (§5.4) -->
+          <CTAButton
+            href={contact.whatsapp_url}
+            label={contact.whatsapp_label}
+            icon="whatsapp"
+            variant="primary"
+            external
+          />
+          <CTAButton
+            href={contact.phone_href}
+            label={`${contact.phone_label} · ${contact.phone_display}`}
+            icon="phone"
+            variant="secondary"
+          />
+          <CTAButton
+            href={contact.email_href}
+            label={contact.email_label}
+            icon="mail"
+            variant="tertiary"
+          />
+        </div>
+      </ScrollReveal>
+    </section>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  /* Hero */
+  .therapy-hero {
+    min-block-size: 100svh;
+    display: flex;
+    align-items: center;
+    padding-block: var(--space-section);
+  }
+
+  .therapy-hero__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .therapy-kicker {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: 0.95rem;
+    color: var(--color-ink-soft);
+    margin-block-end: 0.5rem;
+  }
+
+  .therapy-title {
+    font-size: var(--fs-display);
+    font-weight: 300;
+    color: var(--color-ink);
+    letter-spacing: var(--ls-display);
+    line-height: var(--lh-display);
+    margin-block-end: 1rem;
+  }
+
+  .therapy-summary {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    line-height: var(--lh-body);
+  }
+
+  /* Body */
+  .therapy-body { padding-block: var(--space-section); }
+
+  .prose {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    max-inline-size: 65ch;
+  }
+
+  .prose :global(h2) {
+    font-size: var(--fs-h2);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block: 2rem 1rem;
+  }
+
+  .prose :global(h3) {
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--color-ink);
+    margin-block: 1.5rem 0.75rem;
+  }
+
+  .prose :global(p) { margin-block-end: 1rem; }
+
+  .prose :global(ol), .prose :global(ul) {
+    padding-inline-start: 1.5rem;
+    margin-block-end: 1rem;
+  }
+  .prose :global(li) { margin-block-end: 0.4rem; }
+
+  /* CTA strip */
+  .therapy-cta {
+    padding-block: var(--space-section);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-block);
+  }
+
+  .cta-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  @media (max-width: 767px) {
+    .therapy-hero__inner { grid-template-columns: 1fr; }
+  }
+</style>

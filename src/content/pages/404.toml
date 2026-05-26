@@ -1,0 +1,10 @@
+# דף 404 — ערכי רק טקסטים בין הגרשיים
+
+[page]
+title      = "הדף לא נמצא"
+# PLACEHOLDER: TXT_404_LINE
+poetic     = "לפעמים הדרך אל עצמנו מתחילה דווקא בהתאבדות."
+home_label = "לעמוד הבית"
+home_href  = "/"
+contact_label = "ליצירת קשר"
+contact_href  = "/contact"

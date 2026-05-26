@@ -1,0 +1,281 @@
+---
+/**
+ * Footer — calm, generous (~50vh on desktop).
+ * Three-column layout (RTL): Navigation | Contact | Social
+ * Bottom bar: copyright + accessibility link + builder credit (EN, by design)
+ */
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
+import Icon from '../ui/Icon.astro';
+
+const siteSchema = z.object({
+  brand:   z.object({ name: z.string(), tagline: z.string() }),
+  contact: z.object({
+    whatsapp_url:   z.string(),
+    whatsapp_label: z.string(),
+    phone_href:     z.string(),
+    phone_display:  z.string(),
+    phone_label:    z.string(),
+    email_href:     z.string(),
+    email_display:  z.string(),
+    email_label:    z.string(),
+  }),
+  social: z.object({
+    facebook_url:       z.string(),
+    facebook_label:     z.string(),
+    biosynthesis_url:   z.string(),
+    biosynthesis_label: z.string(),
+  }),
+  footer: z.object({
+    copyright_name:     z.string(),
+    rights:             z.string(),
+    accessibility_label: z.string(),
+    accessibility_href: z.string(),
+    location:           z.string(),
+  }),
+});
+
+const site = loadToml('site.toml', siteSchema);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <!-- BreathDivider wave is rendered by the page above the footer -->
+
+  <!-- Large watermark wordmark -->
+  <div class="footer-wordmark" aria-hidden="true">
+    {site.brand.name}
+  </div>
+
+  <div class="container footer-body">
+    <!-- Column 1: Navigation -->
+    <nav class="footer-col" aria-label="ניווט — כותרת תחתונה">
+      <p class="footer-col-title">ניווט</p>
+      <ul role="list">
+        <li><a href="/">בית</a></li>
+        <li><a href="/about">אודות</a></li>
+        <li><a href="/psychotherapy">פסיכותרפיה גופנית</a></li>
+        <li><a href="/shiatsu">שיאצו</a></li>
+        <li><a href="/voice">פתיחת קול</a></li>
+        <li><a href="/blog">בלוג</a></li>
+        <li><a href="/contact">יצירת קשר</a></li>
+      </ul>
+    </nav>
+
+    <!-- Column 2: Contact — WhatsApp → Phone → Email (§5.4 order) -->
+    <div class="footer-col" role="complementary" aria-label="פרטי יצירת קשר">
+      <p class="footer-col-title">יצירת קשר</p>
+      <ul role="list" class="contact-list">
+        <!-- 1. WhatsApp — primary -->
+        <li>
+          <a
+            href={site.contact.whatsapp_url}
+            target="_blank"
+            rel="noopener"
+            class="contact-link contact-primary"
+            aria-label={`${site.contact.whatsapp_label} — נפתח בטאב חדש`}
+          >
+            <Icon name="whatsapp" decorative size={18} />
+            {site.contact.whatsapp_label}
+          </a>
+        </li>
+        <!-- 2. Phone — secondary -->
+        <li>
+          <a
+            href={site.contact.phone_href}
+            class="contact-link"
+            aria-label={site.contact.phone_label}
+          >
+            <Icon name="phone" decorative size={18} />
+            <span dir="ltr">{site.contact.phone_display}</span>
+          </a>
+        </li>
+        <!-- 3. Email — tertiary -->
+        <li>
+          <a
+            href={site.contact.email_href}
+            class="contact-link contact-tertiary"
+            aria-label={site.contact.email_label}
+          >
+            <Icon name="mail" decorative size={18} />
+            <span dir="ltr">{site.contact.email_display}</span>
+          </a>
+        </li>
+      </ul>
+      <p class="footer-location">{site.footer.location}</p>
+    </div>
+
+    <!-- Column 3: Social / Elsewhere -->
+    <div class="footer-col">
+      <p class="footer-col-title">עוד</p>
+      <ul role="list">
+        <li>
+          <a
+            href={site.social.facebook_url}
+            target="_blank"
+            rel="noopener"
+            aria-label={`${site.social.facebook_label} — נפתח בטאב חדש`}
+            class="footer-link"
+          >
+            <Icon name="facebook" decorative size={16} />
+            {site.social.facebook_label}
+          </a>
+        </li>
+        <li>
+          <a
+            href={site.social.biosynthesis_url}
+            target="_blank"
+            rel="noopener"
+            aria-label={`${site.social.biosynthesis_label} — נפתח בטאב חדש`}
+            class="footer-link"
+          >
+            <Icon name="external" decorative size={16} />
+            {site.social.biosynthesis_label}
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footer-bottom container" dir="rtl">
+    <span>
+      © <time datetime={String(year)}>{year}</time>
+      {' '}{site.footer.copyright_name} · {site.footer.rights}
+    </span>
+    <a href={site.footer.accessibility_href} class="footer-bottom-link">
+      {site.footer.accessibility_label}
+    </a>
+    <!-- Builder credit — the one intentional English string on the site (§5.3.1) -->
+    <span class="builder-credit" lang="en" dir="ltr">
+      Built by <a
+        href="https://www.linkedin.com/in/itiel"
+        target="_blank"
+        rel="noopener author"
+        aria-label="Built by Itiel Beeri — opens LinkedIn profile in new tab"
+      >Itiel Beeri</a>
+    </span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    padding-block-start: var(--space-section);
+    padding-block-end: 2rem;
+    background: linear-gradient(to block-end, rgba(253,250,244,0.6), rgba(253,250,244,0.85));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-block-start: 1px solid var(--color-glass-stroke);
+    margin-block-start: var(--space-section);
+  }
+
+  /* Large transparent wordmark */
+  .footer-wordmark {
+    text-align: center;
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 300;
+    color: var(--color-ink);
+    opacity: 0.08;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    margin-block-end: 3rem;
+  }
+
+  /* Three-column layout */
+  .footer-body {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    padding-block-end: 3rem;
+  }
+
+  @media (max-width: 767px) {
+    .footer-body { grid-template-columns: 1fr; gap: 2rem; }
+  }
+
+  .footer-col-title {
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--color-ink);
+    letter-spacing: 0.06em;
+    margin-block-end: 1rem;
+  }
+
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .footer-col a,
+  .footer-link {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color var(--dur-fast);
+  }
+  .footer-col a:hover,
+  .footer-link:hover { color: var(--color-ink); }
+
+  /* Contact list */
+  .contact-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    transition: color var(--dur-fast);
+  }
+  .contact-link:hover { color: var(--color-ink); }
+
+  .contact-primary {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .contact-tertiary { opacity: 0.75; }
+
+  .footer-location {
+    margin-block-start: 1rem;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+  }
+
+  /* Bottom bar */
+  .footer-bottom {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-block-start: 1.5rem;
+    border-block-start: 1px solid rgba(122, 138, 130, 0.2);
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+  }
+
+  .footer-bottom-link {
+    color: var(--color-mist);
+    transition: color var(--dur-fast);
+  }
+  .footer-bottom-link:hover { color: var(--color-ink-soft); }
+
+  /* Builder credit (§5.3.1) */
+  .builder-credit {
+    margin-inline-start: auto;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+    letter-spacing: 0.04em;
+  }
+
+  .builder-credit a {
+    color: inherit;
+    text-decoration: none;
+    border-block-end: 1px solid transparent;
+    transition: border-color var(--dur-fast);
+  }
+  .builder-credit a:hover { border-block-end-color: var(--color-mist); }
+</style>

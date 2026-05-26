@@ -1,0 +1,171 @@
+---
+/**
+ * BlogTeaser — home page blog section.
+ * Shows up to 3 latest posts in a horizontal grid.
+ */
+import GlassCard from '../ui/GlassCard.astro';
+import SoftImage from '../ui/SoftImage.astro';
+import SectionHeading from '../ui/SectionHeading.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'blog'>[];
+  label: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+const { posts, label, ctaLabel, ctaHref } = Astro.props;
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+---
+
+<section class="blog-teaser container" aria-labelledby="blog-teaser-heading">
+  <div class="blog-teaser-header" data-reveal>
+    <SectionHeading
+      kicker={label}
+      title="מהבלוג"
+      id="blog-teaser-heading"
+    />
+    <a href={ctaHref} class="link-underline blog-see-all">
+      {ctaLabel} ←
+    </a>
+  </div>
+
+  {posts.length === 0 ? (
+    <p class="blog-empty">פוסטים יתווספו בקרוב.</p>
+  ) : (
+    <div class="blog-grid" data-reveal data-stagger="80">
+      {posts.map((post) => (
+        <a href={`/blog/${post.slug}`} class="blog-tile" data-reveal>
+          <GlassCard hover>
+            {post.data.cover && (
+              <div class="blog-tile__cover">
+                <SoftImage id={post.data.cover} aspect="16/9" />
+              </div>
+            )}
+            <div class="blog-tile__body">
+              <time
+                class="blog-tile__date"
+                datetime={post.data.date.toISOString()}
+              >
+                {formatDate(post.data.date)}
+              </time>
+              <h3 class="blog-tile__title">{post.data.title}</h3>
+              <p class="blog-tile__excerpt">{post.data.excerpt}</p>
+              {post.data.tags.length > 0 && (
+                <div class="blog-tile__tags">
+                  {post.data.tags.slice(0, 2).map((tag) => (
+                    <span class="tag-chip">{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </a>
+      ))}
+    </div>
+  )}
+</section>
+
+<style>
+  .blog-teaser { padding-block: var(--space-section); }
+
+  .blog-teaser-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-block-end: var(--space-block);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .blog-see-all {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+  }
+
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .blog-tile { display: block; }
+  .blog-tile .glass-card { block-size: 100%; }
+
+  .blog-tile__cover {
+    margin: calc(-1 * clamp(1.5rem, 4vw, 2.5rem));
+    margin-block-end: 1.25rem;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    overflow: hidden;
+  }
+
+  .blog-tile__body { padding-block-start: 0; }
+
+  .blog-tile__date {
+    display: block;
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+    margin-block-end: 0.5rem;
+  }
+
+  .blog-tile__title {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--color-ink);
+    margin-block-end: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .blog-tile__excerpt {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .blog-tile__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-block-start: 0.75rem;
+  }
+
+  .tag-chip {
+    font-size: 0.8rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-stroke);
+    color: var(--color-ink-soft);
+  }
+
+  .blog-empty {
+    color: var(--color-mist);
+    font-size: var(--fs-small);
+    text-align: center;
+    padding-block: 3rem;
+  }
+
+  @media (max-width: 1023px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 599px) {
+    .blog-grid {
+      grid-template-columns: 1fr;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      display: flex;
+      gap: 1rem;
+    }
+    .blog-tile {
+      flex: 0 0 80vw;
+      scroll-snap-align: start;
+    }
+  }
+</style>

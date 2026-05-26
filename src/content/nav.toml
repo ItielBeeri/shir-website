@@ -1,0 +1,28 @@
+# ניווט האתר — כל פריט הוא קישור עצמאי, ללא תפריטי משנה
+
+[[items]]
+label = "אודות"
+href  = "/about"
+
+[[items]]
+label = "פסיכותרפיה גופנית"
+href  = "/psychotherapy"
+theme = "psychotherapy"
+
+[[items]]
+label = "שיאצו"
+href  = "/shiatsu"
+theme = "shiatsu"
+
+[[items]]
+label = "פתיחת קול"
+href  = "/voice"
+theme = "voice"
+
+[[items]]
+label = "בלוג"
+href  = "/blog"
+
+[[items]]
+label = "יצירת קשר"
+href  = "/contact"

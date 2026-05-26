@@ -1,0 +1,135 @@
+---
+/**
+ * BackgroundField — the fixed watercolor layer present on every page.
+ * Layer 1: background.jpg (fixed, parallax)
+ * Layer 2: SVG grain overlay (~4% opacity)
+ * Layer 3: drifting radial gradient blobs (CSS keyframes)
+ * Layer 4: page-specific accent tint overlay (reads --accent)
+ */
+---
+
+<div class="bg-field" aria-hidden="true">
+  <!-- Layer 1: watercolor photograph -->
+  <div class="bg-layer bg-image"></div>
+
+  <!-- Layer 2: grain/paper texture -->
+  <div class="bg-layer bg-grain">
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <filter id="noise">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/>
+      </filter>
+      <rect width="200" height="200" filter="url(#noise)" opacity="0.04"/>
+    </svg>
+  </div>
+
+  <!-- Layer 3: ambient drifting blobs -->
+  <div class="bg-layer bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Layer 4: accent tint (driven by data-theme) -->
+  <div class="bg-layer bg-accent-tint"></div>
+</div>
+
+<style>
+  .bg-field {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+  }
+
+  .bg-layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Layer 1 — background image with slight scale for parallax headroom */
+  .bg-image {
+    background-image: url('/img/bg/background.jpg');
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.06);
+    will-change: transform;
+  }
+
+  /* Layer 2 — grain SVG tiled */
+  .bg-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  /* hide inner svg */
+  .bg-grain svg { display: none; }
+
+  /* Layer 3 — ambient blobs */
+  .bg-blobs {
+    pointer-events: none;
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    mix-blend-mode: multiply;
+  }
+
+  .blob-1 {
+    inline-size: 50vmax;
+    block-size: 50vmax;
+    background: radial-gradient(circle, var(--color-lavender), transparent 70%);
+    inset-block-start: -10%;
+    inset-inline-end: -10%;
+    animation: drift-1 80s ease-in-out infinite alternate;
+  }
+
+  .blob-2 {
+    inline-size: 40vmax;
+    block-size: 40vmax;
+    background: radial-gradient(circle, var(--color-teal), transparent 70%);
+    inset-block-end: -5%;
+    inset-inline-start: -5%;
+    animation: drift-2 65s ease-in-out infinite alternate;
+  }
+
+  .blob-3 {
+    inline-size: 35vmax;
+    block-size: 35vmax;
+    background: radial-gradient(circle, var(--color-rose), transparent 70%);
+    inset-block-start: 40%;
+    inset-inline-start: 30%;
+    animation: drift-3 90s ease-in-out infinite alternate;
+  }
+
+  /* Layer 4 — accent tint */
+  .bg-accent-tint {
+    background: var(--accent, transparent);
+    mix-blend-mode: soft-light;
+    opacity: 0.12;
+    pointer-events: none;
+    transition: background var(--dur-page) var(--ease-soft);
+  }
+
+  @keyframes drift-1 {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to   { transform: translate(5vw, 8vh) rotate(15deg); }
+  }
+  @keyframes drift-2 {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to   { transform: translate(-4vw, -6vh) rotate(-10deg); }
+  }
+  @keyframes drift-3 {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to   { transform: translate(6vw, -4vh) rotate(8deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob { animation: none; }
+    .bg-image { will-change: auto; }
+  }
+</style>

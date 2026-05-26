@@ -1,0 +1,78 @@
+---
+/**
+ * IntroBlock — "מי אני בקצרה" section on home page.
+ * Two-column RTL: portrait (right/start) + text card (left/end).
+ */
+import GlassCard from '../ui/GlassCard.astro';
+import SoftImage from '../ui/SoftImage.astro';
+
+interface Props {
+  imageId: string;
+  paragraph: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+const { imageId, paragraph, ctaLabel, ctaHref } = Astro.props;
+---
+
+<section class="intro-block container" aria-labelledby="intro-heading">
+  <div class="intro-grid">
+    <!-- Portrait — inline-start (right in RTL) -->
+    <div class="intro-portrait" data-parallax data-speed="0.85" data-reveal>
+      <SoftImage id={imageId} aspect="3/4" loading="eager" />
+    </div>
+
+    <!-- Text card — inline-end (left in RTL) -->
+    <div class="intro-text" data-reveal>
+      <GlassCard>
+        <p id="intro-heading" class="intro-paragraph">{paragraph}</p>
+        <div class="intro-cta">
+          <!-- PLACEHOLDER: TXT_HOME_INTRO paragraph above -->
+          <a href={ctaHref} class="link-underline intro-read-more">
+            {ctaLabel}
+            <span aria-hidden="true"> ←</span>
+          </a>
+        </div>
+      </GlassCard>
+    </div>
+  </div>
+</section>
+
+<style>
+  .intro-block { padding-block: var(--space-section); }
+
+  .intro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .intro-paragraph {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    white-space: pre-line;
+  }
+
+  .intro-cta {
+    margin-block-start: 1.5rem;
+  }
+
+  .intro-read-more {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    font-weight: 400;
+  }
+
+  @media (max-width: 767px) {
+    .intro-grid {
+      grid-template-columns: 1fr;
+    }
+    .intro-portrait {
+      max-inline-size: 280px;
+      margin-inline: auto;
+    }
+  }
+</style>

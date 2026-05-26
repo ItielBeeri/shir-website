@@ -1,0 +1,230 @@
+---
+/**
+ * ContactPill — persistent floating CTA.
+ * Position: bottom-inline-start (bottom-right in RTL), 24px from edges.
+ * Collapsed: single WhatsApp icon (~52px).
+ * Expanded: three buttons — WhatsApp (primary), phone (secondary), email (tertiary).
+ * Hidden when within 200px of footer.
+ */
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
+import Icon from '../ui/Icon.astro';
+
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url:   z.string(),
+    whatsapp_label: z.string(),
+    phone_href:     z.string(),
+    phone_display:  z.string(),
+    phone_label:    z.string(),
+    email_href:     z.string(),
+    email_label:    z.string(),
+  }),
+});
+
+const { contact } = loadToml('site.toml', siteSchema);
+---
+
+<div
+  class="contact-pill"
+  id="contact-pill"
+  role="complementary"
+  aria-label="כפתורי יצירת קשר מהירה"
+>
+  <!-- Expanded actions (hidden until expanded) -->
+  <div class="pill-actions" id="pill-actions" aria-hidden="true">
+    <!-- 1. WhatsApp — primary (§5.4 order) -->
+    <a
+      href={contact.whatsapp_url}
+      target="_blank"
+      rel="noopener"
+      class="pill-btn pill-primary"
+      aria-label={`${contact.whatsapp_label} — נפתח בטאב חדש`}
+      tabindex="-1"
+    >
+      <Icon name="whatsapp" decorative size={22} />
+    </a>
+    <!-- 2. Phone — secondary -->
+    <a
+      href={contact.phone_href}
+      class="pill-btn pill-secondary"
+      aria-label={contact.phone_label}
+      tabindex="-1"
+    >
+      <Icon name="phone" decorative size={20} />
+    </a>
+    <!-- 3. Email — tertiary -->
+    <a
+      href={`mailto:${contact.email_href.replace('mailto:', '')}`}
+      class="pill-btn pill-tertiary"
+      aria-label={contact.email_label}
+      tabindex="-1"
+    >
+      <Icon name="mail" decorative size={18} />
+    </a>
+  </div>
+
+  <!-- Toggle button — always visible, shows WhatsApp icon -->
+  <button
+    class="pill-toggle"
+    id="pill-toggle"
+    aria-expanded="false"
+    aria-label="פתיחת אפשרויות יצירת קשר — וואטסאפ"
+    aria-controls="pill-actions"
+  >
+    <Icon name="whatsapp" decorative size={24} class="pill-icon-wa" />
+    <Icon name="close" decorative size={20} class="pill-icon-close" />
+  </button>
+</div>
+
+<style>
+  .contact-pill {
+    position: fixed;
+    inset-block-end: 24px;
+    inset-inline-start: 24px;   /* inline-start = right in RTL */
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: opacity var(--dur-base) var(--ease-soft), transform var(--dur-base) var(--ease-soft);
+  }
+
+  .contact-pill.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px);
+  }
+
+  /* Actions container */
+  .pill-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px) scale(0.9);
+    transition:
+      opacity var(--dur-fast) var(--ease-soft),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .pill-actions.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+  .pill-actions.open a { pointer-events: auto; }
+
+  /* Individual pill buttons */
+  .pill-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-glass);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    border: 1px solid var(--color-glass-stroke);
+    box-shadow: var(--shadow-soft);
+    color: var(--color-ink);
+    transition: transform var(--dur-fast) var(--ease-soft), box-shadow var(--dur-fast);
+  }
+
+  .pill-btn:hover { transform: scale(1.1); box-shadow: 0 8px 24px rgba(92,110,101,0.12); }
+
+  .pill-primary  { inline-size: 48px; block-size: 48px; }
+  .pill-secondary { inline-size: 44px; block-size: 44px; }
+  .pill-tertiary  { inline-size: 40px; block-size: 40px; }
+
+  /* Toggle button */
+  .pill-toggle {
+    inline-size: 52px;
+    block-size: 52px;
+    border-radius: 50%;
+    background: var(--color-seafoam);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-ink);
+    box-shadow: 0 4px 20px rgba(92,110,101,0.18);
+    transition: transform var(--dur-fast) var(--ease-soft), background var(--dur-fast);
+    position: relative;
+  }
+
+  .pill-toggle:hover { transform: scale(1.05); background: var(--color-teal); }
+
+  .pill-icon-close {
+    position: absolute;
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.7);
+    transition: opacity var(--dur-fast) var(--ease-soft), transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .pill-toggle[aria-expanded="true"] .pill-icon-wa {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  .pill-toggle[aria-expanded="true"] .pill-icon-close {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  .pill-icon-wa {
+    transition: opacity var(--dur-fast), transform var(--dur-fast);
+  }
+
+  /* Mobile: bottom-center */
+  @media (max-width: 479px) {
+    .contact-pill {
+      inset-inline-start: 50%;
+      transform: translateX(calc(var(--dir-x) * -50%));
+    }
+    .contact-pill.hidden {
+      transform: translateX(calc(var(--dir-x) * -50%)) translateY(16px);
+    }
+    .pill-primary  { inline-size: 52px; block-size: 52px; }
+    .pill-secondary { inline-size: 48px; block-size: 48px; }
+    .pill-tertiary  { inline-size: 44px; block-size: 44px; }
+    .pill-toggle { inline-size: 56px; block-size: 56px; }
+  }
+</style>
+
+<script>
+  const pill      = document.getElementById('contact-pill');
+  const toggle    = document.getElementById('pill-toggle');
+  const actions   = document.getElementById('pill-actions');
+  const footer    = document.querySelector('footer');
+
+  // Toggle expand/collapse
+  toggle?.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    actions?.classList.toggle('open', !expanded);
+    actions?.setAttribute('aria-hidden', String(expanded));
+
+    // Update tabindex on action links
+    actions?.querySelectorAll('a').forEach((a) => {
+      (a as HTMLAnchorElement).tabIndex = expanded ? -1 : 0;
+    });
+  });
+
+  // Keyboard: Esc closes
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      toggle?.setAttribute('aria-expanded', 'false');
+      actions?.classList.remove('open');
+      actions?.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+  // Hide pill near footer
+  const observer = new IntersectionObserver(
+    ([entry]) => { pill?.classList.toggle('hidden', entry.isIntersecting); },
+    { rootMargin: '0px 0px -200px 0px' },
+  );
+  if (footer) observer.observe(footer);
+</script>

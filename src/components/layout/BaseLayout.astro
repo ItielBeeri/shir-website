@@ -1,0 +1,113 @@
+---
+/**
+ * BaseLayout — wraps every page with:
+ * - <html lang="he" dir="rtl">
+ * - Google Fonts preconnect
+ * - Global styles
+ * - Skip link
+ * - BackgroundField (fixed watercolor layer)
+ * - Astro ClientRouter (view transitions)
+ * - Lenis + GSAP scripts
+ */
+import { ViewTransitions } from 'astro:transitions';
+import BackgroundField from './BackgroundField.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** data-theme value for body — drives accent color */
+  theme?: 'default' | 'psychotherapy' | 'shiatsu' | 'voice';
+  /** Canonical URL override */
+  canonical?: string;
+  /** OG image URL */
+  ogImage?: string;
+  /** noindex — for _design route */
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  theme = 'default',
+  canonical,
+  ogImage = '/img/og-default.jpg',
+  noindex = false,
+} = Astro.props;
+
+const siteUrl = 'https://shir-amitai.co.il';
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, siteUrl).href;
+const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שיר אמיתי`;
+---
+
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="language" content="Hebrew" />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {!noindex && <meta name="robots" content="index, follow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content="he_IL" />
+    <meta property="og:image" content={new URL(ogImage, siteUrl).href} />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, siteUrl).href} />
+
+    <!-- hreflang -->
+    <link rel="alternate" hreflang="he" href={canonicalUrl} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Google Fonts — Hebrew subset -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;600&family=Frank+Ruhl+Libre:wght@300;400;500;700&subset=hebrew&display=swap"
+    />
+
+    <ViewTransitions fallback="none" />
+
+    <!-- Slot for page-specific head additions -->
+    <slot name="head" />
+  </head>
+
+  <body data-theme={theme}>
+    <!-- Skip to main content -->
+    <a class="skip-link" href="#main">דלג לתוכן</a>
+
+    <!-- Fixed watercolor background -->
+    <BackgroundField />
+
+    <!-- Page content -->
+    <slot />
+
+    <!-- Global styles -->
+    <style is:global>
+      @import '/src/styles/base.css';
+    </style>
+
+    <!-- Lenis smooth scroll + GSAP -->
+    <script>
+      import '@/scripts/lenis-init';
+    </script>
+    <!-- Scroll reveal via IntersectionObserver -->
+    <script>
+      import '@/scripts/scroll-reveal';
+    </script>
+  </body>
+</html>

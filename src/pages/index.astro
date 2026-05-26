@@ -1,0 +1,157 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import Hero from '../components/home/Hero.astro';
+import IntroBlock from '../components/home/IntroBlock.astro';
+import TherapyTeaser from '../components/home/TherapyTeaser.astro';
+import BlogTeaser from '../components/home/BlogTeaser.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import GlassCard from '../components/ui/GlassCard.astro';
+import CTAButton from '../components/ui/CTAButton.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import ScrollReveal from '../components/ui/ScrollReveal.astro';
+import { getCollection } from 'astro:content';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+import { personSchema, localBusinessSchema, jsonLd } from '../lib/seo';
+
+// Content
+const homeSchema = z.object({
+  hero:    z.object({ title: z.string(), tagline: z.string(), descriptor: z.string(), scroll_cue: z.string() }),
+  intro:   z.object({ portrait: z.string(), cta_label: z.string(), cta_href: z.string(), paragraph: z.string() }),
+  teasers: z.object({ blog: z.object({ label: z.string(), cta_label: z.string(), cta_href: z.string() }) }),
+  closing: z.object({ enabled: z.boolean(), line: z.string() }),
+});
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url: z.string(), whatsapp_label: z.string(),
+    phone_href: z.string(), phone_display: z.string(), phone_label: z.string(),
+    email_href: z.string(), email_label: z.string(),
+  }),
+});
+
+const home   = loadToml('pages/home.toml', homeSchema);
+const { contact } = loadToml('site.toml', siteSchema);
+
+const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
+const blogPosts = (await getCollection('blog'))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+---
+
+<BaseLayout
+  title="שיר אמיתי | פסיכותרפיה גופנית, שיאצו ופתיחת קול"
+  description="שיר אמיתי — מרחב לטיפול בגוף, נפש וקול. פסיכותרפיה גופנית, שיאצו ופתיחת קול בפרדס חנה-כרכור ובזום."
+>
+  <Fragment slot="head">
+    <Fragment set:html={jsonLd(personSchema())} />
+    <Fragment set:html={jsonLd(localBusinessSchema())} />
+  </Fragment>
+
+  <Header />
+
+  <main id="main">
+    <!-- A. Hero -->
+    <Hero
+      title={home.hero.title}
+      tagline={home.hero.tagline}
+      descriptor={home.hero.descriptor}
+      scrollCue={home.hero.scroll_cue}
+    />
+
+    <!-- B. Intro -->
+    <IntroBlock
+      imageId={home.intro.portrait}
+      paragraph={home.intro.paragraph}
+      ctaLabel={home.intro.cta_label}
+      ctaHref={home.intro.cta_href}
+    />
+
+    <!-- C. Therapy triptych -->
+    {therapies.map((therapy, i) => (
+      <>
+        <BreathDivider />
+        <TherapyTeaser entry={therapy} flip={i % 2 === 1} />
+      </>
+    ))}
+
+    <BreathDivider />
+
+    <!-- D. Blog teaser -->
+    <BlogTeaser
+      posts={blogPosts}
+      label={home.teasers.blog.label}
+      ctaLabel={home.teasers.blog.cta_label}
+      ctaHref={home.teasers.blog.cta_href}
+    />
+
+    <!-- E. Closing / contact -->
+    {home.closing.enabled && (
+      <section class="closing-section container" aria-labelledby="closing-heading">
+        <ScrollReveal>
+          <p class="closing-line">{home.closing.line}</p>
+          <SectionHeading kicker="מוזמנים לפנות" title="יצירת קשר" center />
+          <GlassCard>
+            <div class="closing-cta">
+              <!-- WhatsApp → Phone → Email (§5.4) -->
+              <CTAButton
+                href={contact.whatsapp_url}
+                label={contact.whatsapp_label}
+                icon="whatsapp"
+                variant="primary"
+                external
+              />
+              <CTAButton
+                href={contact.phone_href}
+                label={`${contact.phone_label} · ${contact.phone_display}`}
+                icon="phone"
+                variant="secondary"
+              />
+              <CTAButton
+                href={contact.email_href}
+                label={contact.email_label}
+                icon="mail"
+                variant="tertiary"
+              />
+            </div>
+          </GlassCard>
+        </ScrollReveal>
+      </section>
+    )}
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .closing-section {
+    padding-block: var(--space-section);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-block);
+    text-align: center;
+  }
+
+  .closing-line {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-h2);
+    font-weight: 300;
+    color: var(--color-ink-soft);
+    opacity: 0.7;
+    letter-spacing: 0.04em;
+  }
+
+  .closing-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding-block: 0.5rem;
+  }
+</style>

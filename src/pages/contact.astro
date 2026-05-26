@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import GlassCard from '../components/ui/GlassCard.astro';
+import CTAButton from '../components/ui/CTAButton.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import ScrollReveal from '../components/ui/ScrollReveal.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const contactPageSchema = z.object({
+  hero:     z.object({ kicker: z.string(), title: z.string(), intro: z.string() }),
+  location: z.object({ title: z.string(), address: z.string(), note: z.string() }),
+});
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url: z.string(), whatsapp_label: z.string(),
+    phone_href: z.string(), phone_display: z.string(), phone_label: z.string(),
+    email_href: z.string(), email_display: z.string(), email_label: z.string(),
+  }),
+  social: z.object({ facebook_url: z.string(), facebook_label: z.string(), biosynthesis_url: z.string(), biosynthesis_label: z.string() }),
+});
+
+const page   = loadToml('pages/contact.toml', contactPageSchema);
+const { contact, social } = loadToml('site.toml', siteSchema);
+---
+
+<BaseLayout
+  title="יצירת קשר | שיר אמיתי"
+  description={page.hero.intro}
+>
+  <Header />
+
+  <main id="main">
+    <section class="contact-hero container" aria-labelledby="contact-h1">
+      <div data-reveal>
+        <p class="text-kicker">{page.hero.kicker}</p>
+        <h1 id="contact-h1" class="contact-title">{page.hero.title}</h1>
+        <p class="contact-intro">{page.hero.intro}</p>
+      </div>
+    </section>
+
+    <section class="contact-actions container" aria-label="אפשרויות יצירת קשר">
+      <ScrollReveal>
+        <GlassCard>
+          <div class="contact-group">
+            <!-- 1. WhatsApp — primary (§5.4) -->
+            <CTAButton
+              href={contact.whatsapp_url}
+              label={contact.whatsapp_label}
+              icon="whatsapp"
+              variant="primary"
+              external
+            />
+            <!-- 2. Phone — secondary -->
+            <CTAButton
+              href={contact.phone_href}
+              label={`${contact.phone_label} · ${contact.phone_display}`}
+              icon="phone"
+              variant="secondary"
+            />
+            <!-- 3. Email — tertiary -->
+            <CTAButton
+              href={contact.email_href}
+              label={contact.email_display}
+              icon="mail"
+              variant="tertiary"
+            />
+          </div>
+
+          <!-- Secondary social links -->
+          <div class="contact-social">
+            <a href={social.facebook_url} target="_blank" rel="noopener" class="link-underline social-link">
+              {social.facebook_label}
+            </a>
+            <span aria-hidden="true"> · </span>
+            <a href={social.biosynthesis_url} target="_blank" rel="noopener" class="link-underline social-link">
+              {social.biosynthesis_label}
+            </a>
+          </div>
+        </GlassCard>
+      </ScrollReveal>
+    </section>
+
+    <section class="contact-location container" aria-labelledby="location-heading">
+      <ScrollReveal>
+        <GlassCard>
+          <h2 id="location-heading" class="location-title">{page.location.title}</h2>
+          <p class="location-address">{page.location.address}</p>
+          <p class="location-note">{page.location.note}</p>
+        </GlassCard>
+      </ScrollReveal>
+    </section>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .contact-hero {
+    padding-block-start: clamp(6rem, 15vh, 10rem);
+    padding-block-end: var(--space-block);
+  }
+  .contact-title {
+    font-size: var(--fs-display);
+    font-weight: 300;
+    letter-spacing: var(--ls-display);
+    color: var(--color-ink);
+    margin-block: 0.5rem 1rem;
+  }
+  .contact-intro {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    max-inline-size: 55ch;
+  }
+
+  .contact-actions {
+    padding-block: var(--space-block);
+    max-inline-size: 480px;
+  }
+
+  .contact-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .contact-social {
+    margin-block-start: 1.5rem;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+  }
+
+  .social-link { color: var(--color-ink-soft); }
+
+  .contact-location {
+    padding-block: var(--space-block);
+    max-inline-size: 480px;
+  }
+
+  .location-title {
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--color-ink);
+    margin-block-end: 0.75rem;
+  }
+
+  .location-address {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    margin-block-end: 0.5rem;
+  }
+
+  .location-note {
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+  }
+</style>

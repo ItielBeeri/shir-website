@@ -1,0 +1,137 @@
+---
+/**
+ * Hero — home page hero section (100vh).
+ * Title letter-stagger on load, scroll-cue, subtle card fade on scroll.
+ */
+interface Props {
+  title: string;
+  tagline: string;
+  descriptor: string;
+  scrollCue: string;
+}
+
+const { title, tagline, descriptor, scrollCue } = Astro.props;
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-card glass">
+    <p class="hero-descriptor">{descriptor}</p>
+    <h1 id="hero-title" class="hero-title" aria-label={title}>
+      {title.split('').map((char, i) => (
+        <span class="hero-char" style={`animation-delay: ${300 + i * 60}ms`} aria-hidden="true">
+          {char === ' ' ? '\u00A0' : char}
+        </span>
+      ))}
+    </h1>
+    <p class="hero-tagline">{tagline}</p>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="scroll-cue" aria-hidden="true">
+    <span class="scroll-cue__line"></span>
+    <span class="scroll-cue__label">{scrollCue}</span>
+  </div>
+</section>
+
+<style>
+  .hero {
+    block-size: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding-block: 0;
+  }
+
+  .hero-card {
+    text-align: center;
+    max-inline-size: 680px;
+    padding: clamp(2.5rem, 6vw, 4rem) clamp(2rem, 8vw, 5rem);
+  }
+
+  .hero-descriptor {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    letter-spacing: 0.12em;
+    font-weight: 300;
+    margin-block-end: 1rem;
+    opacity: 0;
+    animation: fade-up 600ms var(--ease-soft) 900ms forwards;
+  }
+
+  .hero-title {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-display);
+    font-weight: 400;
+    color: var(--color-ink);
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    margin-block-end: 1.25rem;
+  }
+
+  .hero-char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: char-in 500ms var(--ease-soft) forwards;
+  }
+
+  .hero-tagline {
+    font-size: clamp(0.9rem, 1.2vw + 0.5rem, 1.1rem);
+    font-weight: 300;
+    color: var(--color-ink-soft);
+    letter-spacing: 0.06em;
+    opacity: 0;
+    animation: fade-up 600ms var(--ease-soft) 900ms forwards;
+  }
+
+  /* Scroll cue */
+  .scroll-cue {
+    position: absolute;
+    inset-block-end: 2.5rem;
+    inset-inline-start: 50%;
+    transform: translateX(calc(var(--dir-x) * -50%));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fade-up 600ms var(--ease-soft) 1400ms forwards;
+  }
+
+  .scroll-cue__line {
+    inline-size: 1px;
+    block-size: 40px;
+    background: var(--color-ink-soft);
+    animation: pulse-down 1.8s ease-in-out infinite;
+  }
+
+  .scroll-cue__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    color: var(--color-mist);
+    writing-mode: vertical-rl;
+  }
+
+  @keyframes char-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-up {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-down {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50%       { transform: scaleY(0.6); opacity: 0.4; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-char, .hero-descriptor, .hero-tagline, .scroll-cue {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+    .scroll-cue__line { animation: none; }
+  }
+</style>

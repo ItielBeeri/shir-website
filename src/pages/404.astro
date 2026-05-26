@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import GlassCard from '../components/ui/GlassCard.astro';
+import CTAButton from '../components/ui/CTAButton.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const pageSchema = z.object({
+  page: z.object({
+    title: z.string(),
+    poetic: z.string(),
+    home_label: z.string(),
+    home_href: z.string(),
+    contact_label: z.string(),
+    contact_href: z.string(),
+  }),
+});
+
+const { page } = loadToml('pages/404.toml', pageSchema);
+---
+
+<BaseLayout
+  title="הדף לא נמצא | שיר אמיתי"
+  description="הדף המבוקש אינו קיים."
+  noindex
+>
+  <Header />
+
+  <main id="main" class="not-found-main">
+    <div class="container not-found-container">
+      <GlassCard>
+        <h1 class="not-found-title">{page.title}</h1>
+        <p class="not-found-poetic">{page.poetic}</p>
+        <div class="not-found-links">
+          <CTAButton href={page.home_href} label={page.home_label} variant="primary" />
+          <CTAButton href={page.contact_href} label={page.contact_label} variant="secondary" />
+        </div>
+      </GlassCard>
+    </div>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .not-found-main {
+    min-block-size: 100svh;
+    display: flex;
+    align-items: center;
+  }
+
+  .not-found-container {
+    max-inline-size: 560px;
+    margin-inline: auto;
+  }
+
+  .not-found-title {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-display);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block-end: 1.5rem;
+  }
+
+  .not-found-poetic {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    line-height: var(--lh-body);
+    margin-block-end: 2.5rem;
+  }
+
+  .not-found-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+</style>

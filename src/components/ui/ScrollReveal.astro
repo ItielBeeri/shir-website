@@ -1,0 +1,22 @@
+---
+/**
+ * ScrollReveal — wraps children with reveal-on-scroll behavior.
+ * Uses IntersectionObserver (no library). CSS handles the animation.
+ * data-stagger prop cascades children.
+ */
+interface Props {
+  /** Stagger delay in ms between children */
+  stagger?: number;
+  class?: string;
+}
+
+const { stagger, class: className } = Astro.props;
+---
+
+<div
+  class:list={['scroll-reveal', className]}
+  data-reveal
+  data-stagger={stagger}
+>
+  <slot />
+</div>

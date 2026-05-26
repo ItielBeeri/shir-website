@@ -1,0 +1,9 @@
+---
+import { getEntry } from 'astro:content';
+import TherapyPage from '../components/therapy/TherapyPage.astro';
+
+const entry = await getEntry('therapies', 'shiatsu');
+if (!entry) throw new Error('shiatsu entry not found');
+---
+
+<TherapyPage entry={entry} />

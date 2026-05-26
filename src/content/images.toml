@@ -1,0 +1,26 @@
+# מאגר תמונות מרכזי — כל תמונה מזוהה על ידי מזהה ייחודי
+# כדי להוסיף תמונה: הוסף ערך חדש עם מזהה, נתיב, ותיאור עברי
+
+[placeholder-portrait]
+file = "/img/content/placeholder-portrait.jpg"
+alt  = "תמונה של שיר אמיתי"
+
+[placeholder-psychotherapy]
+file = "/img/content/placeholder-psychotherapy.jpg"
+alt  = "איור אבסטרקטי המרמז על שיחה וחיבור נפשי"
+
+[placeholder-shiatsu]
+file = "/img/content/placeholder-shiatsu.jpg"
+alt  = "איור אבסטרקטי המרמז על מגע מרפא וגוף"
+
+[placeholder-voice]
+file = "/img/content/placeholder-voice.jpg"
+alt  = "איור אבסטרקטי המרמז על קול ונשימה"
+
+[placeholder-blog-cover]
+file = "/img/content/placeholder-blog.jpg"
+alt  = "תמונת כיסוי לפוסט בבלוג"
+
+[background-main]
+file = "/img/bg/background.jpg"
+alt  = ""

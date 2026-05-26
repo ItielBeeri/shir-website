@@ -1,0 +1,73 @@
+---
+/**
+ * BreathDivider — animated SVG sine wave between sections.
+ * Oscillates on a 12s loop. Color driven by --accent.
+ */
+interface Props {
+  /** Flip vertically */
+  flip?: boolean;
+  class?: string;
+}
+
+const { flip = false, class: className } = Astro.props;
+---
+
+<div
+  class:list={['breath-divider', flip && 'breath-divider--flip', className]}
+  aria-hidden="true"
+>
+  <svg
+    viewBox="0 0 1440 80"
+    preserveAspectRatio="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="breath-wave"
+  >
+    <path
+      class="wave-path"
+      d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z"
+      fill="none"
+      stroke="var(--accent, var(--color-teal))"
+      stroke-width="1.5"
+      stroke-linecap="round"
+    />
+    <path
+      class="wave-fill"
+      d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z"
+      fill="var(--accent, var(--color-teal))"
+      opacity="0.06"
+    />
+  </svg>
+</div>
+
+<style>
+  .breath-divider {
+    inline-size: 100%;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .breath-divider--flip {
+    transform: scaleY(-1);
+  }
+
+  .breath-wave {
+    inline-size: 100%;
+    block-size: auto;
+    display: block;
+  }
+
+  .wave-path {
+    animation: wave-drift 12s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  @keyframes wave-drift {
+    0%   { d: path("M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z"); }
+    50%  { d: path("M0,50 C180,10 360,70 540,30 C720,10 900,70 1080,30 C1260,10 1380,60 1440,30 L1440,80 L0,80 Z"); }
+    100% { d: path("M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z"); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wave-path { animation: none; }
+  }
+</style>

@@ -1,0 +1,9 @@
+---
+import { getEntry } from 'astro:content';
+import TherapyPage from '../components/therapy/TherapyPage.astro';
+
+const entry = await getEntry('therapies', 'voice');
+if (!entry) throw new Error('voice entry not found');
+---
+
+<TherapyPage entry={entry} />

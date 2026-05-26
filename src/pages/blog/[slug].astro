@@ -1,0 +1,189 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import Header from '../../components/layout/Header.astro';
+import Footer from '../../components/layout/Footer.astro';
+import ContactPill from '../../components/layout/ContactPill.astro';
+import GlassCard from '../../components/ui/GlassCard.astro';
+import SoftImage from '../../components/ui/SoftImage.astro';
+import BreathDivider from '../../components/ui/BreathDivider.astro';
+import CTAButton from '../../components/ui/CTAButton.astro';
+import { getCollection, render } from 'astro:content';
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
+import { blogPostingSchema, jsonLd } from '../../lib/seo';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', (p) => !p.data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props:  { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url: z.string(), whatsapp_label: z.string(),
+  }),
+});
+const { contact } = loadToml('site.toml', siteSchema);
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
+---
+
+<BaseLayout
+  title={`${post.data.title} | שיר אמיתי`}
+  description={post.data.excerpt}
+>
+  <Fragment slot="head">
+    <Fragment set:html={jsonLd(blogPostingSchema({
+      title: post.data.title,
+      excerpt: post.data.excerpt,
+      date: post.data.date,
+      slug: post.slug,
+    }))} />
+  </Fragment>
+
+  <Header />
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="post-hero" aria-labelledby="post-h1">
+      {post.data.cover && (
+        <div class="post-cover">
+          <SoftImage id={post.data.cover} aspect="21/9" loading="eager" />
+        </div>
+      )}
+      <div class="container">
+        <GlassCard>
+          <div class="post-meta">
+            <time class="post-date" datetime={post.data.date.toISOString()}>
+              {formatDate(post.data.date)}
+            </time>
+            <span class="post-reading-time">{readingTime} דקות קריאה</span>
+            {post.data.tags.length > 0 && (
+              <div class="post-tags">
+                {post.data.tags.map((t) => (
+                  <span class="tag-chip">{t}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <h1 id="post-h1" class="post-title">{post.data.title}</h1>
+        </GlassCard>
+      </div>
+    </section>
+
+    <!-- Reading column -->
+    <section class="post-body container" aria-label="גוף הכתבה">
+      <div class="prose">
+        <Content />
+      </div>
+    </section>
+
+    <!-- End CTA -->
+    <section class="post-cta container" aria-label="יצירת קשר">
+      <GlassCard>
+        <p class="post-cta-text">רוצים לדעת עוד? מוזמנים לפנות.</p>
+        <CTAButton
+          href={contact.whatsapp_url}
+          label={contact.whatsapp_label}
+          icon="whatsapp"
+          variant="primary"
+          external
+        />
+      </GlassCard>
+    </section>
+
+    <!-- Back to blog -->
+    <div class="container post-back">
+      <a href="/blog" class="link-underline">← חזרה לבלוג</a>
+    </div>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .post-hero { padding-block-start: clamp(4rem, 10vh, 7rem); padding-block-end: var(--space-block); }
+  .post-cover { margin-block-end: -2rem; }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin-block-end: 1rem;
+  }
+
+  .post-date, .post-reading-time {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+  }
+
+  .post-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .tag-chip { font-size: 0.8rem; padding: 0.15rem 0.6rem; border-radius: var(--radius-pill); background: var(--color-glass); border: 1px solid var(--color-glass-stroke); color: var(--color-ink-soft); }
+
+  .post-title {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-h1);
+    font-weight: 400;
+    color: var(--color-ink);
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+
+  .post-body {
+    padding-block: var(--space-section);
+    max-inline-size: 72ch;
+  }
+
+  /* Drop cap */
+  .prose :global(p:first-of-type::first-letter) {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: 3.5rem;
+    font-weight: 500;
+    line-height: 0.8;
+    float: inline-start;
+    margin-inline-end: 0.1em;
+    margin-block-end: 0;
+    color: var(--color-ink);
+  }
+
+  .prose {
+    font-size: var(--fs-body);
+    line-height: 1.85;
+    color: var(--color-ink-soft);
+  }
+  .prose :global(h2) { font-size: var(--fs-h2); font-weight: 300; color: var(--color-ink); margin-block: 2.5rem 1rem; }
+  .prose :global(h3) { font-size: var(--fs-h3); font-weight: 400; color: var(--color-ink); margin-block: 2rem 0.75rem; }
+  .prose :global(p) { margin-block-end: 1.25rem; }
+  .prose :global(blockquote) { font-family: 'Frank Ruhl Libre', serif; font-size: var(--fs-h3); font-weight: 300; border-inline-start: 3px solid var(--accent, var(--color-teal)); padding-inline-start: 1.25rem; color: var(--color-ink-soft); margin-block: 2rem; }
+  .prose :global(ol), .prose :global(ul) { padding-inline-start: 1.5rem; margin-block-end: 1rem; }
+  .prose :global(li) { margin-block-end: 0.4rem; }
+
+  .post-cta {
+    padding-block: var(--space-block);
+    max-inline-size: 480px;
+  }
+
+  .post-cta-text {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    margin-block-end: 1.25rem;
+  }
+
+  .post-back {
+    padding-block-end: var(--space-section);
+    font-size: var(--fs-small);
+  }
+</style>

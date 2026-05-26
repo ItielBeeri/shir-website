@@ -345,8 +345,8 @@ Each subpage tints the background with a soft theme color overlay (`mix-blend-mo
 - Sticky, transparent, ~72px tall on desktop, ~56px on mobile.
 - Becomes a faint frosted-glass bar on scroll (after 80px) — `backdrop-filter: blur(14px)` + `background: rgba(253,250,244,0.55)`.
 - **Start side (right, in RTL)**: Logo wordmark — **"שיר אמיתי"** set in Frank Ruhl Libre 400 at ~1.6rem with subtle letter-spacing. Single line. Links to `/`. No Latin transliteration.
-- **End side (left, in RTL)**: Nav links: `אודות · טיפולים ▾ · בלוג · יצירת קשר`
-  - "טיפולים" opens a soft dropdown panel (frosted card) listing the three modalities, each with its accent dot.
+- **End side (left, in RTL)**: Nav links: `אודות · פסיכותרפיה גופנית · שיאצו · פתיחת קול · בלוג · יצירת קשר`
+  - All three modality pages appear as direct top-level links — no "טיפולים" grouping label and no dropdown. Each link navigates directly to its therapy page.
 - **Mobile**: hamburger → full-screen drawer that slides in from the right with staggered link reveal. Background is a frosted wash of the current page tint.
 
 ### 5.3 Footer

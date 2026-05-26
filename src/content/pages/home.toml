@@ -1,0 +1,27 @@
+# דף הבית — ערכי רק טקסטים בין הגרשיים
+
+[hero]
+title      = "שיר אמיתי"
+tagline    = "פסיכותרפיה גופנית · שיאצו · פתיחת קול"
+descriptor = "מרחב לטיפול בגוף, נפש וקול"
+scroll_cue = "גלילה"
+
+[intro]
+portrait   = "placeholder-portrait"
+cta_label  = "המשך לקרוא עליי"
+cta_href   = "/about"
+# PLACEHOLDER: TXT_HOME_INTRO
+paragraph  = """
+כאן יופיע טקסט ההקדמה של שיר.
+כמה שורות חמות וקצרות על הגישה הטיפולית ועל המרחב שנוצר.
+"""
+
+[teasers.blog]
+label     = "מהבלוג"
+cta_label = "לכל הכתבות"
+cta_href  = "/blog"
+
+[closing]
+enabled = true
+# PLACEHOLDER: TXT_HOME_CLOSING
+line    = "נשימה אחת. כאן. עכשיו."

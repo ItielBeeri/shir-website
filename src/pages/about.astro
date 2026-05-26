@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import GlassCard from '../components/ui/GlassCard.astro';
+import SoftImage from '../components/ui/SoftImage.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import ScrollReveal from '../components/ui/ScrollReveal.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const aboutSchema = z.object({
+  hero:      z.object({ kicker: z.string(), title: z.string(), intro: z.string() }),
+  portrait:  z.object({ image_id: z.string(), opening: z.string() }),
+  story:     z.object({ blocks: z.array(z.string()) }),
+  training:  z.object({ title: z.string(), items: z.array(z.string()) }),
+  philosophy: z.object({ title: z.string(), quote: z.string() }),
+});
+
+const about = loadToml('pages/about.toml', aboutSchema);
+---
+
+<BaseLayout
+  title="אודות | שיר אמיתי"
+  description={about.hero.intro}
+>
+  <Header />
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="about-hero container" aria-labelledby="about-h1">
+      <div class="about-hero__content" data-reveal>
+        <p class="text-kicker">{about.hero.kicker}</p>
+        <h1 id="about-h1" class="about-main-title">{about.hero.title}</h1>
+        <p class="about-intro">{about.hero.intro}</p>
+      </div>
+    </section>
+
+    <!-- Portrait + opening -->
+    <section class="about-portrait-section container" aria-label="הקדמה">
+      <div class="about-portrait-grid">
+        <div data-reveal>
+          <SoftImage id={about.portrait.image_id} aspect="4/5" />
+        </div>
+        <div data-reveal>
+          <GlassCard>
+            <p class="about-opening">{about.portrait.opening}</p>
+          </GlassCard>
+        </div>
+      </div>
+    </section>
+
+    <!-- Story -->
+    <section class="about-story container" aria-labelledby="story-heading">
+      <SectionHeading kicker="הסיפור שלי" title="המסע" id="story-heading" />
+      <div class="story-blocks">
+        {about.story.blocks.map((block) => (
+          <ScrollReveal>
+            <GlassCard>
+              <p>{block}</p>
+            </GlassCard>
+          </ScrollReveal>
+        ))}
+      </div>
+    </section>
+
+    <!-- Training -->
+    <section class="about-training container" aria-labelledby="training-heading">
+      <SectionHeading kicker="רקע מקצועי" title={about.training.title} id="training-heading" />
+      <GlassCard>
+        <ul class="training-list">
+          {about.training.items.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </GlassCard>
+    </section>
+
+    <!-- Philosophy -->
+    <section class="about-philosophy container" aria-labelledby="philosophy-heading">
+      <ScrollReveal>
+        <blockquote class="philosophy-quote">
+          {about.philosophy.quote}
+        </blockquote>
+      </ScrollReveal>
+    </section>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .about-hero {
+    padding-block-start: clamp(6rem, 15vh, 10rem);
+    padding-block-end: var(--space-section);
+  }
+
+  .about-main-title {
+    font-size: var(--fs-display);
+    font-weight: 300;
+    letter-spacing: var(--ls-display);
+    color: var(--color-ink);
+    margin-block: 0.5rem 1rem;
+  }
+
+  .about-intro {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    max-inline-size: 55ch;
+  }
+
+  .about-portrait-section { padding-block: var(--space-section); }
+
+  .about-portrait-grid {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .about-opening {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    white-space: pre-line;
+  }
+
+  .about-story { padding-block: var(--space-section); }
+  .story-blocks { display: flex; flex-direction: column; gap: 1.5rem; margin-block-start: var(--space-block); }
+
+  .about-training { padding-block: var(--space-section); }
+
+  .training-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0;
+  }
+
+  .training-list li {
+    padding-inline-start: 1.25rem;
+    position: relative;
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+  }
+
+  .training-list li::before {
+    content: '·';
+    position: absolute;
+    inset-inline-start: 0;
+    color: var(--accent, var(--color-teal));
+    font-weight: 700;
+  }
+
+  .about-philosophy {
+    padding-block: var(--space-section);
+    display: flex;
+    justify-content: center;
+  }
+
+  .philosophy-quote {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: var(--fs-h1);
+    font-weight: 300;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+    max-inline-size: 60ch;
+    padding-inline-start: 2rem;
+    border-inline-start: 3px solid var(--accent, var(--color-teal));
+    white-space: pre-line;
+  }
+
+  @media (max-width: 767px) {
+    .about-portrait-grid { grid-template-columns: 1fr; }
+  }
+</style>

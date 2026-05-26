@@ -1,0 +1,13 @@
+# דף יצירת קשר — ערכי רק טקסטים בין הגרשיים
+
+[hero]
+kicker = "מוזמנים לשיחה"
+title  = "יצירת קשר"
+# PLACEHOLDER: TXT_CONTACT_INTRO
+intro  = "אשמח לשמוע ממך ולמצוא יחד את הדרך המתאימה."
+
+[location]
+title   = "מיקום"
+# PLACEHOLDER: TXT_CONTACT_LOCATION
+address = "פרדס חנה | גם בזום"
+note    = "ניתן לתאם פגישת היכרות ללא התחייבות."

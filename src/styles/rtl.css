@@ -1,0 +1,77 @@
+/* ============================================================
+   RTL — RTL-specific overrides and logical property helpers
+   ============================================================ */
+
+/* Direction multiplier for transforms */
+[dir="rtl"] {
+  --dir-x: -1;
+}
+
+[dir="ltr"] {
+  --dir-x: 1;
+}
+
+/* Underline animation draws from inline-start (right in RTL) */
+.link-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -2px;
+  inset-inline-start: 0;
+  inline-size: 0;
+  block-size: 1px;
+  background: currentColor;
+  transition: inline-size var(--dur-base) var(--ease-soft);
+}
+
+.link-underline:hover::after,
+.link-underline:focus-visible::after {
+  inline-size: 100%;
+}
+
+/* Mobile nav drawer slides in from inline-end (right in RTL) */
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  transform: translateX(calc(var(--dir-x) * -100%));
+  transition: transform var(--dur-base) var(--ease-soft);
+}
+
+.drawer[data-open="true"] {
+  transform: translateX(0);
+}
+
+/* Reveal animations start from inline-start (right in RTL) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity var(--dur-slow) var(--ease-soft),
+    transform var(--dur-slow) var(--ease-soft);
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reduced motion: collapse to opacity only */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transform: none;
+    transition: opacity 200ms ease;
+  }
+
+  .drawer {
+    transition: none;
+  }
+
+  .link-underline::after {
+    transition: none;
+  }
+}

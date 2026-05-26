@@ -1,0 +1,118 @@
+---
+/**
+ * TherapyTeaser — one modality card on the home triptych.
+ * Full-viewport section with alternating image/text layout.
+ */
+import GlassCard from '../ui/GlassCard.astro';
+import SoftImage from '../ui/SoftImage.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'therapies'>;
+  /** Alternate layout (image on left) */
+  flip?: boolean;
+}
+
+const { entry, flip = false } = Astro.props;
+const { title, kicker, accent, hero_image, summary } = entry.data;
+const slug = entry.slug;
+---
+
+<section
+  class:list={['therapy-teaser', flip && 'therapy-teaser--flip']}
+  data-theme={accent}
+  aria-labelledby={`therapy-title-${slug}`}
+>
+  <div class="accent-overlay" aria-hidden="true"></div>
+
+  <a href={`/${slug}`} class="teaser-link" tabindex="-1" aria-hidden="true"></a>
+
+  <div class="teaser-inner container">
+    <!-- Image -->
+    <div class="teaser-image" data-parallax data-speed="0.92" data-reveal>
+      <SoftImage id={hero_image} aspect="4/3" tint />
+    </div>
+
+    <!-- Text -->
+    <div class="teaser-text" data-reveal>
+      <GlassCard hover>
+        <p class="teaser-kicker">{kicker}</p>
+        <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
+        <p class="teaser-summary">{summary}</p>
+        <a href={`/${slug}`} class="teaser-cta link-underline">
+          להמשך קריאה ←
+        </a>
+      </GlassCard>
+    </div>
+  </div>
+</section>
+
+<style>
+  .therapy-teaser {
+    position: relative;
+    min-block-size: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .teaser-link {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .teaser-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Flip: swap columns */
+  .therapy-teaser--flip .teaser-inner {
+    direction: ltr; /* temporarily flip direction for visual mirror */
+  }
+  .therapy-teaser--flip .teaser-inner > * {
+    direction: rtl; /* restore RTL for content inside */
+  }
+
+  .teaser-kicker {
+    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--color-ink-soft);
+    margin-block-end: 0.5rem;
+  }
+
+  .teaser-title {
+    font-size: var(--fs-h1);
+    font-weight: 300;
+    color: var(--color-ink);
+    letter-spacing: var(--ls-display);
+    line-height: var(--lh-display);
+    margin-block-end: 1rem;
+  }
+
+  .teaser-summary {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    margin-block-end: 1.5rem;
+  }
+
+  .teaser-cta {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+  }
+
+  @media (max-width: 767px) {
+    .teaser-inner {
+      grid-template-columns: 1fr;
+      direction: rtl !important;
+    }
+    .teaser-inner > * { direction: rtl !important; }
+  }
+</style>
