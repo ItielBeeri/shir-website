@@ -7,7 +7,7 @@ tagline = "פסיכותרפיה גופנית · שיאצו · פתיחת קול"
 
 [contact]
 whatsapp_url   = "https://wa.me/972525201162"
-whatsapp_label = "וואטסאפ"
+whatsapp_label = "WhatsApp"
 phone_href     = "tel:+972525201162"
 phone_display  = "052-520-1162"
 phone_label    = "טלפון"
@@ -19,11 +19,11 @@ email_label    = "אימייל"
 facebook_url       = "https://www.facebook.com/shir.amitai"
 facebook_label     = "פייסבוק"
 biosynthesis_url   = "https://biosynthesis.co.il/%D7%A9%D7%99%D7%A8-%D7%90%D7%9E%D7%99%D7%AA%D7%99/"
-biosynthesis_label = "עמוד באתר בית הספר לפסיכותרפיה בגישת הביוסינתזה"
+biosynthesis_label = "בית הספר לפסיכותרפיה בגישת הביוסינתזה"
 
 [footer]
 copyright_name = "שיר אמיתי"
 rights         = "כל הזכויות שמורות"
 accessibility_label = "הצהרת נגישות"
 accessibility_href  = "/accessibility"
-location       = "פרדס חנה-כרכור | זום"
+location       = "פרדס חנה | זום"

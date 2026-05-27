@@ -12,7 +12,6 @@ function initParallax() {
   if (!layers.length) return;
 
   const update = () => {
-    const scrollY = window.scrollY;
     layers.forEach((layer) => {
       const speed = parseFloat(layer.dataset.speed ?? '0.5');
       const rect = layer.getBoundingClientRect();
@@ -35,4 +34,3 @@ function initParallax() {
 }
 
 initParallax();
-document.addEventListener('astro:page-load', initParallax);

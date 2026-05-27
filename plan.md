@@ -56,11 +56,11 @@ After examining `idogilat.com` and `daoism.co.il` directly: both are conventiona
 - **Hebrew accessibility toolbar** — many Israeli sites include a third-party widget (e.g., `nagich.co.il`, `userway`). It is **not legally mandatory** for personal/professional practice sites, and adding a third-party widget would conflict with our perf and accessibility-by-design goals (those widgets are often non-compliant themselves). We will instead build accessibility natively (§10) and link to a written accessibility statement in the footer, which is the more modern, conformant approach. This is a deliberate divergence from the reference.
 
 ### 1.3 Core design principles
-1. **The watercolor never leaves you.** A washed background layer is always present at low opacity, moving slower than content (parallax). It is the "field" all content floats inside.
-2. **Type breathes.** Generous line-height (1.7+), wide letter-spacing on display, light weights only.
-3. **Soft edges everywhere.** No hard rectangles. Cards are frosted glass with `border-radius: 24-32px`. Images use a soft watercolor mask with feathered edges.
+1. **The watercolor never leaves you.** A washed background layer is always present (fixed position), never scrolls away. It is the "field" all content floats inside.
+2. **Type breathes.** Generous line-height (1.7+), extreme weight contrast (100↔700), airy spacing.
+3. **Open, not contained.** Content floats directly on the watercolor — no enclosing cards or boxes for text. Images use a soft watercolor mask. The design language is editorial and spacious, not "card-based."
 4. **Slow.** Default transition duration is `700–1200ms` with `cubic-bezier(0.22, 1, 0.36, 1)` ("ease-out-expo"). Nothing snaps.
-5. **Hebrew-only, RTL-native.** All layouts mirror correctly (logical CSS properties). No Latin accent script. Dual typographic voice is achieved with two Hebrew fonts (sans + serif).
+5. **Hebrew-only, RTL-native.** All layouts mirror correctly (logical CSS properties). No Latin accent script. Visual hierarchy is achieved via weight contrast within a single font family (Heebo).
 
 ---
 
@@ -93,13 +93,18 @@ Each of the three modalities has its own accent color:
 
 ### 2.2 Typography
 
-The site is Hebrew-only. We use **two Hebrew typefaces** — one sans-serif workhorse and one classical serif — to achieve the dual-voice rhythm the placeholder page achieved with Latin Cormorant. Both are on Google Fonts, both have permissive licenses (OFL), both have full Hebrew glyph coverage including niqqud.
+The site is Hebrew-only. We use **one Hebrew typeface** — a modern sans-serif with an exceptionally wide weight range — to achieve visual hierarchy through weight contrast alone.
 
-- **Primary (sans, body & display)**: `Assistant` — weights 200, 300, 400, 600. The site's main voice. Modern, calm, neutral. Already in use on the placeholder page.
-- **Accent (serif, display & quotes)**: `Frank Ruhl Libre` — weights 300, 400, 500, 700. A literary Hebrew serif with classical proportions. Plays the "second voice" role: large display titles, kickers, pull-quotes, blog post titles, footer wordmark, the closing literary "breath" line.
-- **Fallback chain**: `'Assistant', 'Arial Hebrew', system-ui, sans-serif` for sans; `'Frank Ruhl Libre', 'David Libre', Georgia, serif` for the accent serif.
+- **Primary (all uses)**: `Heebo` — weights 100, 200, 300, 400, 500, 700. A clean, modern Hebrew sans-serif with excellent readability at all sizes. The ultra-thin weight (100) creates striking display text; 300–400 serves body; 500–700 for emphasis. Already optimized for screen rendering.
+- **Fallback chain**: `'Heebo', 'Arial Hebrew', system-ui, sans-serif`.
 
-Italics are avoided — Hebrew has no native italic form, and oblique Hebrew text reads poorly. Emphasis is achieved via **weight contrast** (300 ↔ 600), **font switch** (sans ↔ serif), **size**, and **letter-spacing**, never via skew or oblique transforms.
+**Design contrast is achieved via weight, not font-family switching:**
+- Display/titles: weight 100–200 (ultra-thin, elegant, airy)
+- Kickers/labels: weight 300, small size, letter-spacing
+- Body: weight 400
+- Emphasis/buttons: weight 500–700
+
+Italics are avoided — Hebrew has no native italic form. Emphasis is achieved via **weight contrast** (100 ↔ 700), **size**, and **letter-spacing**, never via skew or oblique transforms.
 
 Scale (fluid, `clamp()`, identical to before):
 ```
@@ -115,7 +120,7 @@ Scale (fluid, `clamp()`, identical to before):
 --ls-caps      : 0.12em;  /* Hebrew doesn't have real small-caps; reserve this for the rare Latin in URLs */
 ```
 
-Font loading: both families loaded via `<link rel="preconnect">` to `fonts.gstatic.com` and a single `<link rel="stylesheet">` request with `display=swap`. Hebrew-only subset requested (`subset=hebrew`) to keep payload tiny — ~20-30 KB per family vs. ~100+ KB unsubsetted.
+Font loading: Heebo loaded via `<link rel="preconnect">` to `fonts.gstatic.com` and a single `<link rel="stylesheet">` request with `display=swap`. Hebrew-only subset requested (`subset=hebrew`) to keep payload tiny — ~20-30 KB.
 
 ### 2.3 Spacing & rhythm
 8px base grid. Sections use vertical rhythm based on viewport height for poetic pacing:
@@ -334,7 +339,7 @@ shir-website/
 ### 5.1 BackgroundField (the soul of the site)
 A fixed layer behind all content, present on every page.
 
-- **Layer 1**: the existing `background.jpg` (or a rotated/recolored variant per page) set to `position: fixed`, `object-fit: cover`, with a `transform: scale(1.05)` and very subtle parallax (translates ~6vh slower than scroll).
+- **Layer 1**: the existing `background.jpg` set to `position: fixed`, `object-fit: cover`, with a slight `transform: scale(1.02)` for crop safety. No scroll-based translateY — the background stays fixed and never exposes white gaps.
 - **Layer 2**: an SVG noise/grain overlay at ~4% opacity for "paper" feel.
 - **Layer 3**: 2–3 soft `radial-gradient` blobs that drift extremely slowly via CSS `@keyframes` (60–90s cycle) — adds living motion even when user is idle.
 - **Layer 4 (optional)**: page-specific accent — e.g., a single feathered watercolor leaf SVG in a corner, theme-colored per page.
@@ -439,12 +444,12 @@ The watercolor background stays *fixed*; content scrolls *above* it as a series 
 #### Sections (top → bottom):
 
 **A. Hero (100vh)**
-- Centered glass card (similar to current placeholder, but lighter — less frosted).
-- Display title **"שיר אמיתי"** set in Frank Ruhl Libre — fades in letter-by-letter (GSAP stagger, 60ms each). No Latin subtitle.
-- A small Assistant 300 line beneath at ~1rem, ~0.12em letter-spacing, in `--color-ink-soft`, holding a single descriptor (placeholder, e.g., "מרחב לטיפול בגוף, נפש וקול").
+- Content floats directly on the watercolor — no enclosing card or box.
+- Display title **"שיר אמיתי"** set in Heebo weight 100 (ultra-thin) — fades in elegantly over 1200ms. No letter stagger.
+- A small Heebo 300 descriptor line above at ~0.92rem, ~0.08em letter-spacing, in `--color-ink-soft`, holding a single descriptor (placeholder, e.g., "מרחב לטיפול בגוף, נפש וקול").
 - Short tagline (placeholder, 1 line, ~10 words): _"פסיכותרפיה גופנית · שיאצו · פתיחת קול"_.
-- Tiny scroll-cue: a thin vertical line that pulses downward, with the word "גלילה" in 0.7rem, letter-spacing 0.18em.
-- On scroll-down: card scales down to 0.95 and fades to 0.4 opacity (so it lingers behind upcoming sections).
+- No scroll-cue element — the open design trusts the user to scroll naturally.
+- On scroll-down: hero content fades to 0.4 opacity and scales to 0.95 via GSAP scrub.
 
 **B. Intro / "מי אני בקצרה" (~120vh)**
 - Two-column layout (RTL): the **start (right) column** holds a `SoftImage` placeholder for **Shir's portrait** (vertical, ~3:4); the **end (left) column** holds the paragraph text in a glass card.
@@ -457,12 +462,12 @@ The watercolor background stays *fixed*; content scrolls *above* it as a series 
 The centerpiece of the home page.
 
 Pattern repeated 3 times (Psychotherapy → Shiatsu → Voice):
-- Full-viewport section. Background tints to the modality's accent.
-- A wide horizontal layout (on desktop): half image, half text card. Alternating sides per modality (image-right, image-left, image-right) for visual rhythm.
+- Full-viewport section. Background tints to the modality's accent at **max 55% opacity** (translucent — the watercolor is always visible through the tint).
+- A wide horizontal layout (on desktop): half image, half text. Alternating sides per modality (image-right, image-left, image-right) for visual rhythm.
 - Image area: `SoftImage` with a watercolor mask + a gentle scale-on-scroll (1.0 → 1.08 over the section's visible window).
-- Text area: GlassCard with:
-  - Hebrew kicker in Frank Ruhl Libre 400, ~0.95rem, `--color-ink-soft` (e.g., "טיפול בשיחה ובגוף")
-  - Hebrew display title in Assistant 300 (e.g., "פסיכותרפיה גופנית")
+- Text area: **open, no enclosing card** — text floats directly on the tinted watercolor:
+  - Hebrew kicker in Heebo 300, ~0.95rem, `--color-ink-soft` (e.g., "טיפול בשיחה ובגוף")
+  - Hebrew display title in Heebo 200 (e.g., "פסיכותרפיה גופנית")
   - Short paragraph (placeholder, 3–5 lines)
   - "להמשך קריאה ←" link styled as an underlined inline link (note: arrow points **left** — the "forward" direction in RTL)
 - The entire card + image group is wrapped in an `<a>` going to the therapy page.
@@ -733,7 +738,7 @@ Every page sets:
 - `<meta name="robots" content="index, follow">`.
 
 ### 11.2 Structured data (JSON-LD)
-- **Sitewide**: `Person` schema for Shir (name "שיר אמיתי", jobTitle in Hebrew, `sameAs`: Facebook + Biosynthesis, `address.addressLocality`: "פרדס חנה-כרכור"). The `contactPoint` array lists channels in the §5.4 priority order: WhatsApp first (`{ "@type": "ContactPoint", "contactType": "WhatsApp", "url": "https://wa.me/972525201162" }`), then telephone, then email. Note: per §0 the `Person.name` is Hebrew-only; no Latin `alternateName` is included.
+- **Sitewide**: `Person` schema for Shir (name "שיר אמיתי", jobTitle in Hebrew, `sameAs`: Facebook + Biosynthesis, `address.addressLocality`: "פרדס חנה"). The `contactPoint` array lists channels in the §5.4 priority order: WhatsApp first (`{ "@type": "ContactPoint", "contactType": "WhatsApp", "url": "https://wa.me/972525201162" }`), then telephone, then email. Note: per §0 the `Person.name` is Hebrew-only; no Latin `alternateName` is included.
 - **Therapy pages**: `Service` schema (provider = Person, serviceType, areaServed).
 - **Home**: `LocalBusiness` (or `HealthAndBeautyBusiness`) with hours-on-request and contact info.
 - **Blog index**: `Blog` schema.

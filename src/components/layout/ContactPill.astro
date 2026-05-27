@@ -3,7 +3,7 @@
  * ContactPill — persistent floating CTA.
  * Position: bottom-inline-start (bottom-right in RTL), 24px from edges.
  * Collapsed: single WhatsApp icon (~52px).
- * Expanded: three buttons — WhatsApp (primary), phone (secondary), email (tertiary).
+ * Expanded on hover/focus: three buttons — WhatsApp (primary), phone (secondary), email (tertiary).
  * Hidden when within 200px of footer.
  */
 import { loadToml } from '../../lib/content';
@@ -31,8 +31,8 @@ const { contact } = loadToml('site.toml', siteSchema);
   role="complementary"
   aria-label="כפתורי יצירת קשר מהירה"
 >
-  <!-- Expanded actions (hidden until expanded) -->
-  <div class="pill-actions" id="pill-actions" aria-hidden="true">
+  <!-- Expanded actions -->
+  <div class="pill-actions" id="pill-actions">
     <!-- 1. WhatsApp — primary (§5.4 order) -->
     <a
       href={contact.whatsapp_url}
@@ -40,7 +40,6 @@ const { contact } = loadToml('site.toml', siteSchema);
       rel="noopener"
       class="pill-btn pill-primary"
       aria-label={`${contact.whatsapp_label} — נפתח בטאב חדש`}
-      tabindex="-1"
     >
       <Icon name="whatsapp" decorative size={22} />
     </a>
@@ -49,7 +48,6 @@ const { contact } = loadToml('site.toml', siteSchema);
       href={contact.phone_href}
       class="pill-btn pill-secondary"
       aria-label={contact.phone_label}
-      tabindex="-1"
     >
       <Icon name="phone" decorative size={20} />
     </a>
@@ -58,173 +56,36 @@ const { contact } = loadToml('site.toml', siteSchema);
       href={`mailto:${contact.email_href.replace('mailto:', '')}`}
       class="pill-btn pill-tertiary"
       aria-label={contact.email_label}
-      tabindex="-1"
     >
       <Icon name="mail" decorative size={18} />
     </a>
   </div>
 
-  <!-- Toggle button — always visible, shows WhatsApp icon -->
-  <button
-    class="pill-toggle"
-    id="pill-toggle"
-    aria-expanded="false"
-    aria-label="פתיחת אפשרויות יצירת קשר — וואטסאפ"
-    aria-controls="pill-actions"
+  <!-- Main trigger — always visible, shows WhatsApp icon -->
+  <a
+    href={contact.whatsapp_url}
+    target="_blank"
+    rel="noopener"
+    class="pill-trigger"
+    aria-label={`${contact.whatsapp_label} — נפתח בטאב חדש`}
   >
-    <Icon name="whatsapp" decorative size={24} class="pill-icon-wa" />
-    <Icon name="close" decorative size={20} class="pill-icon-close" />
-  </button>
+    <svg class="pill-wa-icon" viewBox="0 0 24 24" width="26" height="26" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  </a>
 </div>
 
-<style>
-  .contact-pill {
-    position: fixed;
-    inset-block-end: 24px;
-    inset-inline-start: 24px;   /* inline-start = right in RTL */
-    z-index: 150;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    transition: opacity var(--dur-base) var(--ease-soft), transform var(--dur-base) var(--ease-soft);
-  }
-
-  .contact-pill.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(16px);
-  }
-
-  /* Actions container */
-  .pill-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(12px) scale(0.9);
-    transition:
-      opacity var(--dur-fast) var(--ease-soft),
-      transform var(--dur-fast) var(--ease-soft);
-  }
-
-  .pill-actions.open {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0) scale(1);
-  }
-  .pill-actions.open a { pointer-events: auto; }
-
-  /* Individual pill buttons */
-  .pill-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--color-glass);
-    backdrop-filter: blur(var(--blur-glass));
-    -webkit-backdrop-filter: blur(var(--blur-glass));
-    border: 1px solid var(--color-glass-stroke);
-    box-shadow: var(--shadow-soft);
-    color: var(--color-ink);
-    transition: transform var(--dur-fast) var(--ease-soft), box-shadow var(--dur-fast);
-  }
-
-  .pill-btn:hover { transform: scale(1.1); box-shadow: 0 8px 24px rgba(92,110,101,0.12); }
-
-  .pill-primary  { inline-size: 48px; block-size: 48px; }
-  .pill-secondary { inline-size: 44px; block-size: 44px; }
-  .pill-tertiary  { inline-size: 40px; block-size: 40px; }
-
-  /* Toggle button */
-  .pill-toggle {
-    inline-size: 52px;
-    block-size: 52px;
-    border-radius: 50%;
-    background: var(--color-seafoam);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-ink);
-    box-shadow: 0 4px 20px rgba(92,110,101,0.18);
-    transition: transform var(--dur-fast) var(--ease-soft), background var(--dur-fast);
-    position: relative;
-  }
-
-  .pill-toggle:hover { transform: scale(1.05); background: var(--color-teal); }
-
-  .pill-icon-close {
-    position: absolute;
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.7);
-    transition: opacity var(--dur-fast) var(--ease-soft), transform var(--dur-fast) var(--ease-soft);
-  }
-
-  .pill-toggle[aria-expanded="true"] .pill-icon-wa {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  .pill-toggle[aria-expanded="true"] .pill-icon-close {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
-
-  .pill-icon-wa {
-    transition: opacity var(--dur-fast), transform var(--dur-fast);
-  }
-
-  /* Mobile: bottom-center */
-  @media (max-width: 479px) {
-    .contact-pill {
-      inset-inline-start: 50%;
-      transform: translateX(calc(var(--dir-x) * -50%));
-    }
-    .contact-pill.hidden {
-      transform: translateX(calc(var(--dir-x) * -50%)) translateY(16px);
-    }
-    .pill-primary  { inline-size: 52px; block-size: 52px; }
-    .pill-secondary { inline-size: 48px; block-size: 48px; }
-    .pill-tertiary  { inline-size: 44px; block-size: 44px; }
-    .pill-toggle { inline-size: 56px; block-size: 56px; }
-  }
-</style>
 
 <script>
-  const pill      = document.getElementById('contact-pill');
-  const toggle    = document.getElementById('pill-toggle');
-  const actions   = document.getElementById('pill-actions');
-  const footer    = document.querySelector('footer');
-
-  // Toggle expand/collapse
-  toggle?.addEventListener('click', () => {
-    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    toggle.setAttribute('aria-expanded', String(!expanded));
-    actions?.classList.toggle('open', !expanded);
-    actions?.setAttribute('aria-hidden', String(expanded));
-
-    // Update tabindex on action links
-    actions?.querySelectorAll('a').forEach((a) => {
-      (a as HTMLAnchorElement).tabIndex = expanded ? -1 : 0;
-    });
-  });
-
-  // Keyboard: Esc closes
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      toggle?.setAttribute('aria-expanded', 'false');
-      actions?.classList.remove('open');
-      actions?.setAttribute('aria-hidden', 'true');
-    }
-  });
-
   // Hide pill near footer
-  const observer = new IntersectionObserver(
-    ([entry]) => { pill?.classList.toggle('hidden', entry.isIntersecting); },
-    { rootMargin: '0px 0px -200px 0px' },
-  );
-  if (footer) observer.observe(footer);
+  const pill = document.getElementById('contact-pill');
+  const footer = document.querySelector('footer');
+
+  if (footer && pill) {
+    const observer = new IntersectionObserver(
+      ([entry]) => { pill.classList.toggle('hidden', entry.isIntersecting); },
+      { rootMargin: '200px 0px 0px 0px' },
+    );
+    observer.observe(footer);
+  }
 </script>

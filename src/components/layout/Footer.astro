@@ -139,13 +139,16 @@ const year = new Date().getFullYear();
 
   <!-- Bottom bar -->
   <div class="footer-bottom container" dir="rtl">
-    <span>
-      © <time datetime={String(year)}>{year}</time>
-      {' '}{site.footer.copyright_name} · {site.footer.rights}
-    </span>
-    <a href={site.footer.accessibility_href} class="footer-bottom-link">
-      {site.footer.accessibility_label}
-    </a>
+    <div class="footer-bottom-start">
+      <span>
+        © <time datetime={String(year)}>{year}</time>
+        {' '}{site.footer.copyright_name} · {site.footer.rights}
+      </span>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <a href={site.footer.accessibility_href} class="footer-bottom-link">
+        {site.footer.accessibility_label}
+      </a>
+    </div>
     <!-- Builder credit — the one intentional English string on the site (§5.3.1) -->
     <span class="builder-credit" lang="en" dir="ltr">
       Built by <a
@@ -167,18 +170,19 @@ const year = new Date().getFullYear();
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-block-start: 1px solid var(--color-glass-stroke);
+    box-shadow: 0 -1px 0 rgba(30, 50, 40, 0.08), 0 1px 0 rgba(255, 255, 255, 0.5);
     margin-block-start: var(--space-section);
   }
 
   /* Large transparent wordmark */
   .footer-wordmark {
     text-align: center;
-    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: clamp(3rem, 10vw, 8rem);
-    font-weight: 300;
+    font-weight: 100;
     color: var(--color-ink);
-    opacity: 0.08;
-    letter-spacing: 0.05em;
+    opacity: 0.06;
+    letter-spacing: -0.02em;
     line-height: 1;
     pointer-events: none;
     user-select: none;
@@ -249,6 +253,7 @@ const year = new Date().getFullYear();
   .footer-bottom {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: 1rem;
     padding-block-start: 1.5rem;
@@ -257,16 +262,27 @@ const year = new Date().getFullYear();
     color: var(--color-mist);
   }
 
+  .footer-bottom-start {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .footer-sep {
+    color: var(--color-mist);
+    opacity: 0.5;
+  }
+
   .footer-bottom-link {
     color: var(--color-mist);
     transition: color var(--dur-fast);
   }
   .footer-bottom-link:hover { color: var(--color-ink-soft); }
 
-  /* Builder credit (§5.3.1) */
+  /* Builder credit (§5.3.1) — aligned to inline-end (left in RTL) */
   .builder-credit {
-    margin-inline-start: auto;
-    font-size: var(--fs-small);
+    font-size: 0.72rem;
     color: var(--color-mist);
     letter-spacing: 0.04em;
   }

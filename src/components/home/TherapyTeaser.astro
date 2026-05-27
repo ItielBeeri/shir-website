@@ -3,7 +3,6 @@
  * TherapyTeaser — one modality card on the home triptych.
  * Full-viewport section with alternating image/text layout.
  */
-import GlassCard from '../ui/GlassCard.astro';
 import SoftImage from '../ui/SoftImage.astro';
 import type { CollectionEntry } from 'astro:content';
 
@@ -30,19 +29,17 @@ const slug = entry.slug;
   <div class="teaser-inner container">
     <!-- Image -->
     <div class="teaser-image" data-parallax data-speed="0.92" data-reveal>
-      <SoftImage id={hero_image} aspect="4/3" tint />
+      <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${slug}`} />
     </div>
 
     <!-- Text -->
     <div class="teaser-text" data-reveal>
-      <GlassCard hover>
-        <p class="teaser-kicker">{kicker}</p>
-        <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
-        <p class="teaser-summary">{summary}</p>
-        <a href={`/${slug}`} class="teaser-cta link-underline">
-          להמשך קריאה ←
-        </a>
-      </GlassCard>
+      <p class="teaser-kicker">{kicker}</p>
+      <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
+      <p class="teaser-summary">{summary}</p>
+      <a href={`/${slug}`} class="teaser-cta link-underline">
+        להמשך קריאה ←
+      </a>
     </div>
   </div>
 </section>
@@ -54,6 +51,15 @@ const slug = entry.slug;
     display: flex;
     align-items: center;
     overflow: hidden;
+  }
+
+  .accent-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--accent, transparent);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
   }
 
   .teaser-link {
@@ -80,7 +86,7 @@ const slug = entry.slug;
   }
 
   .teaser-kicker {
-    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: 0.95rem;
     font-weight: 400;
     color: var(--color-ink-soft);

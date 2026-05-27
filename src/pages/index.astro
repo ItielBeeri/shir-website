@@ -8,7 +8,6 @@ import IntroBlock from '../components/home/IntroBlock.astro';
 import TherapyTeaser from '../components/home/TherapyTeaser.astro';
 import BlogTeaser from '../components/home/BlogTeaser.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
-import GlassCard from '../components/ui/GlassCard.astro';
 import CTAButton from '../components/ui/CTAButton.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
@@ -44,7 +43,7 @@ const blogPosts = (await getCollection('blog'))
 
 <BaseLayout
   title="שיר אמיתי | פסיכותרפיה גופנית, שיאצו ופתיחת קול"
-  description="שיר אמיתי — מרחב לטיפול בגוף, נפש וקול. פסיכותרפיה גופנית, שיאצו ופתיחת קול בפרדס חנה-כרכור ובזום."
+  description="שיר אמיתי — מרחב לטיפול בגוף, נפש וקול. פסיכותרפיה גופנית, שיאצו ופתיחת קול בפרדס חנה ובזום."
 >
   <Fragment slot="head">
     <Fragment set:html={jsonLd(personSchema())} />
@@ -93,31 +92,29 @@ const blogPosts = (await getCollection('blog'))
       <section class="closing-section container" aria-labelledby="closing-heading">
         <ScrollReveal>
           <p class="closing-line">{home.closing.line}</p>
-          <SectionHeading kicker="מוזמנים לפנות" title="יצירת קשר" center />
-          <GlassCard>
-            <div class="closing-cta">
-              <!-- WhatsApp → Phone → Email (§5.4) -->
-              <CTAButton
-                href={contact.whatsapp_url}
-                label={contact.whatsapp_label}
-                icon="whatsapp"
-                variant="primary"
-                external
-              />
-              <CTAButton
-                href={contact.phone_href}
-                label={`${contact.phone_label} · ${contact.phone_display}`}
-                icon="phone"
-                variant="secondary"
-              />
-              <CTAButton
-                href={contact.email_href}
-                label={contact.email_label}
-                icon="mail"
-                variant="tertiary"
-              />
-            </div>
-          </GlassCard>
+          <SectionHeading title="יצירת קשר" center id="closing-heading" />
+          <div class="closing-cta">
+            <!-- WhatsApp → Phone → Email (§5.4) -->
+            <CTAButton
+              href={contact.whatsapp_url}
+              label={contact.whatsapp_label}
+              icon="whatsapp"
+              variant="primary"
+              external
+            />
+            <CTAButton
+              href={contact.phone_href}
+              label={`${contact.phone_label} · ${contact.phone_display}`}
+              icon="phone"
+              variant="secondary"
+            />
+            <CTAButton
+              href={contact.email_href}
+              label={contact.email_label}
+              icon="mail"
+              variant="tertiary"
+            />
+          </div>
         </ScrollReveal>
       </section>
     )}
@@ -128,30 +125,34 @@ const blogPosts = (await getCollection('blog'))
   <ContactPill />
 </BaseLayout>
 
+<script>
+  import '@/scripts/home-scroll';
+</script>
+
 <style>
   .closing-section {
     padding-block: var(--space-section);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-block);
     text-align: center;
   }
 
   .closing-line {
-    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-h2);
-    font-weight: 300;
-    color: var(--color-ink-soft);
-    opacity: 0.7;
-    letter-spacing: 0.04em;
+    font-weight: 200;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    /* Generous breathing room before the contact block */
+    margin-block-end: clamp(5rem, 12vh, 9rem);
   }
 
   .closing-cta {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding-block: 0.5rem;
+    gap: 1.25rem;
+    padding-block-start: 2rem;
   }
 </style>

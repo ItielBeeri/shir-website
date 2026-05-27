@@ -11,7 +11,7 @@
 }
 
 .font-serif {
-  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
 }
 
 /* Scale helpers */
@@ -47,7 +47,7 @@
 }
 
 .text-kicker {
-  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
   font-size: 0.95rem;
   font-weight: 400;
   color: var(--color-ink-soft);
@@ -70,7 +70,7 @@ em, i {
 
 /* Blockquote — Frank Ruhl Libre large */
 blockquote {
-  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
   font-size: var(--fs-h2);
   font-weight: 300;
   line-height: 1.55;

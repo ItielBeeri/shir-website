@@ -43,7 +43,7 @@ function formatDate(date: Date): string {
           <GlassCard hover>
             {post.data.cover && (
               <div class="blog-tile__cover">
-                <SoftImage id={post.data.cover} aspect="16/9" />
+                <SoftImage id={post.data.cover} aspect="16/9" transitionName={`post-cover-${post.slug}`} />
               </div>
             )}
             <div class="blog-tile__body">
@@ -107,7 +107,7 @@ function formatDate(date: Date): string {
 
   .blog-tile__date {
     display: block;
-    font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-small);
     color: var(--color-mist);
     margin-block-end: 0.5rem;

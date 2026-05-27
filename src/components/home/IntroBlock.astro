@@ -3,7 +3,6 @@
  * IntroBlock — "מי אני בקצרה" section on home page.
  * Two-column RTL: portrait (right/start) + text card (left/end).
  */
-import GlassCard from '../ui/GlassCard.astro';
 import SoftImage from '../ui/SoftImage.astro';
 
 interface Props {
@@ -25,16 +24,14 @@ const { imageId, paragraph, ctaLabel, ctaHref } = Astro.props;
 
     <!-- Text card — inline-end (left in RTL) -->
     <div class="intro-text" data-reveal>
-      <GlassCard>
-        <p id="intro-heading" class="intro-paragraph">{paragraph}</p>
-        <div class="intro-cta">
-          <!-- PLACEHOLDER: TXT_HOME_INTRO paragraph above -->
-          <a href={ctaHref} class="link-underline intro-read-more">
-            {ctaLabel}
-            <span aria-hidden="true"> ←</span>
-          </a>
-        </div>
-      </GlassCard>
+      <p id="intro-heading" class="intro-paragraph">{paragraph}</p>
+      <div class="intro-cta">
+        <!-- PLACEHOLDER: TXT_HOME_INTRO paragraph above -->
+        <a href={ctaHref} class="link-underline intro-read-more">
+          {ctaLabel}
+          <span aria-hidden="true"> ←</span>
+        </a>
+      </div>
     </div>
   </div>
 </section>

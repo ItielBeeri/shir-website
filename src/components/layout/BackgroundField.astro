@@ -1,7 +1,7 @@
 ---
 /**
  * BackgroundField — the fixed watercolor layer present on every page.
- * Layer 1: background.jpg (fixed, parallax)
+ * Layer 1: background.jpg (fixed, parallax via JS translateY on oversized image)
  * Layer 2: SVG grain overlay (~4% opacity)
  * Layer 3: drifting radial gradient blobs (CSS keyframes)
  * Layer 4: page-specific accent tint overlay (reads --accent)
@@ -10,7 +10,7 @@
 
 <div class="bg-field" aria-hidden="true">
   <!-- Layer 1: watercolor photograph -->
-  <div class="bg-layer bg-image"></div>
+  <div class="bg-layer bg-image" id="bg-parallax-image"></div>
 
   <!-- Layer 2: grain/paper texture -->
   <div class="bg-layer bg-grain">
@@ -47,13 +47,19 @@
     inset: 0;
   }
 
-  /* Layer 1 — background image with slight scale for parallax headroom */
+  /*
+   * Layer 1 — oversized by 30% vertically so parallax translateY
+   * never exposes bare background. Starts 15% above the viewport.
+   * JS scrolls it upward at ~0.18× speed.
+   */
   .bg-image {
     background-image: url('/img/bg/background.jpg');
     background-size: cover;
     background-position: center;
-    transform: scale(1.06);
-    will-change: transform;
+    /* overscan: 130% tall, offset upward so top edge is hidden */
+    top: -15%;
+    bottom: -15%;
+    /* will-change set only while animating (added/removed by JS) */
   }
 
   /* Layer 2 — grain SVG tiled */
@@ -130,6 +136,70 @@
 
   @media (prefers-reduced-motion: reduce) {
     .blob { animation: none; }
-    .bg-image { will-change: auto; }
   }
 </style>
+
+<script>
+  /**
+   * Background parallax — translates the oversized bg-image layer
+   * based on SCROLL PROGRESS (0→1) within a bounded range.
+   * The image is 130% tall (top/bottom -15%) — it shifts up to 15% of
+   * viewport height as the user scrolls from 0% → 100% of the page.
+   * This guarantees the image never leaves the viewport.
+   * Disabled when prefers-reduced-motion: reduce.
+   */
+  function initBgParallax() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const img = document.getElementById('bg-parallax-image');
+    if (!img) return;
+
+    img.style.willChange = 'transform';
+
+    // Max travel: 15% of viewport height (matches the 15% overscan on each side)
+    const maxTravelPx = () => window.innerHeight * 0.15;
+
+    const update = (scrollY: number) => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0;
+      // Map progress 0→1 to translateY -maxTravel → +maxTravel
+      // (image moves from "shifted down" at top of page to "shifted up" at bottom)
+      const y = (progress - 0.5) * 2 * maxTravelPx();
+      img.style.transform = `translateY(${-y}px)`;
+    };
+
+    // Prefer Lenis scroll events when available
+    let nativeListener: (() => void) | null = null;
+    const tryLenis = () => {
+      const lenis = (window as unknown as Record<string, unknown>).__lenis as
+        | { on: (event: string, cb: (e: { scroll: number }) => void) => void; scroll?: number }
+        | undefined;
+      if (lenis) {
+        lenis.on('scroll', (e) => update(e.scroll));
+        update(lenis.scroll ?? 0);
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryLenis()) {
+      nativeListener = () => update(window.scrollY);
+      window.addEventListener('scroll', nativeListener, { passive: true });
+      // Try to hook Lenis once it initialises
+      setTimeout(() => {
+        if (tryLenis() && nativeListener) {
+          window.removeEventListener('scroll', nativeListener);
+          nativeListener = null;
+        }
+      }, 200);
+    }
+
+    window.addEventListener('resize', () => {
+      const lenis = (window as unknown as Record<string, unknown>).__lenis as
+        | { scroll?: number } | undefined;
+      update(lenis?.scroll ?? window.scrollY);
+    });
+  }
+
+  initBgParallax();
+</script>

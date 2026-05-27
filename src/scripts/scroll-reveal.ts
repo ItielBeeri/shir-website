@@ -39,6 +39,3 @@ function initReveal() {
 
 // Run on initial load
 initReveal();
-
-// Re-run after view transitions
-document.addEventListener('astro:page-load', initReveal);

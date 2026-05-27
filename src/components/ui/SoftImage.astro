@@ -17,6 +17,8 @@ interface Props {
   class?: string;
   /** loading strategy */
   loading?: 'lazy' | 'eager';
+  /** CSS view-transition-name for cross-page morph */
+  transitionName?: string;
 }
 
 const imagesSchema = z.record(z.string(), z.object({
@@ -27,7 +29,7 @@ const imagesSchema = z.record(z.string(), z.object({
 
 const images = loadToml('images.toml', imagesSchema);
 
-const { id, tint = false, aspect = '4/3', class: className, loading = 'lazy' } = Astro.props;
+const { id, tint = false, aspect = '4/3', class: className, loading = 'lazy', transitionName } = Astro.props;
 
 const image = images[id];
 // Graceful fallback if image id not found
@@ -37,7 +39,7 @@ const alt = image?.alt ?? '';
 
 <figure
   class:list={['soft-image', tint && 'soft-image--tint', className]}
-  style={`aspect-ratio: ${aspect}`}
+  style={`aspect-ratio: ${aspect}${transitionName ? `; view-transition-name: ${transitionName}` : ''}`}
 >
   <img
     src={src}
@@ -49,40 +51,3 @@ const alt = image?.alt ?? '';
   {tint && <div class="soft-image__tint" aria-hidden="true"></div>}
 </figure>
 
-<style>
-  .soft-image {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--radius-card);
-    /* Watercolor feathered mask — irregular organic shape */
-    -webkit-mask-image: radial-gradient(
-      ellipse 90% 90% at 50% 50%,
-      black 55%,
-      rgba(0,0,0,0.6) 70%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse 90% 90% at 50% 50%,
-      black 55%,
-      rgba(0,0,0,0.6) 70%,
-      transparent 100%
-    );
-    margin: 0;
-  }
-
-  .soft-image__img {
-    inline-size: 100%;
-    block-size: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .soft-image__tint {
-    position: absolute;
-    inset: 0;
-    background: var(--accent, var(--color-teal));
-    mix-blend-mode: soft-light;
-    opacity: 0.18;
-    pointer-events: none;
-  }
-</style>

@@ -6,10 +6,15 @@
  * - Global styles
  * - Skip link
  * - BackgroundField (fixed watercolor layer)
- * - Astro ClientRouter (view transitions)
  * - Lenis + GSAP scripts
+ *
+ * NOTE: View Transitions were intentionally removed. Astro's bundled module
+ * scripts only execute once and don't re-run on view-transition swaps, which
+ * caused Lenis/GSAP/ScrollTrigger to hold stale DOM references after Back
+ * navigation (broken header glass, broken scroll restore, etc).
+ * Standard full-page navigation gives the browser native scroll restoration
+ * and re-runs every script on every page — reliable and simple.
  */
-import { ViewTransitions } from 'astro:transitions';
 import BackgroundField from './BackgroundField.astro';
 
 interface Props {
@@ -77,10 +82,11 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;600&family=Frank+Ruhl+Libre:wght@300;400;500;700&subset=hebrew&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@100;200;300;400;500;700&subset=hebrew&display=swap"
     />
 
-    <ViewTransitions fallback="none" />
+    <!-- Global styles: tokens, themes, reset, typography, RTL, utilities -->
+    <link rel="stylesheet" href="/global.css" />
 
     <!-- Slot for page-specific head additions -->
     <slot name="head" />
@@ -96,11 +102,6 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <!-- Page content -->
     <slot />
 
-    <!-- Global styles -->
-    <style is:global>
-      @import '/src/styles/base.css';
-    </style>
-
     <!-- Lenis smooth scroll + GSAP -->
     <script>
       import '@/scripts/lenis-init';
@@ -108,6 +109,10 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <!-- Scroll reveal via IntersectionObserver -->
     <script>
       import '@/scripts/scroll-reveal';
+    </script>
+    <!-- Parallax layers -->
+    <script>
+      import '@/scripts/parallax';
     </script>
   </body>
 </html>

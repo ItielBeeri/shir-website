@@ -23,6 +23,11 @@ if (!prefersReducedMotion) {
   // Drive GSAP's ticker from Lenis
   lenis.on('scroll', ScrollTrigger.update);
 
+  // Set --scroll-y CSS variable so pure-CSS layers can react (background parallax, etc.)
+  lenis.on('scroll', ({ scroll }: { scroll: number }) => {
+    document.documentElement.style.setProperty('--scroll-y', `${scroll}px`);
+  });
+
   gsap.ticker.add((time) => {
     lenis.raf(time * 1000);
   });
