@@ -17,15 +17,14 @@ const { title, kicker, accent, hero_image, summary } = entry.data;
 const slug = entry.slug;
 ---
 
-<section
+<a
+  href={`/${slug}`}
   id={`teaser-${slug}`}
   class:list={['therapy-teaser', flip && 'therapy-teaser--flip']}
   data-theme={accent}
   aria-labelledby={`therapy-title-${slug}`}
 >
   <div class="accent-overlay" aria-hidden="true"></div>
-
-  <a href={`/${slug}`} class="teaser-link" tabindex="-1" aria-hidden="true"></a>
 
   <div class="teaser-inner container">
     <!-- Image -->
@@ -38,22 +37,23 @@ const slug = entry.slug;
       <p class="teaser-kicker">{kicker}</p>
       <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
       <p class="teaser-summary">{summary}</p>
-      <a href={`/${slug}`} class="teaser-cta link-underline">
+      <span class="teaser-cta link-underline">
         להמשך קריאה ←
-      </a>
+      </span>
     </div>
   </div>
-</section>
+</a>
 
 <style>
   .therapy-teaser {
     position: relative;
-    min-block-size: 100svh;
     display: flex;
+    min-block-size: 100svh;
     align-items: center;
     overflow: hidden;
-    /* Override the global section padding — the 100svh height is the rhythm here */
     padding-block: 0;
+    text-decoration: none;
+    color: inherit;
   }
 
   .accent-overlay {
@@ -62,12 +62,6 @@ const slug = entry.slug;
     background: var(--accent, transparent);
     opacity: 0;
     pointer-events: none;
-    z-index: 0;
-  }
-
-  .teaser-link {
-    position: absolute;
-    inset: 0;
     z-index: 0;
   }
 

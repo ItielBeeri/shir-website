@@ -15,7 +15,7 @@ interface Props {
 const { imageId, paragraph, ctaLabel, ctaHref } = Astro.props;
 ---
 
-<section class="intro-block container" aria-labelledby="intro-heading">
+<a href={ctaHref} class="intro-block container" aria-labelledby="intro-heading">
   <div class="intro-grid">
     <!-- Portrait — inline-start (right in RTL) -->
     <div class="intro-portrait" data-parallax data-speed="0.85" data-reveal>
@@ -27,17 +27,22 @@ const { imageId, paragraph, ctaLabel, ctaHref } = Astro.props;
       <p id="intro-heading" class="intro-paragraph">{paragraph}</p>
       <div class="intro-cta">
         <!-- PLACEHOLDER: TXT_HOME_INTRO paragraph above -->
-        <a href={ctaHref} class="link-underline intro-read-more">
+        <span class="link-underline intro-read-more">
           {ctaLabel}
           <span aria-hidden="true"> ←</span>
-        </a>
+        </span>
       </div>
     </div>
   </div>
-</section>
+</a>
 
 <style>
-  .intro-block { padding-block: var(--space-section); }
+  .intro-block {
+  display: block;
+  padding-block: var(--space-section);
+  text-decoration: none;
+  color: inherit;
+}
 
   .intro-grid {
     display: grid;
