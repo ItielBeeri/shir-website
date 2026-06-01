@@ -2,13 +2,13 @@
 
 [hero]
 title      = "שיר אמיתי"
-tagline    = "פסיכותרפיה גופנית · שיאצו · פתיחת קול"
+tagline    = "פסיכותרפיה · טיפול במגע · פתיחת קול"
 descriptor = "מרחב לטיפול בגוף, נפש וקול"
 scroll_cue = "גלילה"
 
 [intro]
 portrait   = "placeholder-portrait"
-cta_label  = "המשך לקרוא עליי"
+cta_label  = "המשך לקרוא עלי"
 cta_href   = "/about"
 # PLACEHOLDER: TXT_HOME_INTRO
 paragraph  = """

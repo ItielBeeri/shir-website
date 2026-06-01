@@ -5,12 +5,12 @@ label = "אודות"
 href  = "/about"
 
 [[items]]
-label = "פסיכותרפיה גופנית"
+label = "פסיכותרפיה"
 href  = "/psychotherapy"
 theme = "psychotherapy"
 
 [[items]]
-label = "שיאצו"
+label = "טיפול במגע"
 href  = "/shiatsu"
 theme = "shiatsu"
 
