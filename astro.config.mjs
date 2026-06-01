@@ -13,4 +13,10 @@ export default defineConfig({
       iconDir: 'src/icons',
     }),
   ],
+  vite: {
+    build: {
+      cssMinify: true,
+      minify: 'esbuild',
+    },
+  },
 });
