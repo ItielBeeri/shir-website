@@ -34,11 +34,11 @@ const { contact, social } = loadToml('site.toml', siteSchema);
   <Header />
 
   <main id="main">
-    <section class="contact-hero container" aria-labelledby="contact-h1">
-      <div data-reveal>
+    <section class="contact-intro container" aria-labelledby="contact-h1">
+      <div class="contact-intro-content">
         <p class="text-kicker">{page.hero.kicker}</p>
         <h1 id="contact-h1" class="contact-title">{page.hero.title}</h1>
-        <p class="contact-intro">{page.hero.intro}</p>
+        <p class="contact-intro-text">{page.hero.intro}</p>
       </div>
     </section>
 
@@ -101,21 +101,30 @@ const { contact, social } = loadToml('site.toml', siteSchema);
 </BaseLayout>
 
 <style>
-  .contact-hero {
-    padding-block-start: clamp(6rem, 15vh, 10rem);
+  .contact-intro {
+    padding-block-start: clamp(3rem, 6vh, 5rem);
     padding-block-end: var(--space-block);
   }
+
+  .contact-intro-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-inline-size: 55ch;
+  }
+
   .contact-title {
     font-size: var(--fs-display);
-    font-weight: 300;
+    font-weight: 200;
     letter-spacing: var(--ls-display);
     color: var(--color-ink);
-    margin-block: 0.5rem 1rem;
+    margin-block: 0.25rem 0.5rem;
   }
-  .contact-intro {
-    font-size: var(--fs-body);
+
+  .contact-intro-text {
+    font-size: var(--fs-h3);
+    font-weight: 300;
     color: var(--color-ink-soft);
-    max-inline-size: 55ch;
   }
 
   .contact-actions {

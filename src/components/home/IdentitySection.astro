@@ -1,0 +1,262 @@
+---
+/**
+ * IdentitySection — unified intro for homepage.
+ * Combines the former Hero + IntroBlock into one cohesive section.
+ *
+ * Layout (desktop):
+ *   ┌─────────────────────────────────────────────────────────┐
+ *   │                     [portrait]                          │
+ *   │                                                         │
+ *   │   שיר אמיתי                                             │
+ *   │   ─────────────────────                                 │
+ *   │   מרחב לטיפול בגוף, נפש וקול                          │
+ *   │                                                         │
+ *   │   [intro paragraph text flowing naturally...]           │
+ *   │                                                         │
+ *   │   פסיכותרפיה גופנית · שיאצו · פתיחת קול                │
+ *   │                                                         │
+ *   │   [קרא עוד עליי ←]                                      │
+ *   └─────────────────────────────────────────────────────────┘
+ *
+ * On mobile: portrait top, then title/text, then chips, then CTA.
+ * No full-viewport hero barrier — content visible immediately.
+ */
+import SoftImage from '../ui/SoftImage.astro';
+
+interface Props {
+  title: string;
+  descriptor: string;
+  modalityTagline: string;
+  portraitImageId: string;
+  introParagraph: string;
+  ctaLabel: string;
+  ctaHref: string;
+  therapySlugs?: string[];
+}
+
+const {
+  title,
+  descriptor,
+  modalityTagline,
+  portraitImageId,
+  introParagraph,
+  ctaLabel,
+  ctaHref,
+  therapySlugs = [],
+} = Astro.props;
+
+const modalities = modalityTagline.split('·').map((s) => s.trim());
+---
+
+<section class="identity" aria-labelledby="identity-title">
+  <div class="identity-inner container">
+    <div class="identity-content">
+      <div class="identity-portrait" data-parallax data-speed="0.92">
+        <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
+      </div>
+
+      <div class="identity-text">
+        <h1 id="identity-title" class="identity-title">{title}</h1>
+        <div class="identity-rule" aria-hidden="true">
+          <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="identity-rule-svg">
+            <path
+              class="rule-path"
+              d="M0,6 Q80,0 160,6 Q240,12 320,6"
+              fill="none"
+              stroke="var(--color-mist)"
+              stroke-width="1"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+        <p class="identity-descriptor">{descriptor}</p>
+        <p class="identity-intro">{introParagraph}</p>
+
+        <div class="identity-modalities" role="list">
+          {modalities.map((m, i) => {
+            const slug = therapySlugs[i];
+            return (
+              <a
+                href={slug ? `#teaser-${slug}` : undefined}
+                class="identity-chip"
+                role="listitem"
+                aria-label={slug ? `גלול לחלק ${m}` : undefined}
+              >
+                {m}
+              </a>
+            );
+          })}
+        </div>
+
+        <a href={ctaHref} class="identity-cta link-underline">
+          {ctaLabel}
+          <span aria-hidden="true"> ←</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .identity {
+    padding-block-start: clamp(3rem, 6vh, 5rem);
+    padding-block-end: var(--space-section);
+  }
+
+  .identity-inner {
+    max-inline-size: 1000px;
+  }
+
+  .identity-content {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .identity-portrait {
+    position: relative;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .identity-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .identity-title {
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+    font-size: var(--fs-display);
+    font-weight: 200;
+    letter-spacing: 0.02em;
+    line-height: var(--lh-display);
+    color: var(--color-ink);
+    margin-block: 0 0.25rem;
+  }
+
+  .identity-rule {
+    inline-size: min(100%, 280px);
+    margin-block-end: 0.5rem;
+  }
+
+  .identity-rule-svg {
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .rule-path {
+    animation: rule-drift 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes rule-drift {
+    from { d: path("M0,6 Q80,0 160,6 Q240,12 320,6"); }
+    to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
+  }
+
+  .identity-descriptor {
+    font-size: var(--fs-h3);
+    font-weight: 300;
+    color: var(--color-ink-soft);
+    letter-spacing: 0.04em;
+    margin-block-end: 0.5rem;
+  }
+
+  .identity-intro {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    white-space: pre-line;
+    margin-block-end: 1rem;
+  }
+
+  .identity-modalities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-block-end: 1.25rem;
+  }
+
+  .identity-chip {
+    display: inline-flex;
+    align-items: center;
+    padding-block: 0.4em;
+    padding-inline: 1em;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--color-ink-soft);
+    background: var(--color-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--color-glass-stroke);
+    text-decoration: none;
+    transition:
+      background var(--dur-fast) var(--ease-soft),
+      color var(--dur-fast) var(--ease-soft),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .identity-chip[href]:hover,
+  .identity-chip[href]:focus-visible {
+    background: rgba(255, 255, 255, 0.65);
+    color: var(--color-ink);
+    transform: translateY(-2px);
+  }
+
+  .identity-chip:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  .identity-cta {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    font-weight: 400;
+    align-self: flex-start;
+  }
+
+  @media (max-width: 767px) {
+    .identity-content {
+      grid-template-columns: 1fr;
+    }
+
+    .identity-portrait {
+      max-inline-size: 260px;
+      margin-inline: auto;
+    }
+
+    .identity-text {
+      text-align: center;
+      align-items: center;
+    }
+
+    .identity-title {
+      font-size: clamp(2.8rem, 10vw, var(--fs-display));
+    }
+
+    .identity-rule {
+      margin-inline: auto;
+    }
+
+    .identity-intro {
+      text-align: center;
+    }
+
+    .identity-modalities {
+      justify-content: center;
+    }
+
+    .identity-cta {
+      align-self: center;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rule-path {
+      animation: none;
+    }
+  }
+</style>

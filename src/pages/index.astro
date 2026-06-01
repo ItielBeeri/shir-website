@@ -3,8 +3,7 @@ import BaseLayout from '../components/layout/BaseLayout.astro';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import ContactPill from '../components/layout/ContactPill.astro';
-import Hero from '../components/home/Hero.astro';
-import IntroBlock from '../components/home/IntroBlock.astro';
+import IdentitySection from '../components/home/IdentitySection.astro';
 import TherapyTeaser from '../components/home/TherapyTeaser.astro';
 import BlogTeaser from '../components/home/BlogTeaser.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
@@ -16,7 +15,6 @@ import { loadToml } from '../lib/content';
 import { z } from 'zod';
 import { personSchema, localBusinessSchema, jsonLd } from '../lib/seo';
 
-// Content
 const homeSchema = z.object({
   hero:    z.object({ title: z.string(), tagline: z.string(), descriptor: z.string(), scroll_cue: z.string() }),
   intro:   z.object({ portrait: z.string(), cta_label: z.string(), cta_href: z.string(), paragraph: z.string() }),
@@ -53,24 +51,19 @@ const blogPosts = (await getCollection('blog'))
   <Header />
 
   <main id="main">
-    <!-- A. Hero -->
-    <Hero
+    <!-- A. Identity section — unified portrait + title + intro -->
+    <IdentitySection
       title={home.hero.title}
-      tagline={home.hero.tagline}
       descriptor={home.hero.descriptor}
-      scrollCue={home.hero.scroll_cue}
+      modalityTagline={home.hero.tagline}
+      portraitImageId={home.intro.portrait}
+      introParagraph={home.intro.paragraph}
+      ctaLabel={home.intro.cta_label}
+      ctaHref={home.intro.cta_href}
       therapySlugs={therapies.map((t) => t.slug)}
     />
 
-    <!-- B. Intro -->
-    <IntroBlock
-      imageId={home.intro.portrait}
-      paragraph={home.intro.paragraph}
-      ctaLabel={home.intro.cta_label}
-      ctaHref={home.intro.cta_href}
-    />
-
-    <!-- C. Therapy triptych -->
+    <!-- B. Therapy triptych -->
     {therapies.map((therapy, i) => (
       <>
         <BreathDivider />

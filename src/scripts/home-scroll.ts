@@ -23,10 +23,9 @@ gsap.registerPlugin(ScrollTrigger);
 ───────────────────────────────────────────────────────────── */
 
 function initSectionSnap() {
-  // Collect snap targets — hero + intro + each therapy teaser + blog + closing
+  // Collect snap targets — identity + each therapy teaser + blog + closing
   const SNAP_SELECTORS = [
-    '#hero-section',
-    '.intro-block',
+    '.identity',
     '.therapy-teaser',
     '.blog-teaser',
     '.closing-section',

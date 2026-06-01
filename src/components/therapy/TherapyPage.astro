@@ -1,13 +1,17 @@
 ---
 /**
  * TherapyPage — shared template for all three therapy pages.
- * Used by psychotherapy.astro, shiatsu.astro, voice.astro.
+ * 
+ * New layout: Content-first, no hero barrier.
+ * - Title/image block at top (natural height)
+ * - Intro text flows directly below
+ * - Body content continues naturally with the text
+ * - Images are integrated throughout via the MDX content
  */
 import BaseLayout from '../layout/BaseLayout.astro';
 import Header from '../layout/Header.astro';
 import Footer from '../layout/Footer.astro';
 import ContactPill from '../layout/ContactPill.astro';
-import GlassCard from '../ui/GlassCard.astro';
 import SoftImage from '../ui/SoftImage.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
 import BreathDivider from '../ui/BreathDivider.astro';
@@ -52,52 +56,46 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   <Header />
 
   <main id="main">
-    <!-- Hero with accent overlay -->
-    <section class="therapy-hero" data-theme={accent} aria-labelledby="therapy-h1">
-      <div class="accent-overlay" aria-hidden="true"></div>
-      <div class="therapy-hero__inner container">
-        <div class="therapy-hero__image" data-parallax data-speed="0.92" data-reveal>
+    <!-- Intro: Image + title block (natural height, not full viewport) -->
+    <section class="therapy-intro" data-theme={accent} aria-labelledby="therapy-h1">
+      <div class="therapy-intro__inner container">
+        <div class="therapy-intro__image" data-parallax data-speed="0.92">
           <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${entry.slug}`} />
         </div>
-        <div class="therapy-hero__text" data-reveal>
-          <GlassCard>
-            <p class="therapy-kicker">{kicker}</p>
-            <div class="therapy-title-wrap">
-              <h1 id="therapy-h1" class="therapy-title">{title}</h1>
-              <div class="therapy-hero__rule" aria-hidden="true">
-                <svg viewBox="0 0 320 12" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" class="hero-rule-svg">
-                  <path
-                    class="rule-path"
-                    d="M0,6 Q80,0 160,6 Q240,12 320,6"
-                    fill="none"
-                    stroke="var(--color-mist)"
-                    stroke-width="1"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p class="therapy-summary">{summary}</p>
-          </GlassCard>
+        <div class="therapy-intro__text">
+          <p class="therapy-kicker">{kicker}</p>
+          <h1 id="therapy-h1" class="therapy-title">{title}</h1>
+          <div class="therapy-rule" aria-hidden="true">
+            <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="therapy-rule-svg">
+              <path
+                class="rule-path"
+                d="M0,6 Q80,0 160,6 Q240,12 320,6"
+                fill="none"
+                stroke="var(--color-mist)"
+                stroke-width="1"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+          <p class="therapy-summary">{summary}</p>
         </div>
       </div>
     </section>
 
-    <!-- Body content from MDX -->
+    <!-- Body content from MDX — text flows freely -->
     <section class="therapy-body container" data-reveal>
-      <GlassCard>
-        <div class="prose">
-          <Content />
-        </div>
-      </GlassCard>
+      <div class="prose">
+        <Content />
+      </div>
     </section>
+
+    <BreathDivider />
 
     <!-- CTA strip -->
     <section class="therapy-cta container" aria-label="תיאום פגישה">
       <ScrollReveal>
         <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
         <div class="cta-group">
-          <!-- WhatsApp → Phone → Email (§5.4) -->
           <CTAButton
             href={contact.whatsapp_url}
             label={contact.whatsapp_label}
@@ -151,83 +149,42 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 </BaseLayout>
 
 <style>
-  /* Hero with accent */
-  .therapy-hero {
+  .therapy-intro {
+    padding-block-start: clamp(3rem, 6vh, 5rem);
+    padding-block-end: var(--space-section);
     position: relative;
-    min-block-size: 100svh;
-    display: flex;
-    align-items: center;
-    padding-block: var(--space-section);
+  }
+
+  .therapy-intro__inner {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .therapy-intro__image {
+    position: relative;
+    border-radius: var(--radius-card);
     overflow: hidden;
   }
 
-  .accent-overlay {
-    position: absolute;
-    inset: 0;
-    background: var(--accent, transparent);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .therapy-hero__inner {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(2rem, 5vw, 4rem);
-    align-items: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  .therapy-hero__image {
-    position: relative;
-  }
-
-  .therapy-hero__image :global(img) {
+  .therapy-intro__image :global(img) {
     transition: transform var(--dur-slow) var(--ease-soft);
   }
 
-  .therapy-hero__rule {
-    inline-size: min(100%, 320px);
-    margin-inline: auto;
-    margin-block-start: clamp(0.4rem, 1vh, 0.9rem);
-    margin-block-end: clamp(1.2rem, 3vh, 2rem);
-    opacity: 0;
-    transform: scaleX(0.6);
-    transform-origin: center;
-    animation: fadeInScale 0.8s var(--ease-soft) forwards 0.6s;
-  }
-
-  .hero-rule-svg {
-    inline-size: 100%;
-    block-size: auto;
-    overflow: visible;
-  }
-
-  .rule-path {
-    animation: rule-drift 8s ease-in-out infinite alternate;
-  }
-
-  @keyframes fadeInScale {
-    to { opacity: 1; transform: scaleX(1); }
-  }
-
-  @keyframes rule-drift {
-    from { d: path("M0,6 Q80,0 160,6 Q240,12 320,6"); }
-    to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
-  }
-
-  .therapy-title-wrap {
-    position: relative;
-    display: inline-block;
+  .therapy-intro__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .therapy-kicker {
     font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 400;
     color: var(--color-ink-soft);
-    margin-block-end: 0.5rem;
+    letter-spacing: 0.08em;
+    margin-block-end: 0.25rem;
   }
 
   .therapy-title {
@@ -237,28 +194,45 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     letter-spacing: 0.02em;
     line-height: var(--lh-display);
     color: var(--color-ink);
-    margin-block-end: 0;
+    margin-block-end: 0.25rem;
+  }
+
+  .therapy-rule {
+    inline-size: min(100%, 260px);
+    margin-block-end: 0.75rem;
+  }
+
+  .therapy-rule-svg {
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .rule-path {
+    animation: rule-drift 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes rule-drift {
+    from { d: path("M0,6 Q80,0 160,6 Q240,12 320,6"); }
+    to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
   }
 
   .therapy-summary {
-    font-size: var(--fs-body);
+    font-size: var(--fs-h3);
+    font-weight: 300;
     color: var(--color-ink-soft);
     line-height: var(--lh-body);
-    margin-block-start: 1rem;
   }
 
-  /* Body */
   .therapy-body {
     padding-block: var(--space-section);
-    position: relative;
-    z-index: 1;
   }
 
   .prose {
     font-size: var(--fs-body);
     line-height: var(--lh-body);
     color: var(--color-ink-soft);
-    max-inline-size: 65ch;
+    max-inline-size: 70ch;
   }
 
   .prose :global(h2) {
@@ -266,7 +240,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     font-size: var(--fs-h2);
     font-weight: 300;
     color: var(--color-ink);
-    margin-block: 2rem 1rem;
+    margin-block: 2.5rem 1rem;
   }
 
   .prose :global(h3) {
@@ -277,23 +251,33 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     margin-block: 1.5rem 0.75rem;
   }
 
-  .prose :global(p) { margin-block-end: 1rem; }
-
-  .prose :global(ol), .prose :global(ul) {
-    padding-inline-start: 1.5rem;
-    margin-block-end: 1rem;
+  .prose :global(p) {
+    margin-block-end: 1.25rem;
   }
-  .prose :global(li) { margin-block-end: 0.4rem; }
 
-  /* CTA strip */
+  .prose :global(ol),
+  .prose :global(ul) {
+    padding-inline-start: 1.5rem;
+    margin-block-end: 1.25rem;
+  }
+
+  .prose :global(li) {
+    margin-block-end: 0.5rem;
+  }
+
+  .prose :global(img),
+  .prose :global(figure) {
+    margin-block: 2rem;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
   .therapy-cta {
     padding-block: var(--space-section);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-block);
-    position: relative;
-    z-index: 1;
   }
 
   .cta-group {
@@ -303,15 +287,12 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     gap: 1rem;
   }
 
-  /* Related therapies */
   .therapy-related {
     padding-block: var(--space-section);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-block);
-    position: relative;
-    z-index: 1;
   }
 
   .related-grid {
@@ -386,16 +367,32 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   }
 
   @media (max-width: 767px) {
-    .therapy-hero__inner { grid-template-columns: 1fr; }
-    .related-grid { grid-template-columns: 1fr; }
+    .therapy-intro__inner {
+      grid-template-columns: 1fr;
+    }
+
+    .therapy-intro__image {
+      max-inline-size: 320px;
+      margin-inline: auto;
+    }
+
+    .therapy-intro__text {
+      text-align: center;
+      align-items: center;
+    }
+
+    .therapy-rule {
+      margin-inline: auto;
+    }
+
+    .related-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .therapy-hero__rule,
     .rule-path {
       animation: none;
-      opacity: 1;
-      transform: none;
     }
   }
 </style>
