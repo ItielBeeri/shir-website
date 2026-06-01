@@ -48,53 +48,54 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
 <section class="identity" aria-labelledby="identity-title">
   <div class="identity-inner container">
-    <a href={ctaHref} class="identity-link">
-      <div class="identity-content">
-        <div class="identity-portrait" data-parallax data-speed="0.92">
-          <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
-        </div>
-
-        <div class="identity-text">
-          <h1 id="identity-title" class="identity-title">{title}</h1>
-          <div class="identity-rule" aria-hidden="true">
-            <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="identity-rule-svg">
-              <path
-                class="rule-path"
-                d="M0,6 Q80,0 160,6 Q240,12 320,6"
-                fill="none"
-                stroke="var(--color-mist)"
-                stroke-width="1"
-                stroke-linecap="round"
-              />
-            </svg>
-          </div>
-          <p class="identity-intro">
-            <span class="identity-intro__lead">{introParagraph.split(' ').slice(0, 4).join(' ')}</span>
-            {introParagraph.split(' ').slice(4).join(' ')}
-          </p>
-
-          <span class="identity-cta link-underline">
-            {ctaLabel}
-            <span aria-hidden="true"> ←</span>
-          </span>
-        </div>
-      </div>
+    <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
+      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
     </a>
 
-    <div class="identity-modalities" role="list">
-      {modalities.map((m, i) => {
-        const slug = therapySlugs[i];
-        return (
-          <a
-            href={slug ? `#teaser-${slug}` : undefined}
-            class="identity-chip"
-            role="listitem"
-            aria-label={slug ? `גלול לחלק ${m}` : undefined}
-          >
-            {m}
-          </a>
-        );
-      })}
+    <div class="identity-text">
+      <a href={ctaHref} class="identity-text-link">
+        <h1 id="identity-title" class="identity-title">{title}</h1>
+        <div class="identity-rule" aria-hidden="true">
+          <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="identity-rule-svg">
+            <path
+              class="rule-path"
+              d="M0,6 Q80,0 160,6 Q240,12 320,6"
+              fill="none"
+              stroke="var(--color-mist)"
+              stroke-width="1"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+      </a>
+      
+      <div class="identity-modalities" role="list">
+        {modalities.map((m, i) => {
+          const slug = therapySlugs[i];
+          return (
+            <a
+              href={slug ? `#teaser-${slug}` : undefined}
+              class="identity-chip"
+              role="listitem"
+              aria-label={slug ? `גלול לחלק ${m}` : undefined}
+            >
+              {m}
+            </a>
+          );
+        })}
+      </div>
+
+      <a href={ctaHref} class="identity-text-link">
+        <p class="identity-intro">
+          <span class="identity-intro__lead">{introParagraph.split(' ').slice(0, 4).join(' ')}</span>
+          {introParagraph.split(' ').slice(4).join(' ')}
+        </p>
+
+        <span class="identity-cta link-underline">
+          {ctaLabel}
+          <span aria-hidden="true"> ←</span>
+        </span>
+      </a>
     </div>
   </div>
 </section>
@@ -113,25 +114,14 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     align-items: start;
   }
 
-  .identity-link {
-    display: contents;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .identity-content {
-    display: contents;
-  }
-
-  .identity-portrait {
+  .identity-portrait-link {
     position: relative;
     border-radius: var(--radius-card);
     overflow: hidden;
     transition: transform var(--dur-base) var(--ease-soft);
-    grid-row: 1 / 3;
   }
 
-  .identity-link:hover .identity-portrait {
+  .identity-portrait-link:hover {
     transform: scale(1.02);
   }
 
@@ -141,11 +131,16 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     gap: 0.75rem;
   }
 
+  .identity-text-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
   .identity-title {
-    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-display);
-    font-weight: 200;
-    letter-spacing: 0.02em;
+    font-weight: 300;
+    letter-spacing: -0.01em;
     line-height: var(--lh-display);
     color: var(--color-ink);
     margin-block: 0 0.25rem;
@@ -171,33 +166,11 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
   }
 
-  .identity-intro {
-    font-size: var(--fs-body);
-    line-height: var(--lh-body);
-    color: var(--color-ink-soft);
-    white-space: pre-line;
-    margin-block-end: 0.5rem;
-  }
-
-  .identity-intro__lead {
-    display: inline;
-    font-size: var(--fs-h2);
-    font-weight: 200;
-    color: var(--color-ink);
-    letter-spacing: -0.01em;
-  }
-
-  .identity-cta {
-    font-size: var(--fs-small);
-    color: var(--color-ink-soft);
-    align-self: flex-start;
-  }
-
   .identity-modalities {
     display: flex;
     flex-wrap: wrap;
     gap: 0.65rem;
-    align-content: start;
+    margin-block-end: 0.5rem;
   }
 
   .identity-chip {
@@ -232,20 +205,47 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     outline-offset: 3px;
   }
 
+  .identity-intro {
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    white-space: pre-line;
+    margin-block-end: 0.5rem;
+  }
+
+  .identity-intro__lead {
+    display: inline;
+    font-size: var(--fs-h2);
+    font-weight: 200;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+  }
+
+  .identity-cta {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+  }
+
   @media (max-width: 767px) {
-    .identity-inner {
-      grid-template-columns: 1fr;
+    .identity {
+      /* padding-block-start: 1rem; */
+      padding-block-end: 5rem;
     }
 
-    .identity-portrait {
-      max-inline-size: 260px;
+    .identity-inner {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .identity-portrait-link {
+      max-inline-size: 240px;
       margin-inline: auto;
-      grid-row: auto;
     }
 
     .identity-text {
       text-align: center;
       align-items: center;
+      gap: 0.5rem;
     }
 
     .identity-title {
@@ -254,18 +254,17 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
     .identity-rule {
       margin-inline: auto;
+      margin-block-end: 0.25rem;
     }
 
     .identity-intro {
       text-align: center;
-    }
-
-    .identity-cta {
-      align-self: center;
+      margin-block-end: 0.25rem;
     }
 
     .identity-modalities {
       justify-content: center;
+      margin-block-end: 0.25rem;
     }
   }
 
@@ -273,7 +272,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     .rule-path {
       animation: none;
     }
-    .identity-link:hover .identity-portrait {
+    .identity-portrait-link:hover {
       transform: none;
     }
   }

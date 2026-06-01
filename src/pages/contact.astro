@@ -114,9 +114,11 @@ const { contact, social } = loadToml('site.toml', siteSchema);
   }
 
   .contact-title {
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-display);
-    font-weight: 200;
-    letter-spacing: var(--ls-display);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: var(--lh-display);
     color: var(--color-ink);
     margin-block: 0.25rem 0.5rem;
   }
