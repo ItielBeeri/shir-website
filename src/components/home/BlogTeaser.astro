@@ -157,14 +157,23 @@ function formatDate(date: Date): string {
   @media (max-width: 1023px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 599px) {
     .blog-grid {
-      grid-template-columns: 1fr;
+      /* Switch to horizontal scroll-snap row on mobile */
+      grid-template-columns: unset;
+      display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
-      display: flex;
+      -webkit-overflow-scrolling: touch;
       gap: 1rem;
+      /* Allow overflow outside container padding */
+      padding-inline: clamp(1rem, 5vw, 4rem);
+      margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
+      /* Hide scrollbar visually but keep functionality */
+      scrollbar-width: none;
     }
+    .blog-grid::-webkit-scrollbar { display: none; }
     .blog-tile {
       flex: 0 0 80vw;
+      max-inline-size: 320px;
       scroll-snap-align: start;
     }
   }

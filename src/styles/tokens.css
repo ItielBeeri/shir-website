@@ -20,19 +20,21 @@
   --shadow-soft:        0 15px 40px rgba(92, 110, 101, 0.06);
 
   /* Typography scale */
-  --fs-display: clamp(2.6rem, 6vw + 0.5rem, 5.5rem);
+  --fs-display: clamp(3.2rem, 7vw + 0.5rem, 7rem);
   --fs-h1:      clamp(2rem,   3.5vw + 0.5rem, 3.5rem);
   --fs-h2:      clamp(1.5rem, 2vw + 0.5rem, 2.25rem);
   --fs-h3:      clamp(1.2rem, 1vw + 0.7rem, 1.5rem);
   --fs-body:    clamp(1.05rem, 0.3vw + 1rem, 1.18rem);
   --fs-small:   0.92rem;
   --lh-body:    1.75;
-  --lh-display: 1.2;
+  --lh-display: 1.1;
   --ls-display: 0.04em;
   --ls-caps:    0.12em;
+  /* Hero-specific: slightly larger than body, responsive */
+  --fs-hero-tagline: clamp(1.05rem, 1.2vw + 0.6rem, 1.4rem);
 
   /* Spacing */
-  --space-section: clamp(6rem, 12vh, 12rem);
+  --space-section: clamp(4rem, 8vh, 8rem);
   --space-block:   clamp(2rem, 5vh, 4rem);
   --radius-card:   28px;
   --radius-pill:   999px;
@@ -45,6 +47,7 @@
   --dur-base:    600ms;
   --dur-slow:    1100ms;
   --dur-page:    900ms;
+  --dur-breath:  4200ms;
 
   /* Breakpoints (as custom props for reference; use in media queries directly) */
   --bp-sm:  480px;

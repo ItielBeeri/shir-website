@@ -52,6 +52,12 @@ const { flip = false, class: className } = Astro.props;
     inline-size: 100%;
     overflow: hidden;
     line-height: 0;
+    /* Compact: no extra block space above/below the wave */
+    padding-block: 0;
+    /* Ensure it doesn't inherit section padding if nested in a section context */
+    block-size: 80px;
+    display: flex;
+    align-items: center;
   }
 
   .breath-divider--flip {

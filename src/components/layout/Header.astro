@@ -22,10 +22,13 @@ const nav = loadToml('nav.toml', navSchema);
 const currentPath = Astro.url.pathname;
 ---
 
-<header class="site-header" id="site-header">
+<header class="site-header" id="site-header" data-home-morph={Astro.url.pathname === '/' ? 'true' : undefined}>
+  <div class="header-bg" aria-hidden="true"></div>
   <div class="header-inner container">
-    <!-- Logo / wordmark — inline-start (right in RTL) -->
-    <a href="/" class="wordmark" aria-label="שיר אמיתי — לדף הבית">
+    <!-- Logo / wordmark — inline-start (right in RTL).
+         On the home page, it stays invisible until the hero scrolls away;
+         a morph animation transforms the hero title into this slot. -->
+    <a href="/" class="wordmark" id="header-wordmark" aria-label="שיר אמיתי — לדף הבית">
       שיר אמיתי
     </a>
 
@@ -45,19 +48,24 @@ const currentPath = Astro.url.pathname;
         ))}
       </ul>
     </nav>
-
-    <!-- Mobile hamburger button -->
-    <button
-      class="hamburger hit-target"
-      id="mobile-menu-btn"
-      aria-label="פתיחת תפריט ניווט"
-      aria-expanded="false"
-      aria-controls="mobile-drawer"
-    >
-      <Icon name="menu" decorative size={22} />
-    </button>
   </div>
 </header>
+
+<!-- Mobile hamburger button — sibling of <header> so it escapes the header's
+     stacking context and can float above the drawer. Visible on mobile only. -->
+<button
+  class="hamburger hit-target"
+  id="mobile-menu-btn"
+  aria-label="פתיחת תפריט ניווט"
+  aria-expanded="false"
+  aria-controls="mobile-drawer"
+>
+  <span class="hamburger-icon" aria-hidden="true">
+    <span class="bar bar-top"></span>
+    <span class="bar bar-mid"></span>
+    <span class="bar bar-bot"></span>
+  </span>
+</button>
 
 <!-- Mobile drawer -->
 <div
@@ -68,16 +76,19 @@ const currentPath = Astro.url.pathname;
   aria-label="תפריט ניווט"
   data-open="false"
 >
-  <button
-    class="drawer-close hit-target"
-    id="drawer-close-btn"
-    aria-label="סגירת תפריט"
-  >
-    <Icon name="close" decorative size={22} />
-  </button>
-
   <nav aria-label="ניווט ראשי — נייד">
     <ul role="list" class="drawer-nav">
+      <!-- Site title / home link — first item, anchors the drawer -->
+      <li class="drawer-home-item">
+        <a
+          href="/"
+          class="drawer-home-link"
+          aria-current={currentPath === '/' ? 'page' : undefined}
+        >
+          שיר אמיתי
+        </a>
+      </li>
+
       {nav.items.map((item) => (
         <li>
           <a
@@ -105,16 +116,51 @@ const currentPath = Astro.url.pathname;
     block-size: 72px;
     display: flex;
     align-items: center;
-    transition:
-      background var(--dur-base) var(--ease-soft),
-      backdrop-filter var(--dur-base) var(--ease-soft);
+    isolation: isolate;
+    /* No transition here — avoids backdrop-filter jank.
+       The .header-bg layer fades via opacity instead. */
   }
 
-  .site-header.scrolled {
+  /* Frosted-glass background as a separate layer so we can animate
+     opacity (cheap, GPU-composited) instead of backdrop-filter
+     (expensive, causes the visible "vibration" during scroll). */
+  .header-bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: rgba(253, 250, 244, 0.55);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-block-end: 1px solid var(--color-glass-stroke);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-soft);
+    /* Promote to own compositor layer so opacity changes don't
+       trigger relayout/repaint of the header content. */
+    will-change: opacity;
+    contain: layout paint;
+  }
+
+  .site-header.scrolled .header-bg {
+    opacity: 1;
+  }
+
+  /* On home page, inline styles from the morph script drive opacity directly;
+     CSS transitions would fight with the scrub, so disable them. */
+  .site-header[data-home-morph] .header-bg {
+    transition: none;
+  }
+
+  /* On the home page, the header wordmark visibility is controlled
+     entirely by the morph script via inline styles.
+     The CSS below is only a no-JS / reduced-motion safety net. */
+  .site-header[data-home-morph] .wordmark {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .site-header[data-home-morph].scrolled .wordmark {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .header-inner {
@@ -131,7 +177,6 @@ const currentPath = Astro.url.pathname;
     font-weight: 300;
     letter-spacing: -0.01em;
     color: var(--color-ink);
-    transition: opacity var(--dur-fast) var(--ease-soft);
     flex-shrink: 0;
   }
   .wordmark:hover { opacity: 0.7; }
@@ -163,31 +208,102 @@ const currentPath = Astro.url.pathname;
   }
   .nav-link[aria-current="page"] { font-weight: 600; }
 
-  /* Hamburger — hidden on desktop */
-  .hamburger { display: none; }
-
-  /* Mobile drawer */
-  .mobile-drawer {
-    position: fixed;
-    inset-block: 0;
-    inset-inline-end: 0;
-    inline-size: min(320px, 85vw);
-    z-index: 200;
-    padding: 2rem 1.5rem;
+  /* Hamburger — top-level sibling of <header>, hidden on desktop.
+     On mobile: position: fixed in top-left (RTL: inline-end) corner at z-index 300,
+     so it floats above the drawer (200) and backdrop (190). */
+  .hamburger {
     display: none;
-    flex-direction: column;
-    gap: 1rem;
-    transform: translateX(calc(var(--dir-x) * -100%));
-    transition: transform var(--dur-base) var(--ease-soft);
-  }
-  .mobile-drawer[data-open="true"] { transform: translateX(0); }
-
-  .drawer-close {
-    align-self: flex-end;
     background: transparent;
     border: none;
     color: var(--color-ink);
     cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+  .hamburger:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Animated hamburger icon — three bars morph into × */
+  .hamburger-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 22px;
+    height: 22px;
+    gap: 0;
+    position: relative;
+  }
+
+  .bar {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    background: currentColor;
+    border-radius: 2px;
+    position: absolute;
+    transition:
+      transform var(--dur-base) var(--ease-soft),
+      opacity   var(--dur-fast) var(--ease-soft);
+  }
+
+  .bar-top { transform: translateY(-6px); }
+  .bar-mid { transform: translateY(0); }
+  .bar-bot { transform: translateY(6px); }
+
+  /* Open state — bars rotate into × */
+  .hamburger[aria-expanded="true"] .bar-top {
+    transform: translateY(0) rotate(45deg);
+  }
+  .hamburger[aria-expanded="true"] .bar-mid {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  .hamburger[aria-expanded="true"] .bar-bot {
+    transform: translateY(0) rotate(-45deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar { transition: none; }
+  }
+
+  /* Mobile drawer — always in DOM, off-screen by default via transform.
+     Anchored to inline-end (left edge in RTL) — same side as the hamburger button.
+     Slides in from the left so it feels connected to the tap target. */
+  .mobile-drawer {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-end: 0;          /* left edge in RTL */
+    inline-size: min(320px, 85vw);
+    z-index: 200;
+    /* Top padding clears the fixed hamburger button (56px) + breathing room */
+    padding: calc(56px + 1rem) 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    /* Sharp corners on the screen edge (inline-end = left in RTL),
+       rounded on the exposed interior side (inline-start = right in RTL).
+       Overrides the uniform border-radius from .glass utility. */
+    border-start-start-radius: var(--radius-card);  /* top-right in RTL */
+    border-end-start-radius:   var(--radius-card);  /* bottom-right in RTL */
+    border-start-end-radius:   0;                   /* top-left in RTL — flush to screen */
+    border-end-end-radius:     0;                   /* bottom-left in RTL — flush to screen */
+    /* Push off-screen to the left (negative X) when closed */
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-base) var(--ease-soft),
+      visibility var(--dur-base) step-end;
+  }
+  .mobile-drawer[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--dur-base) var(--ease-soft),
+      visibility var(--dur-base) step-start;
   }
 
   .drawer-nav { list-style: none; display: flex; flex-direction: column; gap: 0.25rem; }
@@ -204,44 +320,171 @@ const currentPath = Astro.url.pathname;
   .drawer-link:hover,
   .drawer-link[aria-current="page"] { background: rgba(255, 255, 255, 0.4); }
 
+  /* Site title — home link at the top of the drawer */
+  .drawer-home-item {
+    margin-block-end: 0.5rem;
+    padding-block-end: 0.75rem;
+    border-block-end: 1px solid var(--color-glass-stroke);
+  }
+
+  .drawer-home-link {
+    display: block;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-size: 1.3rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+    transition: background var(--dur-fast);
+  }
+  .drawer-home-link:hover,
+  .drawer-home-link[aria-current="page"] { background: rgba(255, 255, 255, 0.4); }
+
   /* Backdrop */
   .drawer-backdrop {
-    display: none;
     position: fixed;
     inset: 0;
     z-index: 190;
     background: rgba(34, 51, 42, 0.25);
     backdrop-filter: blur(2px);
     opacity: 0;
-    transition: opacity var(--dur-base) var(--ease-soft);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--dur-base) var(--ease-soft),
+      visibility var(--dur-base) step-end;
   }
   .drawer-backdrop.visible {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity var(--dur-base) var(--ease-soft),
+      visibility var(--dur-base) step-start;
   }
 
   /* Mobile breakpoint */
   @media (max-width: 767px) {
     .site-header { block-size: 56px; }
     .desktop-nav { display: none; }
-    .hamburger { display: flex; }
-    .mobile-drawer { display: flex; }
+
+    /* Fix the hamburger independently so it floats above the drawer.
+       Pinned to the same corner as the drawer (inline-end = left in RTL). */
+    .hamburger {
+      display: flex;
+      position: fixed;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      block-size: 56px;
+      z-index: 300; /* above drawer (200) and backdrop (190) */
+      padding-inline: 1.25rem;
+    }
+  }
+
+  /* Desktop: hide drawer entirely */
+  @media (min-width: 768px) {
+    .mobile-drawer,
+    .drawer-backdrop { display: none !important; }
   }
 </style>
 
 <script>
-  // Scroll → frosted glass
-  const header = document.getElementById('site-header');
-  const onScroll = () => {
-    header?.classList.toggle('scrolled', window.scrollY > 80);
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-  // Mobile drawer
+  gsap.registerPlugin(ScrollTrigger);
+
+  const header = document.getElementById('site-header') as HTMLElement | null;
+  const headerBg = header?.querySelector<HTMLElement>('.header-bg');
+  const wordmark = document.getElementById('header-wordmark') as HTMLElement | null;
+  const isHome = header?.dataset.homeMorph === 'true';
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- Non-home pages: IntersectionObserver-based "scrolled" toggle ---
+  if (header && !isHome) {
+    const sentinel = document.createElement('div');
+    sentinel.setAttribute('aria-hidden', 'true');
+    sentinel.style.cssText = 'position:absolute;top:80px;left:0;width:1px;height:1px;pointer-events:none;';
+    document.body.prepend(sentinel);
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        header.classList.toggle('scrolled', !entry.isIntersecting);
+      },
+      { rootMargin: '0px' },
+    );
+    io.observe(sentinel);
+  }
+
+  // --- Home page: hero title scrolls naturally; header wordmark appears
+  //     once hero exits viewport, with a scale-down entrance animation
+  //     that gives the impression of the hero title "becoming" the header. ---
+  if (header && wordmark && headerBg && isHome) {
+    const hero = document.querySelector<HTMLElement>('.hero');
+
+    if (hero) {
+      if (prefersReducedMotion) {
+        const io = new IntersectionObserver(
+          ([entry]) => {
+            header.classList.toggle('scrolled', !entry.isIntersecting);
+          },
+          { threshold: 0 },
+        );
+        io.observe(hero);
+      } else {
+        // Use ScrollTrigger to track hero exit progress.
+        // The header bg + wordmark appear as the hero scrolls out.
+        ScrollTrigger.getById('header-morph')?.kill();
+
+        ScrollTrigger.create({
+          id: 'header-morph',
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+          onUpdate: (self) => {
+            const p = self.progress;
+
+            // Header bg: fade in from 60% to 100% of hero scroll
+            const bgFade = gsap.utils.clamp(0, 1, (p - 0.6) / 0.4);
+            headerBg!.style.opacity = String(bgFade);
+
+            // Wordmark: appear from 50%, scale from 1.8 → 1
+            const wordmarkProgress = gsap.utils.clamp(0, 1, (p - 0.5) / 0.5);
+            const scale = gsap.utils.interpolate(1.8, 1, wordmarkProgress);
+            const opacity = wordmarkProgress;
+
+            wordmark!.style.opacity = String(opacity);
+            wordmark!.style.transform = wordmarkProgress < 1 ? `scale(${scale})` : '';
+            wordmark!.style.transformOrigin = 'center center';
+          },
+          onLeave: () => {
+            // Fully scrolled past hero — clean final state
+            wordmark!.style.opacity = '';
+            wordmark!.style.transform = '';
+            headerBg!.style.opacity = '';
+            header.classList.add('scrolled');
+          },
+          onEnterBack: () => {
+            // Re-entering hero zone — remove scrolled, script takes over
+            header.classList.remove('scrolled');
+          },
+          onLeaveBack: () => {
+            // Back at top — wordmark hidden
+            wordmark!.style.opacity = '0';
+            wordmark!.style.transform = 'scale(1.8)';
+            headerBg!.style.opacity = '0';
+            header.classList.remove('scrolled');
+          },
+        });
+      }
+    }
+  }
+
+  // --- Mobile drawer ---
   const btn      = document.getElementById('mobile-menu-btn');
   const drawer   = document.getElementById('mobile-drawer');
-  const closeBtn = document.getElementById('drawer-close-btn');
   const backdrop = document.getElementById('drawer-backdrop');
 
   const openDrawer = () => {
@@ -250,7 +493,6 @@ const currentPath = Astro.url.pathname;
     btn?.setAttribute('aria-label', 'סגירת תפריט ניווט');
     backdrop?.classList.add('visible');
     document.body.style.overflow = 'hidden';
-    closeBtn?.focus();
   };
 
   const closeDrawer = () => {
@@ -265,8 +507,11 @@ const currentPath = Astro.url.pathname;
   btn?.addEventListener('click', () => {
     drawer?.getAttribute('data-open') === 'true' ? closeDrawer() : openDrawer();
   });
-  closeBtn?.addEventListener('click', closeDrawer);
   backdrop?.addEventListener('click', closeDrawer);
+
+  drawer?.querySelectorAll('.drawer-link').forEach((link) => {
+    link.addEventListener('click', closeDrawer);
+  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDrawer();

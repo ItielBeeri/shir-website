@@ -59,6 +59,7 @@ const blogPosts = (await getCollection('blog'))
       tagline={home.hero.tagline}
       descriptor={home.hero.descriptor}
       scrollCue={home.hero.scroll_cue}
+      therapySlugs={therapies.map((t) => t.slug)}
     />
 
     <!-- B. Intro -->

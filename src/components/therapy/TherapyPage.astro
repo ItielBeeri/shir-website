@@ -14,6 +14,7 @@ import BreathDivider from '../ui/BreathDivider.astro';
 import CTAButton from '../ui/CTAButton.astro';
 import ScrollReveal from '../ui/ScrollReveal.astro';
 import { loadToml } from '../../lib/content';
+import { getCollection } from 'astro:content';
 import { z } from 'zod';
 import { render } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
@@ -24,7 +25,6 @@ interface Props {
 
 const { entry } = Astro.props;
 const { title, kicker, accent, hero_image, summary } = entry.data;
-// slug comes from the collection entry (file name), not the schema
 const { Content } = await render(entry);
 
 const siteSchema = z.object({
@@ -39,6 +39,9 @@ const siteSchema = z.object({
   }),
 });
 const { contact } = loadToml('site.toml', siteSchema);
+
+const allTherapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
+const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice(0, 2);
 ---
 
 <BaseLayout
@@ -49,16 +52,31 @@ const { contact } = loadToml('site.toml', siteSchema);
   <Header />
 
   <main id="main">
-    <!-- Hero -->
-    <section class="therapy-hero" aria-labelledby="therapy-h1">
+    <!-- Hero with accent overlay -->
+    <section class="therapy-hero" data-theme={accent} aria-labelledby="therapy-h1">
+      <div class="accent-overlay" aria-hidden="true"></div>
       <div class="therapy-hero__inner container">
-        <div class="therapy-hero__image" data-reveal>
-          <SoftImage id={hero_image} aspect="4/3" tint loading="eager" />
+        <div class="therapy-hero__image" data-parallax data-speed="0.92" data-reveal>
+          <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${entry.slug}`} />
         </div>
         <div class="therapy-hero__text" data-reveal>
           <GlassCard>
             <p class="therapy-kicker">{kicker}</p>
-            <h1 id="therapy-h1" class="therapy-title">{title}</h1>
+            <div class="therapy-title-wrap">
+              <h1 id="therapy-h1" class="therapy-title">{title}</h1>
+              <div class="therapy-hero__rule" aria-hidden="true">
+                <svg viewBox="0 0 320 12" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" class="hero-rule-svg">
+                  <path
+                    class="rule-path"
+                    d="M0,6 Q80,0 160,6 Q240,12 320,6"
+                    fill="none"
+                    stroke="var(--color-mist)"
+                    stroke-width="1"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+            </div>
             <p class="therapy-summary">{summary}</p>
           </GlassCard>
         </div>
@@ -102,6 +120,29 @@ const { contact } = loadToml('site.toml', siteSchema);
         </div>
       </ScrollReveal>
     </section>
+
+    <!-- Related therapies -->
+    <section class="therapy-related container" aria-labelledby="related-heading">
+      <ScrollReveal>
+        <SectionHeading title="מסלולים אחרים" center id="related-heading" />
+        <div class="related-grid">
+          {relatedTherapies.map((therapy) => (
+            <a href={`/${therapy.slug}`} class="related-card">
+              <div class="related-image">
+                <SoftImage id={therapy.data.hero_image} aspect="4/3" tint />
+              </div>
+              <div class="related-content">
+                <p class="related-kicker">{therapy.data.kicker}</p>
+                <h3 class="related-title">{therapy.data.title}</h3>
+                <span class="link-underline related-link">
+                  להמשך קריאה ←
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </ScrollReveal>
+    </section>
   </main>
 
   <BreathDivider />
@@ -110,12 +151,23 @@ const { contact } = loadToml('site.toml', siteSchema);
 </BaseLayout>
 
 <style>
-  /* Hero */
+  /* Hero with accent */
   .therapy-hero {
+    position: relative;
     min-block-size: 100svh;
     display: flex;
     align-items: center;
     padding-block: var(--space-section);
+    overflow: hidden;
+  }
+
+  .accent-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--accent, transparent);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
   }
 
   .therapy-hero__inner {
@@ -123,32 +175,84 @@ const { contact } = loadToml('site.toml', siteSchema);
     grid-template-columns: 1fr 1fr;
     gap: clamp(2rem, 5vw, 4rem);
     align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .therapy-hero__image {
+    position: relative;
+  }
+
+  .therapy-hero__image :global(img) {
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .therapy-hero__rule {
+    inline-size: min(100%, 320px);
+    margin-inline: auto;
+    margin-block-start: clamp(0.4rem, 1vh, 0.9rem);
+    margin-block-end: clamp(1.2rem, 3vh, 2rem);
+    opacity: 0;
+    transform: scaleX(0.6);
+    transform-origin: center;
+    animation: fadeInScale 0.8s var(--ease-soft) forwards 0.6s;
+  }
+
+  .hero-rule-svg {
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .rule-path {
+    animation: rule-drift 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes fadeInScale {
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  @keyframes rule-drift {
+    from { d: path("M0,6 Q80,0 160,6 Q240,12 320,6"); }
+    to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
+  }
+
+  .therapy-title-wrap {
+    position: relative;
+    display: inline-block;
   }
 
   .therapy-kicker {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
     font-size: 0.95rem;
+    font-weight: 400;
     color: var(--color-ink-soft);
     margin-block-end: 0.5rem;
   }
 
   .therapy-title {
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-display);
-    font-weight: 300;
-    color: var(--color-ink);
-    letter-spacing: var(--ls-display);
+    font-weight: 200;
+    letter-spacing: 0.02em;
     line-height: var(--lh-display);
-    margin-block-end: 1rem;
+    color: var(--color-ink);
+    margin-block-end: 0;
   }
 
   .therapy-summary {
     font-size: var(--fs-body);
     color: var(--color-ink-soft);
     line-height: var(--lh-body);
+    margin-block-start: 1rem;
   }
 
   /* Body */
-  .therapy-body { padding-block: var(--space-section); }
+  .therapy-body {
+    padding-block: var(--space-section);
+    position: relative;
+    z-index: 1;
+  }
 
   .prose {
     font-size: var(--fs-body);
@@ -158,6 +262,7 @@ const { contact } = loadToml('site.toml', siteSchema);
   }
 
   .prose :global(h2) {
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-h2);
     font-weight: 300;
     color: var(--color-ink);
@@ -165,6 +270,7 @@ const { contact } = loadToml('site.toml', siteSchema);
   }
 
   .prose :global(h3) {
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-h3);
     font-weight: 400;
     color: var(--color-ink);
@@ -186,6 +292,8 @@ const { contact } = loadToml('site.toml', siteSchema);
     flex-direction: column;
     align-items: center;
     gap: var(--space-block);
+    position: relative;
+    z-index: 1;
   }
 
   .cta-group {
@@ -195,7 +303,99 @@ const { contact } = loadToml('site.toml', siteSchema);
     gap: 1rem;
   }
 
+  /* Related therapies */
+  .therapy-related {
+    padding-block: var(--space-section);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-block);
+    position: relative;
+    z-index: 1;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .related-card {
+    display: block;
+    background: var(--color-glass);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    border: 1px solid var(--color-glass-stroke);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform var(--dur-base) var(--ease-soft),
+                box-shadow var(--dur-base) var(--ease-soft);
+  }
+
+  .related-card:hover,
+  .related-card:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .related-card:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  .related-image {
+    aspect-ratio: 4/3;
+    overflow: hidden;
+  }
+
+  .related-image :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .related-card:hover .related-image :global(img) {
+    transform: scale(1.05);
+  }
+
+  .related-content {
+    padding: 1.25rem;
+  }
+
+  .related-kicker {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+    margin-block-end: 0.35rem;
+  }
+
+  .related-title {
+    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+    font-size: var(--fs-h3);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block-end: 0.75rem;
+  }
+
+  .related-link {
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+  }
+
   @media (max-width: 767px) {
     .therapy-hero__inner { grid-template-columns: 1fr; }
+    .related-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .therapy-hero__rule,
+    .rule-path {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
   }
 </style>

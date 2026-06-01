@@ -18,6 +18,7 @@ const slug = entry.slug;
 ---
 
 <section
+  id={`teaser-${slug}`}
   class:list={['therapy-teaser', flip && 'therapy-teaser--flip']}
   data-theme={accent}
   aria-labelledby={`therapy-title-${slug}`}
@@ -51,6 +52,8 @@ const slug = entry.slug;
     display: flex;
     align-items: center;
     overflow: hidden;
+    /* Override the global section padding — the 100svh height is the rhythm here */
+    padding-block: 0;
   }
 
   .accent-overlay {
@@ -75,6 +78,8 @@ const slug = entry.slug;
     align-items: center;
     position: relative;
     z-index: 1;
+    /* Give content vertical breathing room within the 100svh container */
+    padding-block: clamp(3rem, 6vh, 5rem);
   }
 
   /* Flip: swap columns */
