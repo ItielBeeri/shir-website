@@ -8,7 +8,7 @@ scroll_cue = "גלילה"
 
 [intro]
 portrait   = "placeholder-portrait"
-cta_label  = "המשיכו לקרוא"
+cta_label  = "להמשיך לקרוא "
 cta_href   = "/about"
 # PLACEHOLDER: TXT_HOME_INTRO
 paragraph  = """
