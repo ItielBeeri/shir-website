@@ -34,8 +34,8 @@
   --fs-hero-tagline: clamp(1.05rem, 1.2vw + 0.6rem, 1.4rem);
 
   /* Spacing */
-  --space-section: clamp(4rem, 8vh, 8rem);
-  --space-block:   clamp(2rem, 5vh, 4rem);
+  --space-section: clamp(2.5rem, 5vh, 5rem);
+  --space-block:   clamp(1.5rem, 3vh, 2.5rem);
   --radius-card:   28px;
   --radius-pill:   999px;
   --blur-glass:    18px;

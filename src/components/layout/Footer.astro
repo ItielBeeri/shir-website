@@ -251,15 +251,20 @@ const year = new Date().getFullYear();
 
   /* Bottom bar */
   .footer-bottom {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
     gap: 1rem;
     padding-block-start: 1.5rem;
     border-block-start: 1px solid rgba(122, 138, 130, 0.2);
     font-size: var(--fs-small);
     color: var(--color-mist);
+  }
+
+  @media (max-width: 480px) {
+    .footer-bottom {
+      grid-template-columns: 1fr;
+    }
   }
 
   .footer-bottom-start {
@@ -280,11 +285,20 @@ const year = new Date().getFullYear();
   }
   .footer-bottom-link:hover { color: var(--color-ink-soft); }
 
-  /* Builder credit (§5.3.1) — aligned to inline-end (left in RTL) */
+  /* Builder credit (§5.3.1) — aligned to inline-start (left), even when wrapped */
   .builder-credit {
+    display: block;
     font-size: 0.72rem;
     color: var(--color-mist);
     letter-spacing: 0.04em;
+    text-align: left;
+  }
+
+  @media (max-width: 480px) {
+    .builder-credit {
+      grid-column: 1;
+      justify-self: left;
+    }
   }
 
   .builder-credit a {

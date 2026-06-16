@@ -48,10 +48,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
 <section class="identity" aria-labelledby="identity-title">
   <div class="identity-inner container">
-    <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
-      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
-    </a>
-
     <div class="identity-text">
       <a href={ctaHref} class="identity-text-link">
         <h1 id="identity-title" class="identity-title">{title}</h1>
@@ -97,6 +93,10 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
         </span>
       </a>
     </div>
+
+    <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
+      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
+    </a>
   </div>
 </section>
 
