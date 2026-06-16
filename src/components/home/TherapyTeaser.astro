@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { entry, flip = false } = Astro.props;
-const { title, kicker, accent, hero_image, summary } = entry.data;
+const { title, kicker, accent, hero_image, teaser_image, summary } = entry.data;
 const slug = entry.slug;
 ---
 
@@ -37,6 +37,11 @@ const slug = entry.slug;
       <p class="teaser-kicker">{kicker}</p>
       <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
       <p class="teaser-summary">{summary}</p>
+      {teaser_image && (
+        <div class="teaser-secondary">
+          <SoftImage id={teaser_image} aspect="4/3" />
+        </div>
+      )}
       <span class="teaser-cta link-underline">
         להמשך קריאה ←
       </span>
@@ -108,6 +113,12 @@ const slug = entry.slug;
     margin-block-end: 1.5rem;
   }
 
+  .teaser-secondary {
+    margin-block: 1.5rem;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
   .teaser-cta {
     font-size: var(--fs-small);
     color: var(--color-ink-soft);
@@ -119,5 +130,11 @@ const slug = entry.slug;
       direction: rtl !important;
     }
     .teaser-inner > * { direction: rtl !important; }
+
+.teaser-image {
+      height: 20vh;
+      overflow: hidden;
+      border-radius: var(--radius-card);
+    }
   }
 </style>

@@ -7,6 +7,7 @@ const therapies = defineCollection({
     kicker:            z.string(),
     accent:            z.enum(['psychotherapy', 'shiatsu', 'voice']),
     hero_image:        z.string(),
+    teaser_image:      z.string().optional(),
     summary:           z.string(),
     order:             z.number(),
     related_blog_tags: z.array(z.string()).optional(),

@@ -1,13 +1,13 @@
 # דף אודות — ערכי רק טקסטים בין הגרשיים
 
 [hero]
-kicker = "מעט עליי"
+kicker = "מעט עלי"
 title  = "אודות"
 # PLACEHOLDER: TXT_ABOUT_HERO_LINE
 intro  = "מרחב של הקשבה, מגע ושינוי."
 
 [portrait]
-image_id = "placeholder-portrait"
+image_id = "portrait-3"
 # PLACEHOLDER: TXT_ABOUT_OPENING
 opening  = """
 כאן יופיע הפסקה הפותחת על שיר — רקע, דרך, ניסיון.

@@ -3,7 +3,9 @@
   "type": "module",
   "version": "0.0.1",
   "packageManager": "pnpm@9.15.4",
-  "engines": { "node": ">=20.0.0" },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -11,6 +13,7 @@
     "check": "astro check"
   },
   "dependencies": {
+    "@astrojs/mdx": "^4.0.0",
     "@astrojs/sitemap": "^3.2.1",
     "astro": "^4.16.18",
     "astro-icon": "^1.1.5",

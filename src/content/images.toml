@@ -21,6 +21,46 @@ alt  = "איור אבסטרקטי המרמז על קול ונשימה"
 file = "/img/content/placeholder-blog.jpg"
 alt  = "תמונת כיסוי לפוסט בבלוג"
 
+[portrait-1]
+file = "/img/content/portrait-1.jpeg"
+alt  = "תמונה של שיר אמיתי בטבע"
+
+[portrait-2]
+file = "/img/content/portrait-2.jpeg"
+alt  = "תמונה של שיר אמיתי"
+
+[portrait-3]
+file = "/img/content/portrait-3.jpeg"
+alt  = "תמונה של שיר אמיתי"
+
+[shiatsu-1]
+file = "/img/content/shiatsu-1.jpeg"
+alt  = "שיר אמיתי מטפלת במגע"
+
+[shiatsu-2]
+file = "/img/content/shiatsu-2.jpeg"
+alt  = "שיר אמיתי מטפלת במגע"
+
+[shiatsu-3]
+file = "/img/content/shiatsu-3.jpeg"
+alt  = "שיר אמיתי מטפלת במגע"
+
+[shiatsu-4]
+file = "/img/content/shiatsu-4.jpeg"
+alt  = "שיר אמיתי מטפלת במגע"
+
+[shiatsu-5]
+file = "/img/content/shiatsu-5.jpeg"
+alt  = "שיר אמיתי מטפלת במגע"
+
+[voice-1]
+file = "/img/content/voice-1.jpeg"
+alt  = "שיר אמיתי במפגש פתיחת קול"
+
+[voice-2]
+file = "/img/content/voice-2.jpeg"
+alt  = "שיר אמיתי במפגש פתיחת קול"
+
 [background-main]
 file = "/img/bg/background.jpg"
 alt  = ""

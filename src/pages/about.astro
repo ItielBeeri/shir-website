@@ -34,9 +34,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
     <!-- Unified intro: portrait + title + opening -->
     <section class="about-intro container" aria-labelledby="about-h1">
       <div class="about-intro-grid">
-        <div class="about-portrait" data-parallax data-speed="0.92">
-          <SoftImage id={about.portrait.image_id} aspect="3/4" />
-        </div>
         <div class="about-intro-text">
           <p class="text-kicker">{about.hero.kicker}</p>
           <h1 id="about-h1" class="about-title">{about.hero.title}</h1>
@@ -54,6 +51,9 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
           </div>
           <p class="about-intro-paragraph">{about.hero.intro}</p>
           <p class="about-opening">{about.portrait.opening}</p>
+        </div>
+        <div class="about-portrait" data-parallax data-speed="0.92">
+          <SoftImage id={about.portrait.image_id} aspect="3/4" />
         </div>
       </div>
     </section>

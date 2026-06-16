@@ -1,14 +1,12 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
+import mdx from '@astrojs/mdx';
 
 export default defineConfig({
   site: 'https://shir-amitai.com',
   integrations: [
-    sitemap({
-      filter: (page) => !page.includes('/design'),
-    }),
+    mdx(),
     icon({
       iconDir: 'src/icons',
     }),

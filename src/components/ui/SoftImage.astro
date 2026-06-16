@@ -19,6 +19,10 @@ interface Props {
   loading?: 'lazy' | 'eager';
   /** CSS view-transition-name for cross-page morph */
   transitionName?: string;
+  /** Float position: "start" (right in RTL) or "end" (left in RTL) */
+  float?: 'start' | 'end';
+  /** Max width when floating in pixels, e.g. "300" */
+  floatWidth?: string;
 }
 
 const imagesSchema = z.record(z.string(), z.object({
@@ -29,17 +33,26 @@ const imagesSchema = z.record(z.string(), z.object({
 
 const images = loadToml('images.toml', imagesSchema);
 
-const { id, tint = false, aspect = '4/3', class: className, loading = 'lazy', transitionName } = Astro.props;
+const { id, tint = false, aspect = '4/3', class: className, loading = 'lazy', transitionName, float, floatWidth = '280' } = Astro.props;
 
 const image = images[id];
-// Graceful fallback if image id not found
 const src = image?.file ?? '/img/content/placeholder.jpg';
 const alt = image?.alt ?? '';
 ---
 
 <figure
-  class:list={['soft-image', tint && 'soft-image--tint', className]}
-  style={`aspect-ratio: ${aspect}${transitionName ? `; view-transition-name: ${transitionName}` : ''}`}
+  class:list={[
+    'soft-image',
+    tint && 'soft-image--tint',
+    float && 'soft-image--float',
+    float && `soft-image--float-${float}`,
+    className
+  ]}
+  style={`
+    aspect-ratio: ${aspect};
+    ${float ? `--float-width: ${floatWidth}px;` : ''}
+    ${transitionName ? `view-transition-name: ${transitionName};` : ''}
+  `.replace(/\s+/g, ' ').trim()}
 >
   <img
     src={src}
@@ -51,3 +64,76 @@ const alt = image?.alt ?? '';
   {tint && <div class="soft-image__tint" aria-hidden="true"></div>}
 </figure>
 
+<style>
+  .soft-image {
+    display: block;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    margin-block-end: 1rem;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
+  }
+
+  .soft-image__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .soft-image:hover .soft-image__img {
+    transform: scale(1.03);
+  }
+
+  .soft-image__tint {
+    position: absolute;
+    inset: 0;
+    background: var(--accent-soft);
+    mix-blend-mode: multiply;
+    opacity: 0.15;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Float styles */
+  .soft-image--float {
+    margin: 0;
+    margin-block-end: 1.5rem;
+    shape-outside: margin-box;
+  }
+
+  .soft-image--float-start {
+    float: inline-start;
+    margin-inline-end: 1.5rem;
+    width: var(--float-width, 280px);
+  }
+
+  .soft-image--float-end {
+    float: inline-end;
+    margin-inline-start: 1.5rem;
+    width: var(--float-width, 280px);
+  }
+
+  /* Mobile and narrow screens: no float */
+  @media (max-width: 768px), (max-inline-size: 600px) {
+    .soft-image--float {
+      float: none;
+      width: 100%;
+      margin-inline: 0;
+      margin-block-end: 1.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .soft-image__img {
+      transition: none;
+    }
+    .soft-image:hover .soft-image__img {
+      transform: none;
+    }
+  }
+</style>

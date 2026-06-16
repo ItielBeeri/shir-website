@@ -85,7 +85,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     <!-- Body content from MDX — text flows freely -->
     <section class="therapy-body container" data-reveal>
       <div class="prose">
-        <Content />
+        <Content components={{ SoftImage }} />
       </div>
     </section>
 
@@ -232,7 +232,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     font-size: var(--fs-body);
     line-height: var(--lh-body);
     color: var(--color-ink-soft);
-    max-inline-size: 70ch;
+    display: flow-root;
   }
 
   .prose :global(h2) {
@@ -265,11 +265,21 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     margin-block-end: 0.5rem;
   }
 
-  .prose :global(img),
-  .prose :global(figure) {
+  .prose :global(img) {
     margin-block: 2rem;
     border-radius: var(--radius-card);
     overflow: hidden;
+  }
+
+  .prose :global(figure:not(.soft-image)) {
+    margin-block: 2rem;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  /* Clear floats after h2 headings to start fresh sections */
+  .prose :global(h2) {
+    clear: both;
   }
 
   .therapy-cta {
