@@ -28,7 +28,8 @@ interface Props {
   subtitle: string;
   modalityTagline: string;
   portraitImageId: string;
-  introParagraph: string;
+  introParagraph1: string;
+  introParagraph2: string;
   ctaLabel: string;
   ctaHref: string;
   therapySlugs?: string[];
@@ -39,7 +40,8 @@ const {
   subtitle,
   modalityTagline,
   portraitImageId,
-  introParagraph,
+  introParagraph1,
+  introParagraph2,
   ctaLabel,
   ctaHref,
   therapySlugs = [],
@@ -50,6 +52,13 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
 <section class="identity" aria-labelledby="identity-title">
   <div class="identity-inner container">
+
+    <!-- col: portrait (desktop left / mobile centre) -->
+    <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
+      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
+    </a>
+
+    <!-- col: title block (desktop right / mobile top) -->
     <div class="identity-text">
       <a href={ctaHref} class="identity-text-link">
         <h1 id="identity-title" class="identity-title">{title}</h1>
@@ -67,7 +76,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
           </svg>
         </div>
       </a>
-      
+
       <div class="identity-modalities" role="list">
         {modalities.map((m, i) => {
           const slug = therapySlugs[i];
@@ -83,13 +92,24 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
           );
         })}
       </div>
+    </div>
 
+    <!-- paragraph 1: aside the portrait on desktop; between title and portrait on mobile -->
+    <div class="identity-intro-1">
       <a href={ctaHref} class="identity-text-link">
         <p class="identity-intro">
-          <span class="identity-intro__lead">{introParagraph.split(' ').slice(0, 4).join(' ')}</span>
-          {introParagraph.split(' ').slice(4).join(' ')}
+          <span class="identity-intro__lead">{introParagraph1.split(' ').slice(0, 4).join(' ')}</span>
+          {introParagraph1.split(' ').slice(4).join(' ')}
         </p>
+      </a>
+    </div>
 
+    <!-- paragraph 2: spans full width below both columns on desktop; below portrait on mobile -->
+    <div class="identity-intro-2">
+      <a href={ctaHref} class="identity-text-link">
+        <p class="identity-intro">
+          {introParagraph2}
+        </p>
         <span class="identity-cta link-underline">
           {ctaLabel}
           <span aria-hidden="true"> ←</span>
@@ -97,9 +117,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
       </a>
     </div>
 
-    <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
-      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
-    </a>
   </div>
 </section>
 
@@ -109,19 +126,32 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     padding-block-end: var(--space-section);
   }
 
+  /* ── Desktop grid ──────────────────────────────────────────────────────────
+     portrait  │  title + modalities   (row 1)
+     portrait  │  paragraph 1          (row 2, portrait spans both rows)
+               ┴
+               paragraph 2 full width  (row 3, spans both columns)
+  ──────────────────────────────────────────────────────────────────────── */
   .identity-inner {
     max-inline-size: 1000px;
     display: grid;
     grid-template-columns: minmax(280px, 380px) 1fr;
-    gap: clamp(2rem, 5vw, 4rem);
+    grid-template-areas:
+      "text  portrait"
+      "para1 portrait"
+      "para2    para2";
+    column-gap: clamp(2rem, 5vw, 4rem);
+    row-gap: 0.75rem;
     align-items: start;
   }
 
   .identity-portrait-link {
+    grid-area: portrait;
     position: relative;
     border-radius: var(--radius-card);
     overflow: hidden;
     transition: transform var(--dur-base) var(--ease-soft);
+    align-self: start;
   }
 
   .identity-portrait-link:hover {
@@ -129,11 +159,22 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
   }
 
   .identity-text {
+    grid-area: text;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
 
+  .identity-intro-1 {
+    grid-area: para1;
+  }
+
+  .identity-intro-2 {
+    grid-area: para2;
+    padding-block-start: 0.5rem;
+  }
+
+  /* ── Shared text styles ──────────────────────────────────────────────── */
   .identity-text-link {
     text-decoration: none;
     color: inherit;
@@ -237,15 +278,26 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     color: var(--color-ink-soft);
   }
 
+  /* ── Mobile ────────────────────────────────────────────────────────────
+     title/subtitle/modalities
+     paragraph 1
+     portrait (centred)
+     paragraph 2 + CTA
+  ──────────────────────────────────────────────────────────────────────── */
   @media (max-width: 767px) {
     .identity {
-      /* padding-block-start: 1rem; */
       padding-block-end: 5rem;
     }
 
     .identity-inner {
       grid-template-columns: 1fr;
-      gap: 1rem;
+      grid-template-areas:
+        "text"
+        "para1"
+        "portrait"
+        "para2";
+      row-gap: 1rem;
+      column-gap: 0;
     }
 
     .identity-portrait-link {
@@ -280,6 +332,11 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     .identity-modalities {
       justify-content: center;
       margin-block-end: 0.25rem;
+    }
+
+    .identity-intro-1,
+    .identity-intro-2 {
+      text-align: center;
     }
   }
 

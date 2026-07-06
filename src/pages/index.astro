@@ -17,7 +17,7 @@ import { personSchema, localBusinessSchema, jsonLd } from '../lib/seo';
 
 const homeSchema = z.object({
   hero:    z.object({ title: z.string(), subtitle: z.string(), tagline: z.string(), descriptor: z.string(), scroll_cue: z.string() }),
-  intro:   z.object({ portrait: z.string(), cta_label: z.string(), cta_href: z.string(), paragraph: z.string() }),
+  intro:   z.object({ portrait: z.string(), cta_label: z.string(), cta_href: z.string(), paragraph_1: z.string(), paragraph_2: z.string() }),
   teasers: z.object({ blog: z.object({ label: z.string(), cta_label: z.string(), cta_href: z.string() }) }),
   closing: z.object({ enabled: z.boolean(), line: z.string() }),
 });
@@ -57,7 +57,8 @@ const blogPosts = (await getCollection('blog'))
       subtitle={home.hero.subtitle}
       modalityTagline={home.hero.tagline}
       portraitImageId={home.intro.portrait}
-      introParagraph={home.intro.paragraph}
+      introParagraph1={home.intro.paragraph_1}
+      introParagraph2={home.intro.paragraph_2}
       ctaLabel={home.intro.cta_label}
       ctaHref={home.intro.cta_href}
       therapySlugs={therapies.map((t) => t.slug)}
