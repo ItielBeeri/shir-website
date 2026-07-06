@@ -151,7 +151,8 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     border-radius: var(--radius-card);
     overflow: hidden;
     transition: transform var(--dur-base) var(--ease-soft);
-    align-self: start;
+    align-self: stretch;
+    max-block-size: 500px;
   }
 
   .identity-portrait-link:hover {
