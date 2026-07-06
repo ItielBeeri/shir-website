@@ -16,7 +16,7 @@ import { z } from 'zod';
 import { personSchema, localBusinessSchema, jsonLd } from '../lib/seo';
 
 const homeSchema = z.object({
-  hero:    z.object({ title: z.string(), tagline: z.string(), descriptor: z.string(), scroll_cue: z.string() }),
+  hero:    z.object({ title: z.string(), subtitle: z.string(), tagline: z.string(), descriptor: z.string(), scroll_cue: z.string() }),
   intro:   z.object({ portrait: z.string(), cta_label: z.string(), cta_href: z.string(), paragraph: z.string() }),
   teasers: z.object({ blog: z.object({ label: z.string(), cta_label: z.string(), cta_href: z.string() }) }),
   closing: z.object({ enabled: z.boolean(), line: z.string() }),
@@ -54,6 +54,7 @@ const blogPosts = (await getCollection('blog'))
     <!-- A. Identity section — unified portrait + title + intro -->
     <IdentitySection
       title={home.hero.title}
+      subtitle={home.hero.subtitle}
       modalityTagline={home.hero.tagline}
       portraitImageId={home.intro.portrait}
       introParagraph={home.intro.paragraph}

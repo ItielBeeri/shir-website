@@ -25,6 +25,7 @@ import SoftImage from '../ui/SoftImage.astro';
 
 interface Props {
   title: string;
+  subtitle: string;
   modalityTagline: string;
   portraitImageId: string;
   introParagraph: string;
@@ -35,6 +36,7 @@ interface Props {
 
 const {
   title,
+  subtitle,
   modalityTagline,
   portraitImageId,
   introParagraph,
@@ -51,6 +53,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     <div class="identity-text">
       <a href={ctaHref} class="identity-text-link">
         <h1 id="identity-title" class="identity-title">{title}</h1>
+        <p class="identity-subtitle">{subtitle}</p>
         <div class="identity-rule" aria-hidden="true">
           <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="identity-rule-svg">
             <path
@@ -138,12 +141,20 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
   .identity-title {
     font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
-    font-size: var(--fs-display);
+    font-size: clamp(2.4rem, 5.5vw, 5rem);
     font-weight: 300;
     letter-spacing: -0.01em;
     line-height: var(--lh-display);
     color: var(--color-ink);
     margin-block: 0 0.25rem;
+  }
+
+  .identity-subtitle {
+    font-family: var(--font-serif);
+    font-size: var(--fs-h2);
+    font-weight: 300;
+    color: var(--color-ink-soft);
+    margin-block: 0 0.5rem;
   }
 
   .identity-rule {
@@ -249,7 +260,11 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     }
 
     .identity-title {
-      font-size: clamp(2.8rem, 10vw, var(--fs-display));
+      font-size: clamp(2.4rem, 9vw, 4rem);
+    }
+
+    .identity-subtitle {
+      font-size: var(--fs-h3);
     }
 
     .identity-rule {
