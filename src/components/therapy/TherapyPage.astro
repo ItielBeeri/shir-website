@@ -59,9 +59,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     <!-- Intro: Image + title block (natural height, not full viewport) -->
     <section class="therapy-intro" data-theme={accent} aria-labelledby="therapy-h1">
       <div class="therapy-intro__inner container">
-        <div class="therapy-intro__image" data-parallax data-speed="0.92">
-          <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${entry.slug}`} />
-        </div>
         <div class="therapy-intro__text">
           <p class="therapy-kicker">{kicker}</p>
           <h1 id="therapy-h1" class="therapy-title">{title}</h1>
@@ -78,6 +75,9 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
             </svg>
           </div>
           <p class="therapy-summary">{summary}</p>
+        </div>
+        <div class="therapy-intro__image" data-parallax data-speed="0.92">
+          <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${entry.slug}`} />
         </div>
       </div>
     </section>
@@ -157,7 +157,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 
   .therapy-intro__inner {
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) 1fr;
+    grid-template-columns: 1fr minmax(280px, 1fr);
     gap: clamp(2rem, 5vw, 4rem);
     align-items: start;
   }

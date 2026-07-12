@@ -2,9 +2,13 @@
 import { defineConfig } from 'astro/config';
 import icon from 'astro-icon';
 import mdx from '@astrojs/mdx';
+import remarkBreaks from 'remark-breaks';
 
 export default defineConfig({
   site: 'https://shir-amitai.com',
+  markdown: {
+    remarkPlugins: [remarkBreaks],
+  },
   integrations: [
     mdx(),
     icon({
