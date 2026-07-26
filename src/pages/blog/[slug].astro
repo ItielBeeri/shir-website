@@ -3,13 +3,9 @@ import BaseLayout from '../../components/layout/BaseLayout.astro';
 import Header from '../../components/layout/Header.astro';
 import Footer from '../../components/layout/Footer.astro';
 import ContactPill from '../../components/layout/ContactPill.astro';
-import GlassCard from '../../components/ui/GlassCard.astro';
 import SoftImage from '../../components/ui/SoftImage.astro';
 import BreathDivider from '../../components/ui/BreathDivider.astro';
-import CTAButton from '../../components/ui/CTAButton.astro';
 import { getCollection, render } from 'astro:content';
-import { loadToml } from '../../lib/content';
-import { z } from 'zod';
 import { blogPostingSchema, jsonLd } from '../../lib/seo';
 
 export async function getStaticPaths() {
@@ -22,13 +18,6 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
-
-const siteSchema = z.object({
-  contact: z.object({
-    whatsapp_url: z.string(), whatsapp_label: z.string(),
-  }),
-});
-const { contact } = loadToml('site.toml', siteSchema);
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -53,57 +42,49 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   <Header />
 
   <main id="main">
-    <!-- Hero -->
-    <section class="post-hero" aria-labelledby="post-h1">
+    <!-- Hero: fixed cover that content scrolls over -->
+    <div class="post-shell">
       {post.data.cover && (
         <div class="post-cover">
           <SoftImage id={post.data.cover} aspect="21/9" loading="eager" />
         </div>
       )}
-      <div class="container">
-        <GlassCard>
-          <div class="post-meta">
-            <time class="post-date" datetime={post.data.date.toISOString()}>
-              {formatDate(post.data.date)}
-            </time>
-            <span class="post-reading-time">{readingTime} דקות קריאה</span>
-            {post.data.tags.length > 0 && (
-              <div class="post-tags">
-                {post.data.tags.map((t) => (
-                  <span class="tag-chip">{t}</span>
-                ))}
+
+      <div class="post-content">
+        <section class="post-hero" aria-labelledby="post-h1">
+          <div class="container">
+            <div class="post-header">
+              <div class="post-meta">
+                <time class="post-date" datetime={post.data.date.toISOString()}>
+                  {formatDate(post.data.date)}
+                </time>
+                <span class="meta-dot" aria-hidden="true">·</span>
+                <span class="post-reading-time">{readingTime} דקות קריאה</span>
               </div>
-            )}
+              <h1 id="post-h1" class="post-title">{post.data.title}</h1>
+              {post.data.tags.length > 0 && (
+                <ul class="post-tags" aria-label="תגיות">
+                  {post.data.tags.map((t) => (
+                    <li class="tag-chip">{t}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-          <h1 id="post-h1" class="post-title">{post.data.title}</h1>
-        </GlassCard>
+        </section>
+
+        <!-- Reading column -->
+        <section class="post-body container" aria-label="גוף הכתבה">
+          <div class="prose">
+            <Content components={{ SoftImage }} />
+          </div>
+        </section>
+
+        <!-- Back to blog -->
+        <div class="container post-back">
+          <a href="/blog" class="link-underline">← חזרה לבלוג</a>
+        </div>
       </div>
-    </section>
-
-    <!-- Reading column -->
-    <section class="post-body container" aria-label="גוף הכתבה">
-      <div class="prose">
-        <Content />
-      </div>
-    </section>
-
-    <!-- End CTA -->
-    <section class="post-cta container" aria-label="יצירת קשר">
-      <GlassCard>
-        <p class="post-cta-text">רוצים לדעת עוד? מוזמנים לפנות.</p>
-        <CTAButton
-          href={contact.whatsapp_url}
-          label={contact.whatsapp_label}
-          icon="whatsapp"
-          variant="primary"
-          external
-        />
-      </GlassCard>
-    </section>
-
-    <!-- Back to blog -->
-    <div class="container post-back">
-      <a href="/blog" class="link-underline">← חזרה לבלוג</a>
     </div>
   </main>
 
@@ -113,33 +94,126 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
 </BaseLayout>
 
 <style>
-  .post-hero { padding-block-start: clamp(4rem, 10vh, 7rem); padding-block-end: var(--space-block); }
-  .post-cover { margin-block-end: -2rem; }
+  /* --- Fixed-cover scroll reveal --- */
+  .post-shell {
+    position: relative;
+  }
+
+  .post-cover {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 0;
+    inline-size: 100vw;
+    margin-inline-start: calc(50% - 50vw);
+    block-size: min(80vh, 640px);
+    overflow: hidden;
+  }
+  .post-cover :global(.soft-image) {
+    block-size: 100%;
+    inline-size: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  /* Content scrolls up and covers the sticky image */
+  .post-content {
+    position: relative;
+    z-index: 1;
+    border-start-start-radius: var(--radius-card);
+    border-start-end-radius: var(--radius-card);
+    margin-block-start: calc(min(80vh, 640px) * -0.12);
+    box-shadow: 0 -20px 50px rgba(92, 110, 101, 0.10);
+    /* ensure it is always tall enough to fully cover the cover image */
+    min-block-size: 80vh;
+    isolation: isolate;
+  }
+
+  /*
+   * Own backdrop that mirrors the site's fixed watercolor field.
+   * It is opaque enough to hide the sticky cover image behind it,
+   * yet reproduces the same watercolor + paper wash the rest of the
+   * site shows — so the running text always sits on the watercolor,
+   * never on the cover photo. A translucent paper wash keeps text
+   * readable exactly like GlassCard surfaces elsewhere.
+   */
+  .post-content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgba(253, 250, 244, 0.78), rgba(253, 250, 244, 0.78)),
+      url('/img/bg/background.jpg');
+    background-size: cover, cover;
+    background-position: center, center;
+    /* attachment: fixed pins the watercolor to the viewport like the
+       site's BackgroundField, while the box clips it to the content */
+    background-attachment: fixed, fixed;
+    border-radius: inherit;
+  }
+
+  @media (max-width: 767px) {
+    .post-cover { block-size: min(56vh, 420px); }
+    .post-content { margin-block-start: calc(min(56vh, 420px) * -0.1); }
+  }
+
+  .post-hero {
+    padding-block-start: var(--space-section);
+    padding-block-end: var(--space-section);
+  }
+
+  .post-header {
+    max-inline-size: 68ch;
+    margin-inline: auto;
+    text-align: start;
+  }
 
   .post-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.6rem;
     align-items: center;
-    margin-block-end: 1rem;
+    margin-block-end: 1.1rem;
   }
 
   .post-date, .post-reading-time {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: var(--fs-small);
+    letter-spacing: var(--ls-caps);
+    text-transform: uppercase;
     color: var(--color-mist);
   }
-
-  .post-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .tag-chip { font-size: 0.8rem; padding: 0.15rem 0.6rem; border-radius: var(--radius-pill); background: var(--color-glass); border: 1px solid var(--color-glass-stroke); color: var(--color-ink-soft); }
+  .meta-dot { color: var(--color-mist); opacity: 0.6; }
 
   .post-title {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: 'Frank Ruhl Libre', 'Heebo', serif;
     font-size: var(--fs-h1);
-    font-weight: 400;
+    font-weight: 500;
     color: var(--color-ink);
-    line-height: 1.35;
-    letter-spacing: 0.02em;
+    line-height: 1.25;
+    letter-spacing: var(--ls-display);
+    text-wrap: balance;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin-block-start: 1.5rem;
+  }
+  .tag-chip {
+    font-size: var(--fs-small);
+    letter-spacing: var(--ls-caps);
+    color: var(--color-mist);
+    padding-inline-end: 0.9rem;
+    position: relative;
+  }
+  .tag-chip::before {
+    content: '#';
+    color: var(--accent, var(--color-teal));
+    margin-inline-end: 0.15rem;
+    opacity: 0.8;
   }
 
   .post-body {
@@ -170,17 +244,6 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   .prose :global(blockquote) { font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif; font-size: var(--fs-h3); font-weight: 300; border-inline-start: 3px solid var(--accent, var(--color-teal)); padding-inline-start: 1.25rem; color: var(--color-ink-soft); margin-block: 2rem; }
   .prose :global(ol), .prose :global(ul) { padding-inline-start: 1.5rem; margin-block-end: 1rem; }
   .prose :global(li) { margin-block-end: 0.4rem; }
-
-  .post-cta {
-    padding-block: var(--space-block);
-    max-inline-size: 480px;
-  }
-
-  .post-cta-text {
-    font-size: var(--fs-body);
-    color: var(--color-ink-soft);
-    margin-block-end: 1.25rem;
-  }
 
   .post-back {
     padding-block-end: var(--space-section);
