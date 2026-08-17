@@ -1,18 +1,18 @@
 ---
-import BaseLayout from '../../components/layout/BaseLayout.astro';
-import Header from '../../components/layout/Header.astro';
-import Footer from '../../components/layout/Footer.astro';
-import ContactPill from '../../components/layout/ContactPill.astro';
-import SoftImage from '../../components/ui/SoftImage.astro';
-import BreathDivider from '../../components/ui/BreathDivider.astro';
-import { getCollection, render } from 'astro:content';
-import { blogPostingSchema, jsonLd } from '../../lib/seo';
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import Header from "../../components/layout/Header.astro";
+import Footer from "../../components/layout/Footer.astro";
+import ContactPill from "../../components/layout/ContactPill.astro";
+import SoftImage from "../../components/ui/SoftImage.astro";
+import BreathDivider from "../../components/ui/BreathDivider.astro";
+import { getCollection, render } from "astro:content";
+import { blogPostingSchema, jsonLd } from "../../lib/seo";
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', (p) => !p.data.draft);
+  const posts = await getCollection("blog", (p) => !p.data.draft);
   return posts.map((post) => ({
     params: { slug: post.slug },
-    props:  { post },
+    props: { post },
   }));
 }
 
@@ -20,7 +20,11 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString("he-IL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
@@ -31,12 +35,16 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   description={post.data.excerpt}
 >
   <Fragment slot="head">
-    <Fragment set:html={jsonLd(blogPostingSchema({
-      title: post.data.title,
-      excerpt: post.data.excerpt,
-      date: post.data.date,
-      slug: post.slug,
-    }))} />
+    <Fragment
+      set:html={jsonLd(
+        blogPostingSchema({
+          title: post.data.title,
+          excerpt: post.data.excerpt,
+          date: post.data.date,
+          slug: post.slug,
+        }),
+      )}
+    />
   </Fragment>
 
   <Header />
@@ -44,11 +52,13 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   <main id="main">
     <!-- Hero: fixed cover that content scrolls over -->
     <div class="post-shell">
-      {post.data.cover && (
-        <div class="post-cover">
-          <SoftImage id={post.data.cover} aspect="21/9" loading="eager" />
-        </div>
-      )}
+      {
+        post.data.cover && (
+          <div class="post-cover">
+            <SoftImage id={post.data.cover} aspect="21/9" loading="eager" />
+          </div>
+        )
+      }
 
       <div class="post-content">
         <section class="post-hero" aria-labelledby="post-h1">
@@ -62,13 +72,15 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
                 <span class="post-reading-time">{readingTime} דקות קריאה</span>
               </div>
               <h1 id="post-h1" class="post-title">{post.data.title}</h1>
-              {post.data.tags.length > 0 && (
-                <ul class="post-tags" aria-label="תגיות">
-                  {post.data.tags.map((t) => (
-                    <li class="tag-chip">{t}</li>
-                  ))}
-                </ul>
-              )}
+              {
+                post.data.tags.length > 0 && (
+                  <ul class="post-tags" aria-label="תגיות">
+                    {post.data.tags.map((t) => (
+                      <li class="tag-chip">{t}</li>
+                    ))}
+                  </ul>
+                )
+              }
             </div>
           </div>
         </section>
@@ -82,7 +94,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
 
         <!-- Back to blog -->
         <div class="container post-back">
-          <a href="/blog" class="link-underline">← חזרה לבלוג</a>
+          <a href="/blog" class="link-underline">→ חזרה לבלוג</a>
         </div>
       </div>
     </div>
@@ -122,7 +134,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     border-start-start-radius: var(--radius-card);
     border-start-end-radius: var(--radius-card);
     margin-block-start: calc(min(80vh, 640px) * -0.12);
-    box-shadow: 0 -20px 50px rgba(92, 110, 101, 0.10);
+    box-shadow: 0 -20px 50px rgba(92, 110, 101, 0.1);
     /* ensure it is always tall enough to fully cover the cover image */
     min-block-size: 80vh;
     isolation: isolate;
@@ -137,13 +149,13 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
    * readable exactly like GlassCard surfaces elsewhere.
    */
   .post-content::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     z-index: -1;
     background:
       linear-gradient(rgba(253, 250, 244, 0.78), rgba(253, 250, 244, 0.78)),
-      url('/img/bg/background.jpg');
+      url("/img/bg/background.jpg");
     background-size: cover, cover;
     background-position: center, center;
     /* attachment: fixed pins the watercolor to the viewport like the
@@ -153,8 +165,12 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   }
 
   @media (max-width: 767px) {
-    .post-cover { block-size: min(56vh, 420px); }
-    .post-content { margin-block-start: calc(min(56vh, 420px) * -0.1); }
+    .post-cover {
+      block-size: min(56vh, 420px);
+    }
+    .post-content {
+      margin-block-start: calc(min(56vh, 420px) * -0.1);
+    }
   }
 
   .post-hero {
@@ -176,16 +192,20 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     margin-block-end: 1.1rem;
   }
 
-  .post-date, .post-reading-time {
+  .post-date,
+  .post-reading-time {
     font-size: var(--fs-small);
     letter-spacing: var(--ls-caps);
     text-transform: uppercase;
     color: var(--color-mist);
   }
-  .meta-dot { color: var(--color-mist); opacity: 0.6; }
+  .meta-dot {
+    color: var(--color-mist);
+    opacity: 0.6;
+  }
 
   .post-title {
-    font-family: 'Frank Ruhl Libre', 'Heebo', serif;
+    font-family: "Frank Ruhl Libre", "Heebo", serif;
     font-size: var(--fs-h1);
     font-weight: 500;
     color: var(--color-ink);
@@ -210,19 +230,26 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     position: relative;
   }
   .tag-chip::before {
-    content: '#';
+    content: "#";
     color: var(--accent, var(--color-teal));
     margin-inline-end: 0.15rem;
     opacity: 0.8;
   }
 
   .post-body {
-    padding-block: var(--space-section);
+    padding: 0;
+    padding-block-end: var(--space-section);
     max-inline-size: 72ch;
   }
 
+  @media (max-width: 767px) {
+    .post-body {
+      padding-inline: clamp(1rem, 5vw, 4rem);
+    }
+  }
+
   /* Drop cap */
-  .prose :global(p:first-of-type::first-letter) {
+  /* .prose :global(p:first-of-type::first-letter) {
     font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
     font-size: 3.5rem;
     font-weight: 500;
@@ -231,19 +258,45 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     margin-inline-end: 0.1em;
     margin-block-end: 0;
     color: var(--color-ink);
-  }
+  } */
 
   .prose {
     font-size: var(--fs-body);
     line-height: 1.85;
     color: var(--color-ink-soft);
   }
-  .prose :global(h2) { font-size: var(--fs-h2); font-weight: 300; color: var(--color-ink); margin-block: 2.5rem 1rem; }
-  .prose :global(h3) { font-size: var(--fs-h3); font-weight: 400; color: var(--color-ink); margin-block: 2rem 0.75rem; }
-  .prose :global(p) { margin-block-end: 1.25rem; }
-  .prose :global(blockquote) { font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif; font-size: var(--fs-h3); font-weight: 300; border-inline-start: 3px solid var(--accent, var(--color-teal)); padding-inline-start: 1.25rem; color: var(--color-ink-soft); margin-block: 2rem; }
-  .prose :global(ol), .prose :global(ul) { padding-inline-start: 1.5rem; margin-block-end: 1rem; }
-  .prose :global(li) { margin-block-end: 0.4rem; }
+  .prose :global(h2) {
+    font-size: var(--fs-h2);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block: 2.5rem 1rem;
+  }
+  .prose :global(h3) {
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--color-ink);
+    margin-block: 2rem 0.75rem;
+  }
+  .prose :global(p) {
+    margin-block-end: 1.25rem;
+  }
+  .prose :global(blockquote) {
+    font-family: "Heebo", "Arial Hebrew", system-ui, sans-serif;
+    font-size: var(--fs-h3);
+    font-weight: 300;
+    border-inline-start: 3px solid var(--accent, var(--color-teal));
+    padding-inline-start: 1.25rem;
+    color: var(--color-ink-soft);
+    margin-block: 2rem;
+  }
+  .prose :global(ol),
+  .prose :global(ul) {
+    padding-inline-start: 1.5rem;
+    margin-block-end: 1rem;
+  }
+  .prose :global(li) {
+    margin-block-end: 0.4rem;
+  }
 
   .post-back {
     padding-block-end: var(--space-section);

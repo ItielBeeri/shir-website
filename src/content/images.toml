@@ -64,3 +64,11 @@ alt  = "שיר אמיתי במפגש פתיחת קול"
 [background-main]
 file = "/img/bg/background.jpg"
 alt  = ""
+
+[heart-in-hands]
+file = "/img/content/heart-in-hands.jpg"
+alt = "לב מונח בתוך ידיים עוטפות"
+
+[contact]
+file = "/img/content/contact.jpg"
+alt = "אישה נשענת על אישה אחרת בריקוד קונטקט"
