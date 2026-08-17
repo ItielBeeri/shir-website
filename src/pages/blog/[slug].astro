@@ -291,7 +291,8 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   }
   .prose :global(ol),
   .prose :global(ul) {
-    padding-inline-start: 1.5rem;
+    list-style-position: inside;
+    padding-inline-start: 0;
     margin-block-end: 1rem;
   }
   .prose :global(li) {

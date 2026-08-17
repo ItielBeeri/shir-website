@@ -72,3 +72,11 @@ alt = "לב מונח בתוך ידיים עוטפות"
 [contact]
 file = "/img/content/contact.jpg"
 alt = "אישה נשענת על אישה אחרת בריקוד קונטקט"
+
+[light-in-shadow]
+file = "/img/content/light-in-shadow.jpg"
+alt = "אישה מביטה בצל של עצמה ורואה אותו מחזיק מתנה יקרה מוארת"
+
+[light-handed-over]
+file = "/img/content/light-handed-over.jpg"
+alt = "כדור של אור עובר מיד ליד"
