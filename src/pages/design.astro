@@ -13,6 +13,12 @@ import BreathDivider from '../components/ui/BreathDivider.astro';
 import CTAButton from '../components/ui/CTAButton.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
 import Icon from '../components/ui/Icon.astro';
+import RecommendationsSection from '../components/home/RecommendationsSection.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const images = loadToml('images.toml', z.record(z.string(), z.object({ file: z.string(), preview: z.string().optional(), alt: z.string() })));
+const recommendations = loadToml('recommendations.toml', z.object({ recommendations: z.array(z.object({ id: z.string(), transcription: z.string(), approved: z.boolean(), active: z.boolean().default(true), author_label: z.string().optional(), date_label: z.string().optional() })) })).recommendations.filter((item) => item.approved && item.active);
 ---
 
 <BaseLayout
@@ -75,6 +81,11 @@ import Icon from '../components/ui/Icon.astro';
         <GlassCard>Default glass card</GlassCard>
         <GlassCard hover>Hover-enabled glass card (try hovering)</GlassCard>
       </div>
+    </section>
+
+    <section class="design-section" aria-labelledby="design-recommendations-heading">
+      <h2 id="design-recommendations-heading" class="design-section-title">המלצות</h2>
+      <RecommendationsSection recommendations={recommendations} images={images} />
     </section>
 
     <!-- ── Buttons ── -->
