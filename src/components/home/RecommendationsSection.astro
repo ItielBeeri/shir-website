@@ -376,14 +376,52 @@ const items = recommendations.map((rec) => ({
     });
   });
 
+  // Preload full recommendation images in background
+  function preloadFullImages() {
+    items.forEach((item) => {
+      if (item.image?.file) {
+        const img = new Image();
+        img.src = item.image.file;
+      }
+    });
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(preloadFullImages);
+  } else {
+    window.setTimeout(preloadFullImages, 1500);
+  }
+
   // Modal logic
+  let loadRequestId = 0;
+
   function setModalItem(index) {
     currentModalIndex = (index + items.length) % items.length;
     const item = items[currentModalIndex];
+    const thisRequestId = ++loadRequestId;
+
     if (modalImg) {
-      modalImg.src = item.image.file;
+      modalImg.classList.remove('is-loaded');
       modalImg.alt = item.image.alt;
+
+      const targetSrc = item.image.file;
+      const loader = new Image();
+      loader.src = targetSrc;
+
+      const onImageReady = () => {
+        if (thisRequestId !== loadRequestId) return;
+        modalImg.src = targetSrc;
+        modalImg.classList.add('is-loaded');
+      };
+
+      if (loader.complete) {
+        onImageReady();
+      } else {
+        loader.onload = onImageReady;
+        loader.onerror = onImageReady;
+      }
     }
+
     if (modalTranscription) {
       modalTranscription.textContent = item.transcription;
     }
@@ -414,6 +452,10 @@ const items = recommendations.map((rec) => ({
     dialog?.close();
     document.documentElement.classList.remove('dialog-open');
     document.body.classList.remove('dialog-open');
+
+    if (modalImg) {
+      modalImg.classList.remove('is-loaded');
+    }
 
     // Resume Lenis background scrolling
     if (window.__lenis && typeof window.__lenis.start === 'function') {
@@ -802,6 +844,12 @@ const items = recommendations.map((rec) => ({
     block-size: auto;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(34, 51, 42, 0.08);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-soft);
+  }
+
+  .recommendations-modal__img.is-loaded {
+    opacity: 1;
   }
 
   /* Floating Side Navigation Buttons (Desktop) */
