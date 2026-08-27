@@ -17,6 +17,7 @@ import SectionHeading from '../ui/SectionHeading.astro';
 import BreathDivider from '../ui/BreathDivider.astro';
 import CTAButton from '../ui/CTAButton.astro';
 import ScrollReveal from '../ui/ScrollReveal.astro';
+import RecommendationsSection from '../home/RecommendationsSection.astro';
 import { loadToml } from '../../lib/content';
 import { getCollection } from 'astro:content';
 import { z } from 'zod';
@@ -42,7 +43,26 @@ const siteSchema = z.object({
     email_label:    z.string(),
   }),
 });
+const imagesSchema = z.record(z.string(), z.object({ file: z.string(), preview: z.string().optional(), alt: z.string() }));
+const recommendationsSchema = z.object({
+  recommendations: z.array(z.object({
+    id: z.string().min(1),
+    transcription: z.string().min(1),
+    relatedTherapies: z.array(z.string()).default([]),
+    author_label: z.string().optional(),
+    date_label: z.string().optional(),
+    approved: z.boolean().default(false),
+    active: z.boolean().default(true),
+  })),
+});
+
 const { contact } = loadToml('site.toml', siteSchema);
+const images = loadToml('images.toml', imagesSchema);
+const recommendationData = loadToml('recommendations.toml', recommendationsSchema);
+const therapyRecommendations = recommendationData.recommendations.filter((item) => {
+  if (!images[item.id]) return false;
+  return item.approved && item.active && item.relatedTherapies.includes(entry.slug);
+});
 
 const allTherapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice(0, 2);
@@ -88,6 +108,18 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
         <Content components={{ SoftImage }} />
       </div>
     </section>
+
+    {therapyRecommendations.length > 0 && (
+      <>
+        <BreathDivider />
+        <RecommendationsSection
+          recommendations={therapyRecommendations}
+          images={images}
+          title="המלצות"
+          kicker="מילים מאנשים שפגשו את הדרך"
+        />
+      </>
+    )}
 
     <BreathDivider />
 

@@ -1,0 +1,317 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import GlassCard from '../components/ui/GlassCard.astro';
+import CTAButton from '../components/ui/CTAButton.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import ScrollReveal from '../components/ui/ScrollReveal.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+import { personSchema, jsonLd } from '../lib/seo';
+
+const imagesSchema = z.record(z.string(), z.object({
+  file: z.string(),
+  preview: z.string().optional(),
+  alt: z.string(),
+}));
+
+const recommendationsSchema = z.object({
+  recommendations: z.array(z.object({
+    id: z.string().min(1),
+    transcription: z.string().min(1),
+    relatedTherapies: z.array(z.string()).default([]),
+    author_label: z.string().optional(),
+    date_label: z.string().optional(),
+    approved: z.boolean().default(false),
+    active: z.boolean().default(true),
+  })),
+});
+
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url: z.string(), whatsapp_label: z.string(),
+    phone_href: z.string(), phone_display: z.string(), phone_label: z.string(),
+    email_href: z.string(), email_label: z.string(),
+  }),
+});
+
+const images = loadToml('images.toml', imagesSchema);
+const { contact } = loadToml('site.toml', siteSchema);
+const recommendationData = loadToml('recommendations.toml', recommendationsSchema);
+const recommendations = recommendationData.recommendations.map((item) => {
+  if (!images[item.id]) throw new Error(`Recommendation ${item.id} has no registered image`);
+  return {
+    ...item,
+    image: images[item.id],
+  };
+}).filter((item) => item.approved && item.active);
+---
+
+<BaseLayout
+  title="המלצות | שיר אמיתי"
+  description="המלצות, מילים ושיתופים של מטופלים ומטופלות שעברו תהליכים של פסיכותרפיה גופנית, שיאצו ופתיחת קול אצל שיר אמיתי."
+>
+  <Fragment slot="head">
+    <Fragment set:html={jsonLd(personSchema())} />
+  </Fragment>
+
+  <Header />
+
+  <main id="main">
+    <!-- Intro / Page Header -->
+    <section class="recs-page-intro container" aria-labelledby="recommendations-page-h1">
+      <div class="recs-page-intro__content">
+        <p class="text-kicker">מילים מאנשים שפגשו את הדרך</p>
+        <h1 id="recommendations-page-h1" class="recs-page-title">המלצות</h1>
+        <div class="recs-rule" aria-hidden="true">
+          <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="hero-rule-svg">
+            <path
+              class="rule-path"
+              d="M0,6 Q80,0 160,6 Q240,12 320,6"
+              fill="none"
+              stroke="var(--color-mist)"
+              stroke-width="1"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+        <p class="recs-page-subtitle">
+          הודעות, מילים ושיתופים שנכתבו מהלב בעקבות הדרך המשותפת והמפגשים בקליניקה.
+        </p>
+        <span class="recs-page-count">{recommendations.length} המלצות</span>
+      </div>
+    </section>
+
+    <!-- Masonry Gallery of Full Recommendation Screenshots -->
+    <section class="recs-masonry-section container" aria-label="גלריית המלצות מלאה">
+      <div class="recs-masonry">
+        {recommendations.map((rec, index) => (
+          <article
+            class="recs-masonry__item"
+            data-reveal
+            aria-setsize={recommendations.length}
+            aria-posinset={index + 1}
+          >
+            <GlassCard>
+              <div class="recs-card-inner">
+                <img
+                  src={rec.image.file}
+                  alt={rec.image.alt}
+                  class="recs-screenshot-img"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <p class="sr-only">{rec.transcription}</p>
+              </div>
+            </GlassCard>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <BreathDivider />
+
+    <!-- CTA strip -->
+    <section class="therapy-cta container" aria-label="תיאום פגישה">
+      <ScrollReveal>
+        <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
+        <div class="cta-group">
+          <CTAButton
+            href={contact.whatsapp_url}
+            label={contact.whatsapp_label}
+            icon="whatsapp"
+            variant="primary"
+            external
+          />
+          <CTAButton
+            href={contact.phone_href}
+            label={`${contact.phone_label} · ${contact.phone_display}`}
+            icon="phone"
+            variant="secondary"
+          />
+          <CTAButton
+            href={contact.email_href}
+            label={contact.email_label}
+            icon="mail"
+            variant="tertiary"
+          />
+        </div>
+      </ScrollReveal>
+    </section>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .recs-page-intro {
+    padding-block-start: clamp(3rem, 6vh, 5rem);
+    padding-block-end: var(--space-block);
+  }
+
+  .recs-page-intro__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-inline-size: 65ch;
+  }
+
+  .recs-page-title {
+    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-size: var(--fs-display);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: var(--lh-display);
+    color: var(--color-ink);
+    margin-block: 0.25rem 0.5rem;
+  }
+
+  .recs-rule {
+    inline-size: min(100%, 280px);
+    margin-block-end: 0.5rem;
+  }
+
+  .hero-rule-svg {
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .rule-path {
+    animation: rule-drift 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes rule-drift {
+    from { d: path("M0,6 Q80,0 160,6 Q240,12 320,6"); }
+    to   { d: path("M0,6 Q80,12 160,6 Q240,0 320,6"); }
+  }
+
+  .recs-page-subtitle {
+    font-size: var(--fs-h3);
+    font-weight: 300;
+    color: var(--color-ink-soft);
+    line-height: var(--lh-body);
+  }
+
+  .recs-page-count {
+    margin-block-start: 0.5rem;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+    font-weight: 500;
+  }
+
+  /* ============================================================
+     Masonry Grid
+     - Mobile: 1 column
+     - Tablet: 2 columns
+     - Desktop: 3 columns
+     ============================================================ */
+  .recs-masonry-section {
+    padding-block: var(--space-block) var(--space-section);
+  }
+
+  .recs-masonry {
+    column-count: 3;
+    column-gap: 1.5rem;
+    inline-size: 100%;
+  }
+
+  @media (max-width: 1023px) {
+    .recs-masonry {
+      column-count: 2;
+      column-gap: 1.25rem;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .recs-masonry {
+      column-count: 1;
+      column-gap: 0;
+    }
+  }
+
+  .recs-masonry__item {
+    break-inside: avoid;
+    margin-block-end: 1.5rem;
+    display: inline-block;
+    inline-size: 100%;
+    direction: rtl;
+  }
+
+  .recs-masonry__item :global(.glass-card) {
+    padding: 1rem;
+    border-radius: var(--radius-card);
+    transition: transform var(--dur-base) var(--ease-soft),
+                box-shadow var(--dur-base) var(--ease-soft);
+  }
+
+  .recs-masonry__item :global(.glass-card:hover) {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .recs-card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    inline-size: 100%;
+  }
+
+  .recs-screenshot-img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    border-radius: calc(var(--radius-card) - 12px);
+    box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
+  }
+
+  /* CTA Section */
+  .recs-cta {
+    padding-block: var(--space-section);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .recs-cta-text {
+    font-size: var(--fs-body);
+    color: var(--color-ink-soft);
+    margin-block-end: 1rem;
+    max-inline-size: 50ch;
+  }
+
+  .recs-cta-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .sr-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rule-path {
+      animation: none;
+    }
+    .recs-masonry__item :global(.glass-card:hover) {
+      transform: none;
+    }
+  }
+</style>

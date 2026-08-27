@@ -27,7 +27,7 @@ paragraph_2 = """
 
 [teasers.blog]
 label     = "מהבלוג"
-cta_label = "לכל הכתבות"
+cta_label = "לכל הפוסטים"
 cta_href  = "/blog"
 
 [closing]

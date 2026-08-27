@@ -34,12 +34,11 @@ const recommendationsSchema = z.object({
   recommendations: z.array(z.object({
     id: z.string().min(1),
     transcription: z.string().min(1),
-
+    relatedTherapies: z.array(z.string()).default([]),
     author_label: z.string().optional(),
     date_label: z.string().optional(),
-     approved: z.boolean().default(false),
-     active: z.boolean().default(true),
-
+    approved: z.boolean().default(false),
+    active: z.boolean().default(true),
   })),
 });
 
@@ -110,7 +109,6 @@ const blogPosts = (await getCollection('blog'))
     {home.closing.enabled && (
       <section class="closing-section container" aria-labelledby="closing-heading">
         <ScrollReveal>
-          <p class="closing-line">{home.closing.line}</p>
           <SectionHeading title="יצירת קשר" center id="closing-heading" />
           <div class="closing-cta">
             <!-- WhatsApp → Phone → Email (§5.4) -->

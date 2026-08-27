@@ -1,568 +1,362 @@
 ---
 import GlassCard from '../ui/GlassCard.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
-import ScrollReveal from '../ui/ScrollReveal.astro';
+import CTAButton from '../ui/CTAButton.astro';
 import Icon from '../ui/Icon.astro';
 
 interface Recommendation {
   id: string;
   transcription: string;
+  relatedTherapies?: string[];
   author_label?: string;
   date_label?: string;
 }
+
 interface ImageRecord {
   file: string;
   preview?: string;
   alt: string;
 }
+
 interface Props {
   recommendations: Recommendation[];
   images: Record<string, ImageRecord>;
+  title?: string;
+  kicker?: string;
+  id?: string;
+  showAllLink?: boolean;
+  allLinkText?: string;
+  allLinkHref?: string;
 }
 
-const { recommendations, images } = Astro.props;
-const headingId = 'recommendations-heading';
+const {
+  recommendations,
+  images,
+  title = 'המלצות',
+  kicker = 'מילים מאנשים שפגשו את הדרך',
+  id: headingId = 'recommendations-heading',
+  showAllLink = true,
+  allLinkText = 'לכל ההמלצות',
+  allLinkHref = '/recommendations',
+} = Astro.props;
+
 const items = recommendations.map((rec) => ({
   ...rec,
   image: images[rec.id],
 }));
 ---
 
-<section class="recommendations" aria-labelledby={headingId} data-recommendations>
-  <div class="container recommendations__header" data-reveal>
-    <SectionHeading kicker="מילים מאנשים שפגשו את הדרך" title="המלצות" id={headingId} />
-    <span class="recommendations__count">{recommendations.length} המלצות</span>
-  </div>
-
-  <ScrollReveal>
-    <div class="recommendations__marquee-wrapper">
-      <div
-        class="recommendations__marquee"
-        data-recommendations-marquee
-        tabindex="0"
-        role="region"
-        aria-label="גלריית המלצות בתנועה רציפה. ניתן לעצור, לגרור לצדדים, או לפתוח בלחיצה"
-      >
-        <div class="recommendations__track" data-recommendations-track>
-          {[...items, ...items, ...items].map((rec, index) => {
-            const originalIndex = index % items.length;
-            const isDuplicate = index >= items.length;
-            return (
-              <article
-                class="recommendation-card"
-                data-recommendation-card={originalIndex}
-                aria-hidden={isDuplicate ? 'true' : undefined}
-                aria-setsize={recommendations.length}
-                aria-posinset={originalIndex + 1}
-              >
-                <GlassCard hover>
-                  <button
-                    class="recommendation-card__button"
-                    type="button"
-                    data-recommendation-open={originalIndex}
-                    tabindex={isDuplicate ? -1 : 0}
-                    aria-label={`פתיחת המלצה ${originalIndex + 1} מתוך ${recommendations.length}`}
-                  >
-                    <span class="recommendation-card__image-frame">
-                      <img
-                        src={rec.image.preview ?? rec.image.file}
-                        alt={rec.image.alt}
-                        loading="lazy"
-                        decoding="async"
-                        draggable="false"
-                      />
-                    </span>
-                    <span class="recommendation-card__footer">
-                      <span class="recommendation-card__hint">ההמלצה המלאה</span>
-                      <span class="recommendation-card__icon" aria-hidden="true">↗</span>
-                    </span>
-                  </button>
-                </GlassCard>
-              </article>
-            );
-          })}
-        </div>
-      </div>
+{items.length > 0 && (
+  <section class="recommendations" aria-labelledby={headingId} data-recommendations>
+    <div class="container recommendations__header" data-reveal>
+      <SectionHeading kicker={kicker} title={title} id={headingId} />
+      <span class="recommendations__count">{recommendations.length} המלצות</span>
     </div>
 
-    <p class="recommendations__instruction container">
-      ההמלצות נעות בעדינות. געו או הניחו את העכבר לעצירה, גררו לצדדים, או לחצו לפתיחה מלאה.
-    </p>
-  </ScrollReveal>
-
-  <!-- Accessible Fullscreen Modal -->
-  <dialog
-    class="recommendations-modal"
-    data-recommendations-dialog
-    aria-label="המלצה מלאה"
-    data-lenis-prevent="true"
-  >
-    <div class="recommendations-modal__dialog-inner" data-lenis-prevent="true">
-      <!-- Fixed Header -->
-      <header class="recommendations-modal__header">
-        <span class="recommendations-modal__counter" data-recommendation-position></span>
-        
-        <!-- Mobile Header Navigation Controls (Visible on small screens) -->
-        <div class="recommendations-modal__header-nav">
-          <button
-            class="recommendations-modal__header-btn hit-target"
-            type="button"
-            data-recommendation-prev
-            aria-label="המלצה קודמת"
-          >
-            <Icon name="arrow-back" decorative size={20} />
-          </button>
-          <button
-            class="recommendations-modal__header-btn hit-target"
-            type="button"
-            data-recommendation-next
-            aria-label="המלצה הבאה"
-          >
-            <Icon name="arrow-forward" decorative size={20} />
-          </button>
+    <div class="container">
+      <div class="recommendations__grid-wrapper">
+        <div class="recommendations__grid" data-recommendations-grid>
+          {items.map((rec, index) => (
+            <article
+              class="recommendation-card"
+              data-recommendation-card={index}
+              aria-setsize={recommendations.length}
+              aria-posinset={index + 1}
+            >
+              <GlassCard hover>
+                <button
+                  class="recommendation-card__button"
+                  type="button"
+                  data-recommendation-open={index}
+                  aria-label={`פתיחת המלצה ${index + 1} מתוך ${recommendations.length}`}
+                >
+                  <span class="recommendation-card__image-frame">
+                    <img
+                      src={rec.image.preview ?? rec.image.file}
+                      alt={rec.image.alt}
+                      loading="lazy"
+                      decoding="async"
+                      draggable="false"
+                    />
+                  </span>
+                  <span class="recommendation-card__footer">
+                    <span class="recommendation-card__hint">ההמלצה המלאה</span>
+                    <span class="recommendation-card__icon" aria-hidden="true">↗</span>
+                  </span>
+                </button>
+              </GlassCard>
+            </article>
+          ))}
         </div>
+      </div>
+
+      {showAllLink && (
+        <div class="recommendations__footer" data-reveal>
+          <CTAButton
+            href={allLinkHref}
+            label={allLinkText}
+            variant="secondary"
+            icon="arrow-forward"
+          />
+        </div>
+      )}
+    </div>
+
+    <!-- Accessible Fullscreen Modal -->
+    <dialog
+      class="recommendations-modal"
+      data-recommendations-dialog
+      aria-label="המלצה מלאה"
+      data-lenis-prevent="true"
+    >
+      <div class="recommendations-modal__dialog-inner" data-lenis-prevent="true">
+        <!-- Fixed Header -->
+        <header class="recommendations-modal__header">
+          <span class="recommendations-modal__counter" data-recommendation-position></span>
+
+          <!-- Mobile Header Navigation Controls -->
+          <div class="recommendations-modal__header-nav">
+            <button
+              class="recommendations-modal__header-btn hit-target"
+              type="button"
+              data-recommendation-prev
+              aria-label="המלצה קודמת"
+            >
+              <Icon name="arrow-back" decorative size={20} />
+            </button>
+            <button
+              class="recommendations-modal__header-btn hit-target"
+              type="button"
+              data-recommendation-next
+              aria-label="המלצה הבאה"
+            >
+              <Icon name="arrow-forward" decorative size={20} />
+            </button>
+          </div>
+
+          <button
+            class="recommendations-modal__close hit-target"
+            type="button"
+            data-recommendations-close
+            aria-label="סגירת ההמלצה"
+          >
+            <Icon name="close" decorative size={22} />
+          </button>
+        </header>
+
+        <!-- Scrollable screenshot body -->
+        <div class="recommendations-modal__body" data-recommendations-scrollable data-lenis-prevent="true">
+          <div class="recommendations-modal__content">
+            <img class="recommendations-modal__img" data-recommendation-image src="" alt="" />
+            <p class="sr-only" data-recommendation-transcription></p>
+          </div>
+        </div>
+
+        <!-- Floating Side Navigation Controls (Desktop) -->
+        <button
+          class="recommendations-modal__nav recommendations-modal__nav--side recommendations-modal__nav--next hit-target"
+          type="button"
+          data-recommendation-next
+          aria-label="המלצה הבאה"
+        >
+          <Icon name="arrow-forward" decorative size={24} />
+        </button>
 
         <button
-          class="recommendations-modal__close hit-target"
+          class="recommendations-modal__nav recommendations-modal__nav--side recommendations-modal__nav--prev hit-target"
           type="button"
-          data-recommendations-close
-          aria-label="סגירת ההמלצה"
+          data-recommendation-prev
+          aria-label="המלצה קודמת"
         >
-          <Icon name="close" decorative size={22} />
+          <Icon name="arrow-back" decorative size={24} />
         </button>
-      </header>
-
-      <!-- Scrollable screenshot body (Controlled by mouse wheel / touch) -->
-      <div class="recommendations-modal__body" data-recommendations-scrollable data-lenis-prevent="true">
-        <div class="recommendations-modal__content">
-          <img class="recommendations-modal__img" data-recommendation-image src="" alt="" />
-          <p class="sr-only" data-recommendation-transcription></p>
-        </div>
       </div>
-
-      <!-- Floating Side Navigation Controls (Visible on desktop / large screens) -->
-      <button
-        class="recommendations-modal__nav recommendations-modal__nav--side recommendations-modal__nav--next hit-target"
-        type="button"
-        data-recommendation-next
-        aria-label="המלצה הבאה"
-      >
-        <Icon name="arrow-forward" decorative size={24} />
-      </button>
-
-      <button
-        class="recommendations-modal__nav recommendations-modal__nav--side recommendations-modal__nav--prev hit-target"
-        type="button"
-        data-recommendation-prev
-        aria-label="המלצה קודמת"
-      >
-        <Icon name="arrow-back" decorative size={24} />
-      </button>
-    </div>
-  </dialog>
-</section>
+    </dialog>
+  </section>
+)}
 
 <script is:inline define:vars={{ recommendationItems: items }}>
 (() => {
-  const section = document.querySelector('[data-recommendations]');
-  if (!section) return;
+  const sections = document.querySelectorAll('[data-recommendations]');
+  if (!sections.length) return;
 
-  const marquee = section.querySelector('[data-recommendations-marquee]');
-  const track = section.querySelector('[data-recommendations-track]');
-  const dialog = section.querySelector('[data-recommendations-dialog]');
-  const modalBody = section.querySelector('[data-recommendations-scrollable]');
-  const cards = [...section.querySelectorAll('[data-recommendation-open]')];
-  const closeBtn = section.querySelector('[data-recommendations-close]');
-  const nextBtns = [...section.querySelectorAll('[data-recommendation-next]')];
-  const prevBtns = [...section.querySelectorAll('[data-recommendation-prev]')];
-  const modalImg = section.querySelector('[data-recommendation-image]');
-  const modalTranscription = section.querySelector('[data-recommendation-transcription]');
-  const modalPosition = section.querySelector('[data-recommendation-position]');
+  sections.forEach((section) => {
+    const dialog = section.querySelector('[data-recommendations-dialog]');
+    const modalBody = section.querySelector('[data-recommendations-scrollable]');
+    const cards = [...section.querySelectorAll('[data-recommendation-open]')];
+    const closeBtn = section.querySelector('[data-recommendations-close]');
+    const nextBtns = [...section.querySelectorAll('[data-recommendation-next]')];
+    const prevBtns = [...section.querySelectorAll('[data-recommendation-prev]')];
+    const modalImg = section.querySelector('[data-recommendation-image]');
+    const modalTranscription = section.querySelector('[data-recommendation-transcription]');
+    const modalPosition = section.querySelector('[data-recommendation-position]');
 
-  const items = recommendationItems;
-  if (!items || !items.length) return;
+    const items = recommendationItems;
+    if (!items || !items.length) return;
 
-  let currentModalIndex = 0;
-  let lastOpener = null;
+    let currentModalIndex = 0;
+    let lastOpener = null;
+    let loadRequestId = 0;
 
-  // Marquee state
-  const speed = 0.032; // px per ms (~32px/s)
-  let currentOffset = 0;
-  let cycleWidth = 0;
-  let lastTimestamp = 0;
-  let rafId = 0;
-
-  let isHovered = false;
-  let isDragging = false;
-  let isPaused = false;
-
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragStartOffset = 0;
-  let dragMoved = false;
-
-  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let isReducedMotion = reducedMotionQuery.matches;
-
-  function updateCycleWidth() {
-    if (!track) return;
-    const fullWidth = track.scrollWidth;
-    cycleWidth = fullWidth / 3;
-    if (currentOffset === 0 && cycleWidth > 0) {
-      currentOffset = -cycleWidth;
-    }
-  }
-
-  function pauseAutoScroll() {
-    isPaused = true;
-  }
-
-  function tick(now) {
-    if (!lastTimestamp) lastTimestamp = now;
-    const dt = Math.min(now - lastTimestamp, 100);
-    lastTimestamp = now;
-
-    if (!isReducedMotion && !isHovered && !isDragging && !isPaused && cycleWidth > 0) {
-      // In RTL reading direction: items move to the left (offset becomes more negative)
-      currentOffset -= speed * dt;
-
-      // Infinite wrap in range [-2 * cycleWidth, 0]
-      while (currentOffset <= -cycleWidth * 2) {
-        currentOffset += cycleWidth;
-      }
-      while (currentOffset >= 0) {
-        currentOffset -= cycleWidth;
-      }
-
-      if (track) {
-        track.style.transform = `translate3d(${currentOffset}px, 0, 0)`;
-      }
-    }
-
-    rafId = requestAnimationFrame(tick);
-  }
-
-  // Pointer / Drag handling on Marquee
-  function onPointerDown(e) {
-    if (isReducedMotion) return;
-    pauseAutoScroll();
-    isDragging = true;
-    dragMoved = false;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    dragStartOffset = currentOffset;
-    clickedBtn = e.target.closest('[data-recommendation-open]');
-    marquee?.classList.add('is-dragging');
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
-  }
-
-  function onPointerMove(e) {
-    if (!isDragging || isReducedMotion) return;
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-
-    if (!dragMoved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-      dragMoved = true;
-    }
-
-    if (dragMoved) {
-      currentOffset = dragStartOffset + dx;
-
-      while (currentOffset <= -cycleWidth * 2) {
-        currentOffset += cycleWidth;
-        dragStartOffset += cycleWidth;
-      }
-      while (currentOffset >= 0) {
-        currentOffset -= cycleWidth;
-        dragStartOffset -= cycleWidth;
-      }
-
-      if (track) {
-        track.style.transform = `translate3d(${currentOffset}px, 0, 0)`;
-      }
-    }
-  }
-
-  function onPointerUp() {
-    if (!isDragging) return;
-    isDragging = false;
-    marquee?.classList.remove('is-dragging');
-
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-    window.removeEventListener('pointercancel', onPointerUp);
-
-    if (!isHovered && !dragMoved) {
-      isPaused = false;
-      lastTimestamp = performance.now();
-    }
-  }
-
-  // Wheel horizontal scroll on Marquee
-  let wheelTimeout = 0;
-  function onWheel(e) {
-    if (isReducedMotion || !cycleWidth) return;
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
-      const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
-      pauseAutoScroll();
-      currentOffset -= delta;
-
-      while (currentOffset <= -cycleWidth * 2) {
-        currentOffset += cycleWidth;
-      }
-      while (currentOffset >= 0) {
-        currentOffset -= cycleWidth;
-      }
-
-      if (track) {
-        track.style.transform = `translate3d(${currentOffset}px, 0, 0)`;
-      }
-
-      window.clearTimeout(wheelTimeout);
-      wheelTimeout = window.setTimeout(() => {
-        if (!isHovered && !isDragging) {
-          isPaused = false;
-          lastTimestamp = performance.now();
+    // Preload full recommendation images in background
+    function preloadFullImages() {
+      items.forEach((item) => {
+        if (item.image?.file) {
+          const img = new Image();
+          img.src = item.image.file;
         }
-      }, 200);
+      });
     }
-  }
 
-  if (marquee) {
-    marquee.addEventListener('pointerdown', onPointerDown);
-    marquee.addEventListener('mouseenter', () => {
-      isHovered = true;
-    });
-    marquee.addEventListener('mouseleave', () => {
-      isHovered = false;
-      isPaused = false;
-      lastTimestamp = performance.now();
-    });
-    marquee.addEventListener('wheel', onWheel, { passive: true });
-    marquee.addEventListener('focusin', (e) => {
-      if (e.target && typeof e.target.matches === 'function' && e.target.matches(':focus-visible')) {
-        pauseAutoScroll();
-      }
-    });
-    marquee.addEventListener('focusout', () => {
-      if (!isHovered && !isDragging) {
-        isPaused = false;
-        lastTimestamp = performance.now();
-      }
-    });
-  }
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(preloadFullImages);
+    } else {
+      window.setTimeout(preloadFullImages, 1500);
+    }
 
-  // Card click & keyboard handling
-  cards.forEach((button) => {
-    button.addEventListener('click', (e) => {
-      if (dragMoved) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-      const idx = Number(button.dataset.recommendationOpen);
-      if (!isNaN(idx)) openModal(idx, button);
-    });
+    function setModalItem(index) {
+      currentModalIndex = (index + items.length) % items.length;
+      const item = items[currentModalIndex];
+      const thisRequestId = ++loadRequestId;
 
-    button.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
+      if (modalImg) {
+        modalImg.classList.remove('is-loaded');
+        modalImg.alt = item.image.alt;
+
+        const targetSrc = item.image.file;
+        const loader = new Image();
+        loader.src = targetSrc;
+
+        const onImageReady = () => {
+          if (thisRequestId !== loadRequestId) return;
+          modalImg.src = targetSrc;
+          modalImg.classList.add('is-loaded');
+        };
+
+        if (loader.complete) {
+          onImageReady();
+        } else {
+          loader.onload = onImageReady;
+          loader.onerror = onImageReady;
+        }
+      }
+
+      if (modalTranscription) {
+        modalTranscription.textContent = item.transcription;
+      }
+      if (modalPosition) {
+        modalPosition.textContent = `${currentModalIndex + 1} מתוך ${items.length}`;
+      }
+      if (modalBody) {
+        modalBody.scrollTop = 0;
+      }
+    }
+
+    function openModal(index, button) {
+      lastOpener = button;
+      setModalItem(index);
+
+      // Stop Lenis background scrolling
+      if (window.__lenis && typeof window.__lenis.stop === 'function') {
+        window.__lenis.stop();
+      }
+      document.documentElement.classList.add('dialog-open');
+      document.body.classList.add('dialog-open');
+
+      dialog?.showModal();
+      closeBtn?.focus();
+    }
+
+    function closeModal() {
+      dialog?.close();
+      document.documentElement.classList.remove('dialog-open');
+      document.body.classList.remove('dialog-open');
+
+      if (modalImg) {
+        modalImg.classList.remove('is-loaded');
+      }
+
+      // Resume Lenis background scrolling
+      if (window.__lenis && typeof window.__lenis.start === 'function') {
+        window.__lenis.start();
+      }
+
+      if (lastOpener) {
+        lastOpener.focus({ preventScroll: true });
+      }
+    }
+
+    // Card clicks
+    cards.forEach((button) => {
+      button.addEventListener('click', () => {
         const idx = Number(button.dataset.recommendationOpen);
         if (!isNaN(idx)) openModal(idx, button);
-      }
+      });
+
+      button.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const idx = Number(button.dataset.recommendationOpen);
+          if (!isNaN(idx)) openModal(idx, button);
+        }
+      });
     });
-  });
 
-  // Preload full recommendation images in background
-  function preloadFullImages() {
-    items.forEach((item) => {
-      if (item.image?.file) {
-        const img = new Image();
-        img.src = item.image.file;
-      }
+    closeBtn?.addEventListener('click', closeModal);
+    nextBtns.forEach((btn) => btn.addEventListener('click', () => setModalItem(currentModalIndex + 1)));
+    prevBtns.forEach((btn) => btn.addEventListener('click', () => setModalItem(currentModalIndex - 1)));
+
+    dialog?.addEventListener('click', (e) => {
+      if (e.target === dialog) closeModal();
     });
-  }
+    dialog?.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
 
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(preloadFullImages);
-  } else {
-    window.setTimeout(preloadFullImages, 1500);
-  }
+    // Touch swipe handling inside modal
+    let modalTouchStartX = 0;
+    let modalTouchStartY = 0;
+    dialog?.addEventListener('touchstart', (e) => {
+      modalTouchStartX = e.touches[0].clientX;
+      modalTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
 
-  // Modal logic
-  let loadRequestId = 0;
-
-  function setModalItem(index) {
-    currentModalIndex = (index + items.length) % items.length;
-    const item = items[currentModalIndex];
-    const thisRequestId = ++loadRequestId;
-
-    if (modalImg) {
-      modalImg.classList.remove('is-loaded');
-      modalImg.alt = item.image.alt;
-
-      const targetSrc = item.image.file;
-      const loader = new Image();
-      loader.src = targetSrc;
-
-      const onImageReady = () => {
-        if (thisRequestId !== loadRequestId) return;
-        modalImg.src = targetSrc;
-        modalImg.classList.add('is-loaded');
-      };
-
-      if (loader.complete) {
-        onImageReady();
-      } else {
-        loader.onload = onImageReady;
-        loader.onerror = onImageReady;
+    dialog?.addEventListener('touchend', (e) => {
+      if (!e.changedTouches.length) return;
+      const diffX = e.changedTouches[0].clientX - modalTouchStartX;
+      const diffY = e.changedTouches[0].clientY - modalTouchStartY;
+      if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+        if (diffX < 0) {
+          // Swipe left -> Next in RTL
+          setModalItem(currentModalIndex + 1);
+        } else {
+          // Swipe right -> Prev in RTL
+          setModalItem(currentModalIndex - 1);
+        }
       }
-    }
+    }, { passive: true });
 
-    if (modalTranscription) {
-      modalTranscription.textContent = item.transcription;
-    }
-    if (modalPosition) {
-      modalPosition.textContent = `${currentModalIndex + 1} מתוך ${items.length}`;
-    }
-    if (modalBody) {
-      modalBody.scrollTop = 0;
-    }
-  }
+    // Forward wheel events anywhere in modal to modalBody scroll
+    dialog?.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+      if (modalBody && e.target !== modalBody && !modalBody.contains(e.target)) {
+        modalBody.scrollTop += e.deltaY;
+      }
+    }, { passive: true });
 
-  function openModal(index, button) {
-    lastOpener = button;
-    setModalItem(index);
-
-    // Stop Lenis background scrolling
-    if (window.__lenis && typeof window.__lenis.stop === 'function') {
-      window.__lenis.stop();
-    }
-    document.documentElement.classList.add('dialog-open');
-    document.body.classList.add('dialog-open');
-
-    dialog?.showModal();
-    closeBtn?.focus();
-  }
-
-  function closeModal() {
-    dialog?.close();
-    document.documentElement.classList.remove('dialog-open');
-    document.body.classList.remove('dialog-open');
-
-    if (modalImg) {
-      modalImg.classList.remove('is-loaded');
-    }
-
-    // Resume Lenis background scrolling
-    if (window.__lenis && typeof window.__lenis.start === 'function') {
-      window.__lenis.start();
-    }
-
-    isPaused = false;
-    isHovered = false;
-    isDragging = false;
-    lastTimestamp = performance.now();
-
-    if (lastOpener) {
-      lastOpener.focus({ preventScroll: true });
-    }
-  }
-
-  closeBtn?.addEventListener('click', closeModal);
-  nextBtns.forEach((btn) => btn.addEventListener('click', () => setModalItem(currentModalIndex + 1)));
-  prevBtns.forEach((btn) => btn.addEventListener('click', () => setModalItem(currentModalIndex - 1)));
-
-  dialog?.addEventListener('click', (e) => {
-    if (e.target === dialog) closeModal();
-  });
-  dialog?.addEventListener('cancel', (e) => {
-    e.preventDefault();
-    closeModal();
-  });
-
-  // Touch swipe handling inside modal
-  let modalTouchStartX = 0;
-  let modalTouchStartY = 0;
-  dialog?.addEventListener('touchstart', (e) => {
-    modalTouchStartX = e.touches[0].clientX;
-    modalTouchStartY = e.touches[0].clientY;
-  }, { passive: true });
-
-  dialog?.addEventListener('touchend', (e) => {
-    if (!e.changedTouches.length) return;
-    const diffX = e.changedTouches[0].clientX - modalTouchStartX;
-    const diffY = e.changedTouches[0].clientY - modalTouchStartY;
-    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-      if (diffX < 0) {
-        // Swipe left -> Next in RTL
+    document.addEventListener('keydown', (e) => {
+      if (!dialog?.open) return;
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'ArrowLeft') {
+        // In RTL, left arrow is Next (forward in reading order)
         setModalItem(currentModalIndex + 1);
-      } else {
-        // Swipe right -> Prev in RTL
+      } else if (e.key === 'ArrowRight') {
+        // In RTL, right arrow is Previous (backward in reading order)
         setModalItem(currentModalIndex - 1);
       }
-    }
-  }, { passive: true });
-
-  // Forward wheel events anywhere in modal to modalBody scroll
-  dialog?.addEventListener('wheel', (e) => {
-    e.stopPropagation();
-    if (modalBody && e.target !== modalBody && !modalBody.contains(e.target)) {
-      modalBody.scrollTop += e.deltaY;
-    }
-  }, { passive: true });
-
-  document.addEventListener('keydown', (e) => {
-    if (!dialog?.open) return;
-    if (e.key === 'Escape') {
-      closeModal();
-    } else if (e.key === 'ArrowLeft') {
-      // In RTL, left arrow is Next (forward in reading order)
-      setModalItem(currentModalIndex + 1);
-    } else if (e.key === 'ArrowRight') {
-      // In RTL, right arrow is Previous (backward in reading order)
-      setModalItem(currentModalIndex - 1);
-    }
-  });
-
-  reducedMotionQuery.addEventListener('change', (e) => {
-    isReducedMotion = e.matches;
-    if (isReducedMotion) {
-      if (track) track.style.transform = '';
-    } else {
-      updateCycleWidth();
-      lastTimestamp = performance.now();
-      rafId = requestAnimationFrame(tick);
-    }
-  });
-
-  function initMarquee() {
-    updateCycleWidth();
-    if (!isReducedMotion) {
-      lastTimestamp = performance.now();
-      rafId = requestAnimationFrame(tick);
-    }
-  }
-
-  if (document.readyState === 'complete') {
-    initMarquee();
-  } else {
-    window.addEventListener('load', initMarquee);
-  }
-
-  let resizeTimer = 0;
-  window.addEventListener('resize', () => {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => {
-      updateCycleWidth();
-    }, 150);
-  });
-
-  window.addEventListener('beforeunload', () => {
-    cancelAnimationFrame(rafId);
+    });
   });
 })();
 </script>
@@ -590,60 +384,83 @@ const items = recommendations.map((rec) => ({
     padding-inline-end: 0.5rem;
   }
 
-  /* Marquee wrapper with soft horizontal fade mask */
-  .recommendations__marquee-wrapper {
-    position: relative;
-    inline-size: 100vw;
-    margin-inline: calc(50% - 50vw);
-    overflow: hidden;
-    padding-block: 0.5rem 1rem;
+  /* Grid wrapper using CSS Container Queries */
+  .recommendations__grid-wrapper {
+    container-type: inline-size;
+    inline-size: 100%;
   }
 
-  .recommendations__marquee {
-    overflow: hidden;
-    cursor: grab;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: pan-y;
-    outline: none;
-    direction: ltr;
-    /* Soft edge masks — cards fade in and out at viewport edges */
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 5vw,
-      black calc(100% - 5vw),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 5vw,
-      black calc(100% - 5vw),
-      transparent 100%
-    );
-  }
-
-  .recommendations__marquee:focus-visible {
-    outline: 2px solid var(--color-ink);
-    outline-offset: 4px;
-  }
-
-  .recommendations__marquee.is-dragging {
-    cursor: grabbing;
-  }
-
-  .recommendations__track {
-    display: flex;
+  /*
+    Grid layout:
+    - 1 col default (< 744px): 3 rows = shows items 1-3
+    - 2 cols (744px - 1127px, >= 360px per card): 3 rows = shows items 1-6
+    - 3 cols (>= 1128px, >= 360px per card): 3 rows = shows items 1-9
+  */
+  .recommendations__grid {
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
-    inline-size: max-content;
-    direction: ltr;
-    will-change: transform;
+  }
+
+  /* 1 col default: cap at 3 rows (3 items) */
+  .recommendations__grid > .recommendation-card:nth-child(n+4) {
+    display: none;
+  }
+
+  /* Container query for 2 columns (2 * 360px + 24px gap = 744px) */
+  @container (min-width: 744px) {
+    .recommendations__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .recommendations__grid > .recommendation-card:nth-child(-n+6) {
+      display: flex;
+    }
+    .recommendations__grid > .recommendation-card:nth-child(n+7) {
+      display: none;
+    }
+  }
+
+  /* Container query for 3 columns (3 * 360px + 2 * 24px gap = 1128px) */
+  @container (min-width: 1128px) {
+    .recommendations__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .recommendations__grid > .recommendation-card:nth-child(-n+9) {
+      display: flex;
+    }
+    .recommendations__grid > .recommendation-card:nth-child(n+10) {
+      display: none;
+    }
+  }
+
+  /* Media query fallbacks */
+  @media (min-width: 820px) {
+    .recommendations__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .recommendations__grid > .recommendation-card:nth-child(-n+6) {
+      display: flex;
+    }
+    .recommendations__grid > .recommendation-card:nth-child(n+7) {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1240px) {
+    .recommendations__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .recommendations__grid > .recommendation-card:nth-child(-n+9) {
+      display: flex;
+    }
+    .recommendations__grid > .recommendation-card:nth-child(n+10) {
+      display: none;
+    }
   }
 
   .recommendation-card {
-    flex: 0 0 clamp(17rem, 25vw, 22rem);
     display: flex;
+    inline-size: 100%;
     direction: rtl;
   }
 
@@ -659,6 +476,7 @@ const items = recommendations.map((rec) => ({
     display: flex;
     flex-direction: column;
     inline-size: 100%;
+    block-size: 100%;
     border: 0;
     background: transparent;
     color: inherit;
@@ -672,7 +490,7 @@ const items = recommendations.map((rec) => ({
     display: flex;
     align-items: center;
     justify-content: center;
-    block-size: clamp(12rem, 18vw, 15rem);
+    block-size: clamp(12rem, 16vw, 14.5rem);
     padding: 0;
     background: transparent;
     border: none;
@@ -720,15 +538,16 @@ const items = recommendations.map((rec) => ({
     opacity: 1;
   }
 
-  .recommendations__instruction {
-    margin-block-start: 1rem;
-    color: var(--color-mist);
-    font-size: var(--fs-small);
-    text-align: center;
+  /* Link button under grid */
+  .recommendations__footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-block-start: clamp(2rem, 4vh, 3.5rem);
   }
 
   /* ============================================================
-     MODAL DIALOG — Fixed Header, Dedicated Scrollable Image Area, Responsive Side/Header Navigation
+     MODAL DIALOG — Fixed Header, Dedicated Scrollable Image Area
      ============================================================ */
   .recommendations-modal {
     inline-size: min(90vw, 560px);
@@ -760,7 +579,6 @@ const items = recommendations.map((rec) => ({
     overflow: hidden;
   }
 
-  /* Fixed pinned header */
   .recommendations-modal__header {
     display: flex;
     align-items: center;
@@ -808,7 +626,6 @@ const items = recommendations.map((rec) => ({
     transform: scale(1.06);
   }
 
-  /* Dedicated Scrollable Screenshot Body */
   .recommendations-modal__body {
     flex: 1;
     overflow-y: auto;
@@ -852,7 +669,6 @@ const items = recommendations.map((rec) => ({
     opacity: 1;
   }
 
-  /* Floating Side Navigation Buttons (Desktop) */
   .recommendations-modal__nav--side {
     position: absolute;
     inset-block-start: 50%;
@@ -875,10 +691,6 @@ const items = recommendations.map((rec) => ({
     box-shadow: 0 6px 20px rgba(34, 51, 42, 0.2);
   }
 
-  /* In RTL:
-     Next button is pointing left (←), placed on the inline-end (left) edge.
-     Prev button is pointing right (→), placed on the inline-start (right) edge.
-  */
   .recommendations-modal__nav--next {
     inset-inline-end: 1rem;
   }
@@ -887,13 +699,11 @@ const items = recommendations.map((rec) => ({
     inset-inline-start: 1rem;
   }
 
-  /* Prevent background scroll when modal open */
   :global(html.dialog-open),
   :global(body.dialog-open) {
     overflow: hidden !important;
   }
 
-  /* Screen reader only utility */
   .sr-only {
     position: absolute;
     inline-size: 1px;
@@ -906,24 +716,11 @@ const items = recommendations.map((rec) => ({
     border: 0;
   }
 
-  /* Responsive styling */
   @media (max-width: 639px) {
     .recommendations__header {
       flex-direction: column;
       align-items: flex-start;
       gap: 0.5rem;
-    }
-
-    .recommendation-card {
-      flex-basis: min(80vw, 19rem);
-    }
-
-    .recommendation-card :global(.glass-card) {
-      padding: 1rem;
-    }
-
-    .recommendation-card__image-frame {
-      block-size: 11.5rem;
     }
 
     .recommendations-modal {
@@ -941,7 +738,6 @@ const items = recommendations.map((rec) => ({
       padding: 1rem 0.65rem;
     }
 
-    /* On mobile, use header-integrated buttons and hide side floating buttons */
     .recommendations-modal__header-nav {
       display: flex;
     }
@@ -951,19 +747,7 @@ const items = recommendations.map((rec) => ({
     }
   }
 
-  /* Reduced Motion Fallback */
   @media (prefers-reduced-motion: reduce) {
-    .recommendations__marquee {
-      overflow-x: auto;
-      -webkit-mask-image: none;
-      mask-image: none;
-      scrollbar-width: thin;
-    }
-
-    .recommendations__track {
-      will-change: auto;
-    }
-
     .recommendations-modal::backdrop {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;

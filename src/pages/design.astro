@@ -18,7 +18,7 @@ import { loadToml } from '../lib/content';
 import { z } from 'zod';
 
 const images = loadToml('images.toml', z.record(z.string(), z.object({ file: z.string(), preview: z.string().optional(), alt: z.string() })));
-const recommendations = loadToml('recommendations.toml', z.object({ recommendations: z.array(z.object({ id: z.string(), transcription: z.string(), approved: z.boolean(), active: z.boolean().default(true), author_label: z.string().optional(), date_label: z.string().optional() })) })).recommendations.filter((item) => item.approved && item.active);
+const recommendations = loadToml('recommendations.toml', z.object({ recommendations: z.array(z.object({ id: z.string(), transcription: z.string(), relatedTherapies: z.array(z.string()).default([]), approved: z.boolean(), active: z.boolean().default(true), author_label: z.string().optional(), date_label: z.string().optional() })) })).recommendations.filter((item) => item.approved && item.active);
 ---
 
 <BaseLayout
