@@ -201,7 +201,7 @@ Hidden page rendering every shared component in every state — the project's St
 Find the right file, edit the smallest possible surface, commit. Cloudflare Pages rebuilds in ~60 s.
 
 - **A. Edit existing copy** — find the relevant `src/content/**.toml`, edit text between quotes (or `"""…"""`), don't touch keys or `[section]` headers.
-- **B. New blog post** — duplicate `src/content/blog/_example.mdx` to `<hebrew-slug>.mdx`; fill `+++` TOML frontmatter (`title`, `excerpt`, `date`, `cover` image id, `tags`, optional `relatedTherapy`); write body; reference images with `<SoftImage>`, never raw `![]`; set `draft = false`.
+- **B. New blog post** — duplicate `src/content/blog/_example.mdx` to `<hebrew-slug>.mdx`; fill `+++` TOML frontmatter (`title`, `excerpt`, `date`, `cover` image id, `tags`, optional `relatedTherapy`, optional `order` — posts with `order` > 0 rank first on the blog index and home teaser, descending, then by date); write body; reference images with `<SoftImage>`, never raw `![]`; set `draft = false`.
 - **C. New therapy/modality** — add a row to `themes.css`; create `src/content/therapies/<slug>.md` (set `accent`); add a 3-line `src/pages/<slug>.astro` wrapper that loads the entry and renders `<TherapyPage entry={…} />`; add a `nav.toml` entry. The home triptych picks it up automatically.
 - **D. New image** — drop file in `public/img/{content,bg,decor}/`; register in `images.toml` with id, `file`, Hebrew `alt`; reference by id.
 - **E. Swap an atmosphere image** — regenerate from a `plan.md §7` prompt; replace the file (keep filename) or update `images.toml`. No code change.

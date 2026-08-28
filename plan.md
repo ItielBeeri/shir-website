@@ -911,6 +911,7 @@ const blog = defineCollection({
     cover: z.string().optional(),               // id from images.toml
     tags: z.array(z.string()).default([]),
     relatedTherapy: z.enum(['psychotherapy', 'shiatsu', 'voice']).optional(),
+    order: z.number().int().positive().optional(), // featured rank on blog index + home teaser
     draft: z.boolean().default(false),
   }),
 });

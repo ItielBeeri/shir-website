@@ -23,6 +23,7 @@ const blog = defineCollection({
     cover:           z.string().optional(),
     tags:            z.array(z.string()).default([]),
     related_therapy: z.enum(['psychotherapy', 'shiatsu', 'voice']).optional(),
+    order:           z.number().int().positive().optional(),
     draft:           z.boolean().default(false),
   }),
 });
