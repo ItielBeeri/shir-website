@@ -31,7 +31,7 @@ const siteSchema = z.object({
     email_href: z.string(), email_label: z.string(),
   }),
 });
-const imagesSchema = z.record(z.string(), z.object({ file: z.string(), preview: z.string().optional(), alt: z.string() }));
+const imagesSchema = z.record(z.string(), z.object({ file: z.string(), alt: z.string() }));
 
 const home   = loadToml('pages/home.toml', homeSchema);
 const { contact } = loadToml('site.toml', siteSchema);

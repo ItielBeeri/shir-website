@@ -67,72 +67,58 @@ alt  = ""
 
 [recommendation-01]
 file = "/img/recommendations/recommendation-01.jpeg"
-preview = "/img/recommendations/previews/recommendation-01.png"
 alt = "המלצה מאת יונתן שמיר על טיפול שיאצו ופסיכותרפיה גופנית עם שיר אמיתי"
 
 [recommendation-02]
 file = "/img/recommendations/recommendation-02.jpeg"
-preview = "/img/recommendations/previews/recommendation-02.png"
 alt = "המלצה מאת הדס גאיה אבוטבול על טיפול במגע ושחרור דרך הקול עם שיר אמיתי"
 
 [recommendation-03]
 file = "/img/recommendations/recommendation-03.jpeg"
-preview = "/img/recommendations/previews/recommendation-03.png"
 alt = "המלצה על שחרור גופני ונפשי, קלילות ורוגע פנימי"
 
 [recommendation-04]
 file = "/img/recommendations/recommendation-04.jpeg"
-preview = "/img/recommendations/previews/recommendation-04.png"
 alt = "המלצה מאת טל על הקשבה עמוקה, מגע מרפא ושחרור מכאב ראש"
 
 [recommendation-05]
 file = "/img/recommendations/recommendation-05.jpeg"
-preview = "/img/recommendations/previews/recommendation-05.png"
 alt = "המלצה מאת אמיר עמברצ'י על טיפול משחרר צ'קרות וממלא אנרגיה"
 
 [recommendation-06]
 file = "/img/recommendations/recommendation-06.jpeg"
-preview = "/img/recommendations/previews/recommendation-06.png"
 alt = "המלצה מאת אריה לאון דומנין על הקלה מהירה בגב תפוס וריפוי עמוק"
 
 [recommendation-07]
 file = "/img/recommendations/recommendation-07.jpeg"
-preview = "/img/recommendations/previews/recommendation-07.png"
 alt = "המלצה על העלמת כאב גב והפחתת עוצמת התקפי חרדה"
 
 [recommendation-08]
 file = "/img/recommendations/recommendation-08.jpeg"
-preview = "/img/recommendations/previews/recommendation-08.png"
 alt = "המלצה על תחושת שמחת חיים מחודשת ומודעות לגוף"
 
 [recommendation-09]
 file = "/img/recommendations/recommendation-09.jpeg"
-preview = "/img/recommendations/previews/recommendation-09.png"
 alt = "המלצה על טיפול מפנק ושחרור חסמים גופניים ורגשיים"
 
 [recommendation-10]
 file = "/img/recommendations/recommendation-10.jpeg"
-preview = "/img/recommendations/previews/recommendation-10.png"
 alt = "המלצה מאת יערה קרן על שילוב מדויק ועוצמתי של מגע וביטוי קולי"
 
 [recommendation-11]
 file = "/img/recommendations/recommendation-11.jpeg"
-preview = "/img/recommendations/previews/recommendation-11.png"
 alt = "המלצה מאת אביגיל אליאב על פתיחת קול וחזרה לשירה ללא כאב"
 
 [recommendation-12]
 file = "/img/recommendations/recommendation-12.jpeg"
-preview = "/img/recommendations/previews/recommendation-12.png"
 alt = "המלצה על מפגש יצירתי מעצים, כתיבת שיר והלחנה בליווי שיר אמיתי"
 
 [recommendation-13]
 file = "/img/recommendations/recommendation-13.jpeg"
-preview = "/img/recommendations/previews/recommendation-13.png"
 alt = "המלצה על תהליך משמעותי של ביטוי עצמי והשמעת הקול"
 
 [recommendation-14]
 file = "/img/recommendations/recommendation-14.jpeg"
-preview = "/img/recommendations/previews/recommendation-14.png"
 alt = "המלצה מאת דרור מנשה על תהליך עמוק, התרוקנות וביסוס מקום בטוח"
 
 [heart-in-hands]

@@ -15,7 +15,6 @@ import { personSchema, jsonLd } from '../lib/seo';
 
 const imagesSchema = z.record(z.string(), z.object({
   file: z.string(),
-  preview: z.string().optional(),
   alt: z.string(),
 }));
 

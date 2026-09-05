@@ -18,7 +18,7 @@ import { loadToml } from '../lib/content';
 import { loadRecommendations } from '../lib/recommendations';
 import { z } from 'zod';
 
-const images = loadToml('images.toml', z.record(z.string(), z.object({ file: z.string(), preview: z.string().optional(), alt: z.string() })));
+const images = loadToml('images.toml', z.record(z.string(), z.object({ file: z.string(), alt: z.string() })));
 const recommendations = loadRecommendations();
 ---
 

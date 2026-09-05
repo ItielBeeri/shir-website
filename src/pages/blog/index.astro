@@ -94,15 +94,24 @@ function formatDate(date: Date): string {
   }
 
   .post-tile { display: block; }
-  .post-tile .glass-card { block-size: 100%; }
+  /* :global because the card's root element carries GlassCard's scope, not ours */
+  .post-tile :global(.glass-card) { block-size: 100%; }
 
   .post-thumb { margin: calc(-1 * clamp(1.5rem, 4vw, 2.5rem)); margin-block-end: 1rem; border-radius: var(--radius-card) var(--radius-card) 0 0; overflow: hidden; }
 
+  /* Two lines, reserved when short and ellipsised when long — same rule as the
+     excerpt below, so every card in the grid comes out the same height. */
   .post-title {
     font-size: var(--fs-h3);
     font-weight: 400;
     color: var(--color-ink);
     margin-block: 0.3rem 0.4rem;
+    line-height: 1.2;
+    min-block-size: calc(2 * 1.2em);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .post-excerpt {
