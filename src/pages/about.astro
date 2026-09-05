@@ -131,13 +131,15 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
 
   .about-intro-grid {
     display: grid;
-    grid-template-columns: minmax(260px, 360px) 1fr;
+    container-type: inline-size;
+    grid-template-columns: minmax(260px, auto) 1fr;
     gap: clamp(2rem, 5vw, 4rem);
     align-items: start;
   }
 
   .about-portrait {
     position: relative;
+    max-inline-size: 40cqi;
     border-radius: var(--radius-card);
     overflow: hidden;
   }
