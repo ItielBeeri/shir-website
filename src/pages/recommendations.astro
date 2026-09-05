@@ -14,11 +14,6 @@ import { loadRecommendations } from '../lib/recommendations';
 import { z } from 'zod';
 import { personSchema, jsonLd } from '../lib/seo';
 
-const imagesSchema = z.record(z.string(), z.object({
-  file: z.string(),
-  alt: z.string(),
-}));
-
 const siteSchema = z.object({
   contact: z.object({
     whatsapp_url: z.string(), whatsapp_label: z.string(),
@@ -27,15 +22,8 @@ const siteSchema = z.object({
   }),
 });
 
-const images = loadToml('images.toml', imagesSchema);
 const { contact } = loadToml('site.toml', siteSchema);
-const recommendations = loadRecommendations().map((item) => {
-  if (!images[item.id]) throw new Error(`Recommendation ${item.id} has no registered image`);
-  return {
-    ...item,
-    image: images[item.id],
-  };
-});
+const recommendations = loadRecommendations();
 ---
 
 <BaseLayout
@@ -86,8 +74,8 @@ const recommendations = loadRecommendations().map((item) => {
             <GlassCard>
               <div class="recs-card-inner">
                 <img
-                  src={rec.image.file}
-                  alt={rec.image.alt}
+                  src={rec.screenshot}
+                  alt={rec.alt}
                   class="recs-screenshot-img"
                   loading="lazy"
                   decoding="async"

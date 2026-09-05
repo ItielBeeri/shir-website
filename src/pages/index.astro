@@ -31,15 +31,10 @@ const siteSchema = z.object({
     email_href: z.string(), email_label: z.string(),
   }),
 });
-const imagesSchema = z.record(z.string(), z.object({ file: z.string(), alt: z.string() }));
 
 const home   = loadToml('pages/home.toml', homeSchema);
 const { contact } = loadToml('site.toml', siteSchema);
-const images = loadToml('images.toml', imagesSchema);
-const recommendations = loadRecommendations().map((item) => {
-  if (!images[item.id]) throw new Error(`Recommendation ${item.id} has no registered image`);
-  return item;
-});
+const recommendations = loadRecommendations();
 
 const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 const blogPosts = sortBlogPosts(
@@ -82,7 +77,7 @@ const blogPosts = sortBlogPosts(
 
     <BreathDivider />
 
-    <RecommendationsSection recommendations={recommendations} images={images} />
+    <RecommendationsSection recommendations={recommendations} />
 
     <BreathDivider />
 

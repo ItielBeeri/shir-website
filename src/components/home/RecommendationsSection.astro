@@ -27,20 +27,16 @@ import { screenshotMetrics } from '../../lib/screenshots';
 
 interface Recommendation {
   id: string;
+  screenshot: string;
+  alt: string;
   transcription: string;
   relatedTherapies?: string[];
   author_label?: string;
   date_label?: string;
 }
 
-interface ImageRecord {
-  file: string;
-  alt: string;
-}
-
 interface Props {
   recommendations: Recommendation[];
-  images: Record<string, ImageRecord>;
   title?: string;
   kicker?: string;
   id?: string;
@@ -56,7 +52,6 @@ interface Props {
 
 const {
   recommendations,
-  images,
   title = 'המלצות',
   kicker = 'מילים מאנשים שפגשו את הדרך',
   id: headingId = 'recommendations-heading',
@@ -82,9 +77,8 @@ const total = recommendations.length;
  */
 const items = await Promise.all(
   recommendations.slice(0, limit).map(async (rec) => {
-    const image = images[rec.id];
-    const { width, height, typeUnits } = await screenshotMetrics(image.file);
-    return { ...rec, image, width, height, typeUnits };
+    const { width, height, typeUnits } = await screenshotMetrics(rec.screenshot);
+    return { ...rec, width, height, typeUnits };
   }),
 );
 ---
@@ -111,8 +105,8 @@ const items = await Promise.all(
           <GlassCard>
             <img
               class="rec-tile__img"
-              src={rec.image.file}
-              alt={rec.image.alt}
+              src={rec.screenshot}
+              alt={rec.alt}
               width={rec.width}
               height={rec.height}
               loading="lazy"
@@ -346,7 +340,7 @@ const items = await Promise.all(
     // its delay also means layout has settled - the bare resize event can fire
     // while the previous layout is still in place, which would measure rows
     // that are already gone.
-    let queued = 0;
+    let queued: ReturnType<typeof setTimeout>;
     addEventListener('resize', () => {
       clearTimeout(queued);
       queued = setTimeout(applyIfResized, 120);

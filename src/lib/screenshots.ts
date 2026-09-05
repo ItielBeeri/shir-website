@@ -45,7 +45,8 @@ const cache = new Map<string, Promise<ScreenshotMetrics>>();
  * Measure a screenshot in public/ at build time: its pixel dimensions and how
  * large the text inside it is.
  *
- * `publicPath` is the site-absolute path as written in images.toml, e.g.
+ * `publicPath` is the site-absolute path as written in the recommendation's
+ * `screenshot` field, e.g.
  * "/img/recommendations/recommendation-01.jpeg". Results are cached per path -
  * several pages render the same screenshots in one build.
  */

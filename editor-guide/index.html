@@ -261,7 +261,7 @@ figure.shot.mid img,    figure.shot.mid figcaption{ max-width:560px; }
 
     <div class="cover-facts">
       <span class="fact">10 פרקים</span>
-      <span class="fact">57 שאלות ותשובות</span>
+      <span class="fact">58 שאלות ותשובות</span>
     </div>
 
     <div class="address">
@@ -359,6 +359,7 @@ figure.shot.mid img,    figure.shot.mid figcaption{ max-width:560px; }
           <li><a data-n="7.2" href="#q7-2">איך קובעים את הסדר שלהן?</a></li>
           <li><a data-n="7.3" href="#q7-3">איך מסתירים המלצה?</a></li>
           <li><a data-n="7.4" href="#q7-4">איך משייכים המלצה לטיפול?</a></li>
+          <li><a data-n="7.5" href="#q7-5">איך משנים או מוחקים המלצה קיימת?</a></li>
         </ol>
       </div>
 
@@ -628,6 +629,10 @@ draft: true      <span class="c">← הפוסט מוסתר</span></pre>
     </div>
   </div>
 
+  <div class="note">
+    <b>הפרק הזה לא עוסק בהמלצות.</b> צילומי המסך של ההמלצות עובדים אחרת, ואין להם שום קשר לרשימת התמונות שכאן. כל מה שקשור אליהם - העלאה, רישום, עריכה והחלפה - נמצא כולו ב<a class="qref" href="#c7">פרק 7: המלצות</a>.
+  </div>
+
   <article class="qa" id="q3-1">
     <h3><span class="qn">3.1</span>איך מעלים תמונה חדשה?</h3>
     <div class="ans">
@@ -635,7 +640,6 @@ draft: true      <span class="c">← הפוסט מוסתר</span></pre>
         <li>פותחים <span class="f">public › img</span> ובוחרים תיקייה:
           <ul class="plain">
             <li><span class="f">content</span> - תמונות שמופיעות בתוך העמודים והפוסטים.</li>
-            <li><span class="f">recommendations</span> - צילומי מסך של המלצות.</li>
             <li><span class="f">bg</span> - תמונות רקע.</li>
           </ul>
         </li>
@@ -702,7 +706,6 @@ alt = "אישה מביטה בצל של עצמה"</pre>
         <tr><td>עמוד טיפול</td><td><span class="key">hero_image</span> ו-<span class="key">teaser_image</span></td></tr>
         <tr><td>דף הבית</td><td><span class="key">portrait</span></td></tr>
         <tr><td>עמוד אודות</td><td><span class="key">image_id</span></td></tr>
-        <tr><td>המלצה</td><td><span class="key">id</span> - חייב להיות זהה למזהה התמונה</td></tr>
       </table>
       <div class="note">
         רשימת המזהים הקיימים נמצאת ב-<span class="f">images.toml</span>. הכי בטוח לפתוח אותו ולהעתיק את המזהה משם, במקום להקליד מהזיכרון.
@@ -1079,43 +1082,53 @@ alt = "אישה מביטה בצל של עצמה"</pre>
     <span class="num">7</span>
     <div>
       <h2>המלצות</h2>
-      <div class="sub">כל המלצה היא צילום מסך + רישום. הקובץ: <span class="f">src › content › recommendations.toml</span>.</div>
+      <div class="sub">כל המלצה היא צילום מסך + בלוק אחד בקובץ אחד: <span class="f">src › content › recommendations.toml</span>. אין מה לרשום בשום מקום נוסף.</div>
     </div>
   </div>
 
   <article class="qa" id="q7-1">
     <h3><span class="qn">7.1</span>איך מוסיפים המלצה חדשה?</h3>
     <div class="ans">
-      <p>שלושה שלבים, וחשוב לעשות את שלושתם:</p>
+      <p>שני שלבים: מעלים את צילום המסך, ומוסיפים בלוק אחד בקובץ אחד.</p>
       <ol class="steps">
-        <li><b>מעלים את צילום המסך</b> לתיקייה <span class="f">public › img › recommendations</span> (לפי <a class="qref" href="#q3-1">העלאת תמונה (3.1)</a>), בשם הבא בתור - למשל <span class="f">recommendation-15.jpeg</span>.</li>
-        <li><b>רושמים אותו ב-<span class="f">images.toml</span></b> (לפי <a class="qref" href="#q3-2">רישום ברשימה (3.2)</a>), כשהמזהה זהה לשם הקובץ:
-          <pre class="code">[recommendation-15]
-file = "/img/recommendations/recommendation-15.jpeg"
-alt = "המלצה על טיפול במגע ושחרור כאבי גב"</pre>
+        <li><b>מעלים את צילום המסך</b> לתיקייה <span class="f">public › img › recommendations</span>:
+          <ul class="plain">
+            <li>לחיצה ימנית על התיקייה ← <span class="ui soft">Upload...</span>, ואז בוחרים את הקובץ מהמחשב.</li>
+            <li>שם הקובץ באנגלית ובאותיות קטנות, בשם הבא בתור - למשל <span class="f">recommendation-15.jpeg</span>.</li>
+            <li>משקל עד 1-2 מגה. צילום כבד מאט את האתר.</li>
+          </ul>
         </li>
         <li><b>מוסיפים את ההמלצה בסוף <span class="f">recommendations.toml</span>:</b>
           <pre class="code">[[recommendations]]
 id = "recommendation-15"
+screenshot = "/img/recommendations/recommendation-15.jpeg"
+alt = "המלצה על טיפול במגע ושחרור כאבי גב"
 transcription = """הטקסט המלא של ההמלצה, מועתק כמו שהוא."""
 relatedTherapies = ["shiatsu"]
 active = true</pre>
         </li>
       </ol>
+      <p>זהו. אין רישום נוסף בשום קובץ אחר.</p>
+      <figure class="shot mid">
+        <img src="16-upload-menu.png" alt="תפריט לחיצה ימנית על תיקיית תמונות עם האפשרות Upload">
+        <figcaption>האפשרות <b>Upload...</b> פותחת את חלון בחירת הקבצים של המחשב.</figcaption>
+      </figure>
       <figure class="shot">
         <img src="20-recommendations-toml.png" alt="קובץ recommendations.toml עם בלוקים של המלצות">
         <figcaption>כל המלצה מתחילה בשורת <b>[[recommendations]]</b> - עם סוגריים כפולים.</figcaption>
       </figure>
       <table class="fields">
         <tr><th>שורה</th><th>מה כותבים</th></tr>
-        <tr><td><span class="key">id</span></td><td>מזהה התמונה. חייב להיות זהה למזהה ב-<span class="f">images.toml</span>.</td></tr>
+        <tr><td><span class="key">id</span></td><td>שם באנגלית שמזהה את ההמלצה. הכי פשוט - שם קובץ צילום המסך בלי הסיומת.</td></tr>
+        <tr><td><span class="key">screenshot</span></td><td>הנתיב לצילום המסך: תמיד <span class="f">/img/recommendations/</span> ואחריו שם הקובץ שהעלית, עם הסיומת.</td></tr>
+        <tr><td><span class="key">alt</span></td><td>משפט קצר בעברית שמתאר את צילום המסך. מי שגולשת עם תוכנת הקראה שומעת אותו, ואם התמונה לא נטענת הוא מוצג במקומה.</td></tr>
         <tr><td><span class="key">transcription</span></td><td>הטקסט של ההמלצה, בין שלושה גרשיים. משמש לחיפוש ולהקראה.</td></tr>
         <tr><td><span class="key">relatedTherapies</span></td><td>לאיזה טיפול ההמלצה שייכת. ראי <a class="qref" href="#q7-4">שיוך לטיפול (7.4)</a>.</td></tr>
         <tr><td><span class="key">active</span></td><td><span class="f">true</span> = מוצגת, <span class="f">false</span> = מוסתרת.</td></tr>
       </table>
       <div class="warn">
-        <b>אם ה-<span class="key">id</span> לא קיים ברשימת התמונות - האתר לא ייבנה, וכל ההמלצות ייעלמו.</b>
-        זו הטעות הנפוצה ביותר כאן. בדקי את שני השמות זה מול זה לפני ההעלאה.
+        <b>אם שורת <span class="key">screenshot</span> לא מצביעה על קובץ שקיים באמת - האתר לא ייבנה, וכל ההמלצות ייעלמו.</b>
+        זו הטעות הנפוצה ביותר כאן. השווי את הנתיב לשם הקובץ בתיקייה לפני ההעלאה, ובמיוחד את הסיומת - <span class="f">.jpg</span> או <span class="f">.jpeg</span>.
       </div>
     </div>
   </article>
@@ -1148,6 +1161,21 @@ relatedTherapies = ["voice", "shiatsu"]</pre>
         <li><span class="f">shiatsu</span> - טיפול במגע</li>
         <li><span class="f">voice</span> - פתיחת קול</li>
       </ul>
+    </div>
+  </article>
+
+  <article class="qa" id="q7-5">
+    <h3><span class="qn">7.5</span>איך משנים או מוחקים המלצה קיימת?</h3>
+    <div class="ans">
+      <p>מוצאים את הבלוק שלה ב-<span class="f">recommendations.toml</span> ומשנים את השורה הרלוונטית:</p>
+      <table class="fields">
+        <tr><th>מה רוצים לשנות</th><th>מה עושים</th></tr>
+        <tr><td>הטקסט של ההמלצה</td><td>עורכים את <span class="key">transcription</span>, בין שלושת הגרשיים.</td></tr>
+        <tr><td>התיאור לתוכנות הקראה</td><td>עורכים את <span class="key">alt</span>.</td></tr>
+        <tr><td>השיוך לטיפול</td><td>עורכים את <span class="key">relatedTherapies</span> - ראי <a class="qref" href="#q7-4">שיוך לטיפול (7.4)</a>.</td></tr>
+        <tr><td>צילום המסך עצמו</td><td>מעלים קובץ חדש עם <b>אותו שם בדיוק</b> לתיקייה <span class="f">public › img › recommendations</span> ומאשרים החלפה - אין מה לשנות בקובץ. אם שם הקובץ החדש שונה, מעדכנים גם את שורת <span class="key">screenshot</span>.</td></tr>
+      </table>
+      <p><b>למחוק המלצה?</b> עדיף להסתיר אותה עם <span class="key">active</span> (<a class="qref" href="#q7-3">7.3</a>) - כך היא נשארת שמורה. אם באמת צריך למחוק, מוחקים את כל הבלוק שלה - משורת <span class="f">[[recommendations]]</span> ועד השורה שלפני הבלוק הבא - ואז אפשר למחוק גם את קובץ צילום המסך מהתיקייה.</p>
     </div>
   </article>
   <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
@@ -1262,7 +1290,7 @@ tagline = "פסיכותרפיה · טיפול במגע · פתיחת קול"</pr
         <li>שינית רק טקסט - לא שמות שלפני סימן ה-<span class="f">=</span>.</li>
         <li>פוסט חדש: התאריך בצורה <span class="f">2026-08-18</span>, וה-<span class="key">draft</span> על <span class="f">false</span>.</li>
         <li>תמונה חדשה: גם הועלתה וגם נרשמה ב-<span class="f">images.toml</span>.</li>
-        <li>המלצה חדשה: ה-<span class="key">id</span> זהה למזהה התמונה.</li>
+        <li>המלצה חדשה: שורת <span class="key">screenshot</span> מצביעה בדיוק על הקובץ שהעלית, כולל הסיומת.</li>
       </ul>
       <div class="note">אחרי ההעלאה - תמיד לפתוח את האתר ולהסתכל על העמוד ששינית. זו הבדיקה האמיתית.</div>
     </div>
@@ -1291,7 +1319,7 @@ tagline = "פסיכותרפיה · טיפול במגע · פתיחת קול"</pr
       <div class="note">
         <b>מה לצרף:</b> צילום מסך של מה שנראה שבור, שם הקובץ ששינית, ומשפט על מה שינית. זה כל מה שצריך כדי לתקן מהר.
       </div>
-      <p><b>העמוד ריק לגמרי או שכל ההמלצות נעלמו?</b> כמעט תמיד הסיבה היא גרשיים או סוגריים שנמחקו, או מזהה תמונה שלא קיים.</p>
+      <p><b>העמוד ריק לגמרי או שכל ההמלצות נעלמו?</b> כמעט תמיד הסיבה היא גרשיים או סוגריים שנמחקו, או נתיב תמונה שמצביע על קובץ שלא קיים.</p>
     </div>
   </article>
 
@@ -1429,7 +1457,7 @@ tagline = "פסיכותרפיה · טיפול במגע · פתיחת קול"</pr
     <div class="ans">
       <p>מסירים אותה. מיד, בלי לבקש נימוק ובלי לנסות לשכנע - כך גם כתוב בתנאי השימוש, וכך נכון לעשות.</p>
       <p>ההסרה עצמה פשוטה: בקובץ <span class="f">recommendations.toml</span> משנים אצל אותה המלצה את השורה <span class="key">active</span> מ-<span class="f">true</span> ל-<span class="f">false</span>, בדיוק כמו ב-<a class="qref" href="#q7-3">7.3</a>.</p>
-      <div class="note">אם ההמלצה הופיעה גם כתמונה, כדאי לבקש שגם קובץ התמונה יימחק מהאתר ולא רק יוסתר.</div>
+      <div class="note">אם מבקשים מחיקה מלאה ולא רק הסתרה, ראי <a class="qref" href="#q7-5">מחיקת המלצה (7.5)</a> - שם גם מחיקת קובץ צילום המסך עצמו.</div>
     </div>
   </article>
   <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>

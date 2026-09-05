@@ -19,6 +19,7 @@ import CTAButton from '../ui/CTAButton.astro';
 import ScrollReveal from '../ui/ScrollReveal.astro';
 import RecommendationsSection from '../home/RecommendationsSection.astro';
 import { loadToml } from '../../lib/content';
+import { serviceSchema, jsonLd } from '../../lib/seo';
 import { loadRecommendations } from '../../lib/recommendations';
 import { getCollection } from 'astro:content';
 import { z } from 'zod';
@@ -44,14 +45,11 @@ const siteSchema = z.object({
     email_label:    z.string(),
   }),
 });
-const imagesSchema = z.record(z.string(), z.object({ file: z.string(), alt: z.string() }));
 
 const { contact } = loadToml('site.toml', siteSchema);
-const images = loadToml('images.toml', imagesSchema);
-const therapyRecommendations = loadRecommendations().filter((item) => {
-  if (!images[item.id]) return false;
-  return item.relatedTherapies.includes(entry.slug);
-});
+const therapyRecommendations = loadRecommendations().filter((item) =>
+  item.relatedTherapies.includes(entry.slug),
+);
 
 const allTherapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice(0, 2);
@@ -62,6 +60,10 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   description={summary}
   theme={accent}
 >
+  <Fragment slot="head">
+    <Fragment set:html={jsonLd(serviceSchema(title, Astro.url.pathname))} />
+  </Fragment>
+
   <Header />
 
   <main id="main">
@@ -103,7 +105,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
         <BreathDivider />
         <RecommendationsSection
           recommendations={therapyRecommendations}
-          images={images}
           title="המלצות"
           kicker="מילים מאנשים שפגשו את הדרך"
         />
