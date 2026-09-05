@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מדריך עריכת התוכן - האתר של שיר אמיתי</title>
+<style>
+/* ============================================================
+   מדריך עריכת תוכן - עיצוב מלא, ללא תלות בקבצים חיצוניים
+   ============================================================ */
+:root{
+  --ink:        #2b3a35;
+  --ink-soft:   #4d5f59;
+  --muted:      #7b8b85;
+  --paper:      #fbfaf6;
+  --card:       #ffffff;
+  --cream:      #f4eee1;
+  --sage:       #e6efe9;
+  --sage-line:  #cadcd2;
+  --line:       #e2ddd1;
+  --accent:     #4c7c70;
+  --accent-ink: #2f5b51;
+  --warn:       #f7ece2;
+  --warn-line:  #e2c3a4;
+  --warn-ink:   #8a5a2b;
+  --shadow:     0 10px 30px rgba(43,58,53,.07);
+  --radius:     14px;
+  --sans: "Segoe UI", Assistant, Arial, "Noto Sans Hebrew", sans-serif;
+  --mono: Consolas, "Courier New", monospace;
+}
+
+*{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16.5px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{ width:min(1120px, calc(100% - 48px)); margin-inline:auto; }
+
+a{ color:var(--accent-ink); text-decoration:none; }
+a:hover{ text-decoration:underline; }
+
+/* ---------- שער ---------- */
+.cover{
+  background:
+    radial-gradient(circle at 88% 12%, #e6efe9 0 18%, transparent 46%),
+    radial-gradient(circle at 8% 92%, #f0e7d6 0 16%, transparent 44%),
+    var(--cream);
+  border-bottom:1px solid var(--line);
+  padding:64px 0 52px;
+}
+.eyebrow{
+  color:var(--accent-ink); font-weight:600; font-size:14.5px;
+  letter-spacing:.08em;
+}
+.cover h1{
+  margin:12px 0 14px; font-size:clamp(34px,5.2vw,54px);
+  font-weight:600; line-height:1.15; letter-spacing:-.01em;
+}
+.cover .lede{ margin:0; font-size:19px; color:var(--ink-soft); }
+.cover-facts{ display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+.fact{
+  background:rgba(255,255,255,.78); border:1px solid var(--sage-line);
+  border-radius:999px; padding:7px 16px; font-size:14.5px; color:var(--accent-ink);
+}
+.address{
+  margin-top:24px; background:var(--card); border:1px solid var(--sage-line);
+  border-right:4px solid var(--accent); border-radius:var(--radius);
+  padding:16px 20px; box-shadow:var(--shadow);
+}
+.address b{ display:block; font-size:14.5px; color:var(--muted); font-weight:600; margin-bottom:6px; }
+
+/* ---------- תוכן עניינים ---------- */
+.toc{ padding:46px 0 10px; }
+.toc h2, .chap h2{ font-size:26px; font-weight:650; margin:0 0 6px; }
+.toc > .wrap > p{ color:var(--muted); margin:0 0 24px; }
+.toc-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.toc-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 18px 14px; box-shadow:var(--shadow); break-inside:avoid;
+}
+.toc-card h3{ margin:0 0 8px; font-size:16.5px; font-weight:650; }
+.toc-card h3 a{ color:var(--ink); }
+.toc-card h3 .n{
+  display:inline-block; min-width:22px; height:22px; line-height:22px; text-align:center;
+  background:var(--sage); color:var(--accent-ink); border-radius:6px;
+  font-size:13px; font-weight:700; margin-inline-end:8px; unicode-bidi:isolate;
+}
+.toc-card ol{ margin:0; padding:0; list-style:none; }
+.toc-card li{ margin:3px 0; font-size:14.3px; line-height:1.5; }
+.toc-card li a{ color:var(--ink-soft); }
+.toc-card li a::before{ content:attr(data-n) "  "; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+/* ---------- פרקים ---------- */
+main{ padding-bottom:60px; }
+.chap{ padding-top:56px; }
+.chap-head{
+  border-bottom:2px solid var(--sage-line); padding-bottom:14px; margin-bottom:8px;
+  display:flex; align-items:baseline; gap:14px;
+}
+.chap-head .num{
+  font-size:34px; font-weight:700; color:var(--sage-line); line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.chap-head .sub{ color:var(--muted); font-size:15px; margin-top:2px; }
+
+/* ---------- שאלה ותשובה ---------- */
+.qa{ padding:24px 0 6px; border-bottom:1px solid var(--line); }
+.qa:last-child{ border-bottom:0; }
+.qa > h3{ margin:0 0 12px; font-size:19.5px; font-weight:650; line-height:1.4; break-after:avoid; }
+.qa > h3 .qn{
+  color:var(--accent); font-variant-numeric:tabular-nums; font-weight:700;
+  margin-inline-end:9px; font-size:16px; unicode-bidi:isolate;
+}
+.qa p{ margin:9px 0; }
+
+ol.steps{ margin:10px 0; padding-inline-start:0; list-style:none; counter-reset:s; }
+ol.steps > li{ counter-increment:s; position:relative; padding-inline-start:34px; margin:7px 0; }
+ol.steps > li::before{
+  content:counter(s); position:absolute; inset-inline-start:0; top:2px;
+  width:23px; height:23px; border-radius:50%; background:var(--sage);
+  color:var(--accent-ink); font-size:13px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+ul.plain{ margin:9px 0; padding-inline-start:20px; }
+ul.plain li{ margin:5px 0; }
+
+/* ---------- אסימונים ---------- */
+.f, .ui, .key{
+  display:inline-block; direction:ltr; unicode-bidi:isolate;
+  font-family:var(--mono); font-size:.88em; border-radius:5px;
+  padding:1px 7px; white-space:nowrap;
+}
+.f{ background:#eef3f0; border:1px solid #d5e3dc; color:#33564d; }
+.key{ background:#f3f0e8; border:1px solid #e0d8c6; color:#6d5c36; }
+.ui{ background:var(--accent); border:1px solid var(--accent-ink); color:#fff; font-weight:600; }
+.ui.soft{ background:#eaf1ee; color:var(--accent-ink); border-color:var(--sage-line); }
+
+/* קישור לכתובת אינטרנט */
+a.link{
+  direction:ltr; unicode-bidi:isolate; font-family:var(--mono); font-size:.9em;
+  color:var(--accent-ink); border-bottom:1px solid var(--accent);
+  padding-bottom:1px; word-break:break-all;
+}
+a.link:hover{ text-decoration:none; background:var(--sage); }
+
+/* הפניה לשאלה אחרת במדריך */
+a.qref{
+  color:var(--accent-ink); font-weight:600; text-decoration:none;
+  border-bottom:1px dashed var(--accent); padding-bottom:1px;
+  white-space:nowrap;
+}
+a.qref:hover{ border-bottom-style:solid; background:var(--sage); }
+
+pre.code{
+  direction:ltr; text-align:left; unicode-bidi:isolate;
+  background:#f6f7f4; border:1px solid var(--line); border-right:4px solid var(--sage-line);
+  border-radius:10px; padding:14px 16px; overflow-x:auto;
+  font-family:var(--mono); font-size:13.6px; line-height:1.7; margin:12px 0;
+  white-space:pre; break-inside:avoid;
+}
+pre.code .c{ color:#8a9b93; }
+
+/* ---------- קופסאות ---------- */
+.note, .warn{ border-radius:10px; padding:12px 16px; margin:14px 0; font-size:15.3px; break-inside:avoid; }
+.note{ background:var(--sage); border:1px solid var(--sage-line); }
+.warn{ background:var(--warn); border:1px solid var(--warn-line); color:var(--warn-ink); }
+.warn a.qref{ color:var(--warn-ink); border-bottom-color:var(--warn-ink); }
+
+/* ---------- טבלאות ---------- */
+table.fields{ width:100%; border-collapse:collapse; margin:14px 0; font-size:15px; break-inside:avoid; }
+table.fields th, table.fields td{
+  text-align:right; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top;
+}
+table.fields th{
+  background:var(--sage); color:var(--accent-ink); font-weight:650; font-size:14px;
+  border-bottom:1px solid var(--sage-line);
+}
+table.fields td:first-child{ width:1%; white-space:nowrap; }
+table.fields tr:last-child td{ border-bottom:0; }
+
+/* ---------- צילומי מסך ---------- */
+figure.shot{ margin:18px 0 6px; break-inside:avoid; }
+figure.shot img{
+  display:block; width:100%; max-width:900px; height:auto;
+  border:1px solid var(--sage-line); border-radius:10px; box-shadow:var(--shadow);
+}
+figure.shot figcaption{ margin-top:7px; font-size:13.8px; color:var(--muted); max-width:900px; }
+figure.shot figcaption b{ color:var(--accent-ink); font-weight:600; }
+/* צילומים חתוכים מוצגים צר יותר - כדי שהחדות תישמר זהה בכל המדריך */
+figure.shot.narrow img, figure.shot.narrow figcaption{ max-width:440px; }
+figure.shot.mid img,    figure.shot.mid figcaption{ max-width:560px; }
+
+/* ---------- סיום ---------- */
+.foot{ border-top:1px solid var(--line); margin-top:40px; padding:28px 0 54px; color:var(--muted); font-size:14.5px; }
+.backtop{ font-size:13.5px; color:var(--muted); display:inline-block; margin-top:10px; }
+
+/* ---------- מסכים צרים ---------- */
+@media (max-width:900px){ .toc-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:620px){
+  body{ font-size:16px; }
+  .wrap{ width:calc(100% - 28px); }
+  .toc-grid{ grid-template-columns:1fr; }
+  .cover{ padding:44px 0 36px; }
+  .chap-head{ gap:10px; }
+}
+
+/* ---------- הדפסה ל-PDF ---------- */
+@media print{
+  @page{ size:A4; margin:14mm 12mm 16mm; }
+  html, body{ background:#fff; font-size:10.6pt; line-height:1.62; }
+  .wrap{ width:100%; }
+  *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  a{ color:var(--ink); text-decoration:none; }
+  a.qref{ color:var(--accent-ink); }
+  a.link{ color:var(--accent-ink); }
+
+  .cover{ padding:26px 0 22px; }
+  .cover h1{ font-size:30pt; }
+  .cover .lede{ font-size:12pt; }
+  .address{ box-shadow:none; }
+
+  .toc{ padding:22px 0 0; break-after:page; }
+  .toc-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
+  .toc-card{ box-shadow:none; padding:10px 12px; }
+  .toc-card li{ font-size:9pt; margin:1px 0; }
+
+  .chap{ break-before:page; padding-top:0; }
+  .chap:first-of-type{ break-before:avoid; }
+  .chap-head .num{ font-size:24pt; }
+
+  .qa{ padding:14px 0 2px; }
+  .qa > h3{ font-size:12.4pt; break-after:avoid; }
+
+  figure.shot{ margin:10px 0 4px; }
+  figure.shot img{ max-width:166mm; box-shadow:none; border-color:#c9d6cf; }
+  figure.shot.narrow img{ max-width:90mm; }
+  figure.shot.mid img{ max-width:112mm; }
+  figure.shot figcaption{ font-size:8.4pt; }
+
+  pre.code{ font-size:9pt; box-shadow:none; }
+  .note, .warn{ font-size:9.6pt; padding:8px 12px; }
+  table.fields{ font-size:9.6pt; }
+
+  .backtop, .no-print{ display:none !important; }
+  .foot{ padding:16px 0 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== שער ==================== -->
+<header class="cover" id="top">
+  <div class="wrap">
+    <div class="eyebrow">האתר של שיר אמיתי</div>
+    <h1>מדריך עריכת התוכן</h1>
+    <p class="lede">
+      כל מה שצריך כדי לשנות טקסטים, להוסיף פוסטים, להחליף תמונות ולנהל המלצות.
+    </p>
+
+    <div class="cover-facts">
+      <span class="fact">10 פרקים</span>
+      <span class="fact">57 שאלות ותשובות</span>
+    </div>
+
+    <div class="address">
+      <b>הכתובת לעבודה - שמרי אותה במועדפים</b>
+      <a class="link" href="https://vscode.dev/github/ItielBeeri/shir-website">https://vscode.dev/github/ItielBeeri/shir-website</a>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== תוכן עניינים ==================== -->
+<section class="toc" id="toc">
+  <div class="wrap">
+    <h2>תוכן העניינים</h2>
+    <p>לחיצה על שאלה קופצת ישר לתשובה.</p>
+
+    <div class="toc-grid">
+
+      <div class="toc-card">
+        <h3><span class="n">1</span><a href="#c1">איך עובדים</a></h3>
+        <ol>
+          <li><a data-n="1.1" href="#q1-1">איך נכנסים לעריכת האתר?</a></li>
+          <li><a data-n="1.2" href="#q1-2">איך מוצאים את הקובץ שצריך?</a></li>
+          <li><a data-n="1.3" href="#q1-3">איך משנים טקסט?</a></li>
+          <li><a data-n="1.4" href="#q1-4">איך מעלים את השינוי לאתר?</a></li>
+          <li><a data-n="1.5" href="#q1-5">תוך כמה זמן רואים את השינוי?</a></li>
+          <li><a data-n="1.6" href="#q1-6">איך מבטלים שינוי שעדיין לא עלה?</a></li>
+          <li><a data-n="1.7" href="#q1-7">במה אסור לגעת?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">2</span><a href="#c2">כללי הכתיבה בקבצים</a></h3>
+        <ol>
+          <li><a data-n="2.1" href="#q2-1">מה מותר לשנות בשורה?</a></li>
+          <li><a data-n="2.2" href="#q2-2">איך כותבים טקסט ארוך?</a></li>
+          <li><a data-n="2.3" href="#q2-3">איך עובדות רשימות?</a></li>
+          <li><a data-n="2.4" href="#q2-4">איך כותבים true ו-false?</a></li>
+          <li><a data-n="2.5" href="#q2-5">מה השורות שמתחילות ב-#?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">3</span><a href="#c3">תמונות</a></h3>
+        <ol>
+          <li><a data-n="3.1" href="#q3-1">איך מעלים תמונה חדשה?</a></li>
+          <li><a data-n="3.2" href="#q3-2">איך רושמים אותה ברשימה?</a></li>
+          <li><a data-n="3.3" href="#q3-3">מה כותבים בתיאור התמונה?</a></li>
+          <li><a data-n="3.4" href="#q3-4">איך משתמשים בתמונה קיימת?</a></li>
+          <li><a data-n="3.5" href="#q3-5">איך מחליפים תמונה קיימת?</a></li>
+          <li><a data-n="3.6" href="#q3-6">התמונה לא מופיעה - מה לבדוק?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">4</span><a href="#c4">בלוג</a></h3>
+        <ol>
+          <li><a data-n="4.1" href="#q4-1">איך מוסיפים פוסט חדש?</a></li>
+          <li><a data-n="4.2" href="#q4-2">מה ממלאים בראש הפוסט?</a></li>
+          <li><a data-n="4.3" href="#q4-3">איך מגדירים את תמונת הנושא?</a></li>
+          <li><a data-n="4.4" href="#q4-4">איך משלבים תמונה בגוף הטקסט?</a></li>
+          <li><a data-n="4.5" href="#q4-5">איך כותבים כותרות ופסקאות?</a></li>
+          <li><a data-n="4.6" href="#q4-6">איך קובעים את סדר הפוסטים?</a></li>
+          <li><a data-n="4.7" href="#q4-7">איך מסתירים פוסט?</a></li>
+          <li><a data-n="4.8" href="#q4-8">איך משנים את הכתובת של פוסט?</a></li>
+          <li><a data-n="4.9" href="#q4-9">איך מוחקים פוסט?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">5</span><a href="#c5">עמודי הטיפולים</a></h3>
+        <ol>
+          <li><a data-n="5.1" href="#q5-1">איפה הטקסט של כל טיפול?</a></li>
+          <li><a data-n="5.2" href="#q5-2">מה יש בראש הקובץ?</a></li>
+          <li><a data-n="5.3" href="#q5-3">איך עורכים את גוף הטקסט?</a></li>
+          <li><a data-n="5.4" href="#q5-4">איך משלבים תמונה?</a></li>
+          <li><a data-n="5.5" href="#q5-5">איך קובעים את סדר הטיפולים?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">6</span><a href="#c6">עמודי האתר</a></h3>
+        <ol>
+          <li><a data-n="6.1" href="#q6-1">איך עורכים את דף הבית?</a></li>
+          <li><a data-n="6.2" href="#q6-2">איך עורכים את עמוד אודות?</a></li>
+          <li><a data-n="6.3" href="#q6-3">איך עורכים את עמוד יצירת קשר?</a></li>
+          <li><a data-n="6.4" href="#q6-4">מה זה עמוד "הדף לא נמצא"?</a></li>
+          <li><a data-n="6.5" href="#q6-5">איך מוסיפים פריט לרשימה?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">7</span><a href="#c7">המלצות</a></h3>
+        <ol>
+          <li><a data-n="7.1" href="#q7-1">איך מוסיפים המלצה חדשה?</a></li>
+          <li><a data-n="7.2" href="#q7-2">איך קובעים את הסדר שלהן?</a></li>
+          <li><a data-n="7.3" href="#q7-3">איך מסתירים המלצה?</a></li>
+          <li><a data-n="7.4" href="#q7-4">איך משייכים המלצה לטיפול?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">8</span><a href="#c8">קשר, תפריט וכותרת תחתונה</a></h3>
+        <ol>
+          <li><a data-n="8.1" href="#q8-1">איפה משנים טלפון, וואטסאפ ואימייל?</a></li>
+          <li><a data-n="8.2" href="#q8-2">איך משנים את השם ואת שורת התחומים?</a></li>
+          <li><a data-n="8.3" href="#q8-3">איך משנים את התפריט?</a></li>
+          <li><a data-n="8.4" href="#q8-4">איך משנים קישור לפייסבוק?</a></li>
+          <li><a data-n="8.5" href="#q8-5">איך משנים את הכותרת התחתונה?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">9</span><a href="#c9">בדיקה ותקלות</a></h3>
+        <ol>
+          <li><a data-n="9.1" href="#q9-1">מה בודקים לפני שמעלים?</a></li>
+          <li><a data-n="9.2" href="#q9-2">איך יודעים שהשינוי עלה?</a></li>
+          <li><a data-n="9.3" href="#q9-3">משהו נראה שבור - מה עושים?</a></li>
+          <li><a data-n="9.4" href="#q9-4">איזה קובץ שייך לאיזו משימה?</a></li>
+          <li><a data-n="9.5" href="#q9-5">מה לא לעשות לבד?</a></li>
+        </ol>
+      </div>
+
+      <div class="toc-card">
+        <h3><span class="n">10</span><a href="#c10">העמודים המשפטיים</a></h3>
+        <ol>
+          <li><a data-n="10.1" href="#q10-1">איפה העמודים המשפטיים?</a></li>
+          <li><a data-n="10.2" href="#q10-2">מה חובה למלא לפני שהאתר עולה?</a></li>
+          <li><a data-n="10.3" href="#q10-3">מתי חייבים לעדכן את התאריך?</a></li>
+          <li><a data-n="10.4" href="#q10-4">מה אסור לשנות בהצהרת הנגישות?</a></li>
+          <li><a data-n="10.5" href="#q10-5">רוצים להוסיף Google Analytics?</a></li>
+          <li><a data-n="10.6" href="#q10-6">מישהו ביקש להסיר המלצה?</a></li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<main class="wrap">
+
+<!-- ==================== פרק 1 ==================== -->
+<section class="chap" id="c1">
+  <div class="chap-head">
+    <span class="num">1</span>
+    <div>
+      <h2>איך עובדים</h2>
+      <div class="sub">שלושה דברים חוזרים בכל שינוי: מוצאים קובץ, משנים טקסט, מעלים לאתר.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q1-1">
+    <h3><span class="qn">1.1</span>איך נכנסים לעריכת האתר?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>פותחים בדפדפן את הכתובת <a class="link" href="https://vscode.dev/github/ItielBeeri/shir-website">https://vscode.dev/github/ItielBeeri/shir-website</a></li>
+        <li>בפעם הראשונה תופיע בקשת התחברות. לוחצים <span class="ui">Allow</span> ונכנסים עם החשבון שלך ב-GitHub.</li>
+        <li>אחרי כמה שניות תופיע בצד שמאל רשימת התיקיות של האתר. זהו - את בפנים.</li>
+      </ol>
+      <figure class="shot">
+        <img src="01-editor.png" alt="מסך העריכה אחרי הכניסה: רשימת התיקיות של האתר בצד שמאל">
+        <figcaption><b>המסך מתחלק לשלושה חלקים:</b> סרגל הסמלים הצר בקצה שמאל, רשימת הקבצים לידו, ואזור העריכה הגדול במרכז.</figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-2">
+    <h3><span class="qn">1.2</span>איך מוצאים את הקובץ שצריך?</h3>
+    <div class="ans">
+      <p>כל הטקסטים של האתר נמצאים במקום אחד: <span class="f">src › content</span>. כל התמונות נמצאות ב-<span class="f">public › img</span>.</p>
+      <ol class="steps">
+        <li>ברשימת הקבצים לוחצים על <span class="f">src</span> - היא נפתחת.</li>
+        <li>לוחצים על <span class="f">content</span>.</li>
+        <li>לוחצים על שם הקובץ. הוא נפתח באזור העריכה שבמרכז.</li>
+      </ol>
+      <figure class="shot narrow">
+        <img src="02-tree-content.png" alt="תיקיית content פתוחה עם כל קבצי התוכן">
+        <figcaption>כל קבצי התוכן של האתר. הפירוט המלא של איזה קובץ אחראי על מה נמצא ב<a class="qref" href="#q9-4">מפת הקבצים (9.4)</a>.</figcaption>
+      </figure>
+      <div class="note">לחיצה נוספת על שם תיקייה סוגרת אותה. אפשר להשאיר פתוחות כמה שרוצים.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-3">
+    <h3><span class="qn">1.3</span>איך משנים טקסט?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>לוחצים בתוך הטקסט שרוצים לשנות - מופיע סמן הקלדה.</li>
+        <li>מוחקים ומקלידים כרגיל, כמו בכל תוכנת כתיבה.</li>
+        <li>משנים <b>רק</b> את מה שנמצא בין הגרשיים <span class="f">"…"</span>.</li>
+      </ol>
+      <figure class="shot">
+        <img src="03-open-file.png" alt="הקובץ site.toml פתוח לעריכה עם טקסטים בעברית בין גרשיים">
+        <figcaption>קובץ פתוח לעריכה. הטקסט שמופיע באתר הוא זה שבין הגרשיים.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="04-edit-text.png" alt="שורה בקובץ אחרי שינוי הטקסט שבין הגרשיים">
+        <figcaption>אותו קובץ אחרי שינוי. הסימן הקטן בצד השורה מסמן שהשורה הזו שונתה.</figcaption>
+      </figure>
+      <div class="note">
+        <b>אין צורך לשמור.</b> העורך שומר לבד תוך שנייה. אבל שמירה היא לא פרסום - כדי שהשינוי יגיע לאתר צריך את <a class="qref" href="#q1-4">העלאת השינוי לאתר (1.4)</a>.
+      </div>
+      <div class="warn">
+        מחקת בטעות גרש, סוגר או שורה שלמה? <span class="f">Ctrl + Z</span> מבטל את הפעולה האחרונה. אפשר ללחוץ כמה פעמים.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-4">
+    <h3><span class="qn">1.4</span>איך מעלים את השינוי לאתר?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>בסרגל הסמלים הצר בקצה שמאל לוחצים על הסמל השלישי - <span class="ui soft">Source Control</span>. ליד הסמל מופיע מספר: כמה קבצים שינית.</li>
+        <li>בתיבה שלמעלה כותבים משפט קצר שמתאר מה עשית. למשל: <span class="f">עדכון הערה בעמוד יצירת קשר</span></li>
+        <li>לוחצים על הכפתור הכחול <span class="ui">Commit &amp; Push</span>.</li>
+      </ol>
+      <figure class="shot narrow">
+        <img src="05-commit-push.png" alt="חלונית Source Control עם הודעה כתובה והכפתור Commit and Push">
+        <figcaption>המשפט שכתבת נשמר כתיאור השינוי. תחת <b>Changes</b> מופיעים הקבצים ששינית.</figcaption>
+      </figure>
+      <div class="warn">
+        <b>זה הרגע שבו השינוי יוצא לאוויר.</b> עד הלחיצה על <span class="f">Commit &amp; Push</span> - שום דבר לא פורסם, ואפשר עדיין לבטל הכול.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-5">
+    <h3><span class="qn">1.5</span>תוך כמה זמן רואים את השינוי?</h3>
+    <div class="ans">
+      <p>האתר בונה את עצמו מחדש לבד. בדרך כלל השינוי מופיע תוך 1-3 דקות.</p>
+      <ul class="plain">
+        <li>פותחים את <a class="link" href="https://www.shir-amitai.com">www.shir-amitai.com</a> ומרעננים את הדף.</li>
+        <li>אם הדף נראה ישן - מרעננים שוב עם <span class="f">Ctrl + F5</span>.</li>
+        <li>אם אחרי רבע שעה עדיין אין שינוי - משהו נתקע. אל תעלי את השינוי שוב, פני לעזרה.</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-6">
+    <h3><span class="qn">1.6</span>איך מבטלים שינוי שעדיין לא עלה?</h3>
+    <div class="ans">
+      <p><b>טעות קטנה שקרתה עכשיו:</b> <span class="f">Ctrl + Z</span>.</p>
+      <p><b>להחזיר קובץ שלם למצב שלפני העריכה:</b></p>
+      <ol class="steps">
+        <li>נכנסים ל-<span class="ui soft">Source Control</span>.</li>
+        <li>לחיצה ימנית על שם הקובץ ← <span class="ui soft">Discard Changes</span>.</li>
+        <li>בחלון שנפתח לוחצים שוב <span class="ui">Discard Changes</span>.</li>
+      </ol>
+      <figure class="shot mid">
+        <img src="06-discard-menu.png" alt="תפריט לחיצה ימנית על קובץ שהשתנה, עם האפשרות Discard Changes">
+        <figcaption>לחיצה ימנית על הקובץ שהשתנה.</figcaption>
+      </figure>
+      <figure class="shot mid">
+        <img src="07-discard-confirm.png" alt="חלון אישור לביטול השינויים בקובץ">
+        <figcaption>חלון האישור. אחריו הקובץ חוזר בדיוק למה שהיה.</figcaption>
+      </figure>
+      <div class="warn">
+        הפעולה מוחקת את <b>כל</b> מה שערכת בקובץ מאז ההעלאה האחרונה, ואי אפשר להחזיר אותה.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q1-7">
+    <h3><span class="qn">1.7</span>במה אסור לגעת?</h3>
+    <div class="ans">
+      <p>שני מקומות פתוחים לעריכה: <span class="f">src › content</span> (טקסטים) ו-<span class="f">public › img</span> (תמונות). כל השאר - לא.</p>
+      <p>וגם בתוך הקבצים המותרים, יש דברים שלא נוגעים בהם:</p>
+      <ul class="plain">
+        <li>השם שלפני סימן ה-<span class="f">=</span> - למשל <span class="key">title</span>, <span class="key">cover</span>, <span class="key">order</span>.</li>
+        <li>שורות בתוך סוגריים מרובעים כמו <span class="f">[contact]</span> או <span class="f">[[recommendations]]</span>.</li>
+        <li>השורה <span class="key">accent</span> בעמודי הטיפולים והשורות <span class="key">href</span> בתפריט.</li>
+        <li>הקובץ <span class="f">config.ts</span>, והתיקיות <span class="f">components</span>, <span class="f">lib</span>, <span class="f">pages</span>, <span class="f">scripts</span>, <span class="f">styles</span>, <span class="f">icons</span>.</li>
+      </ul>
+      <div class="note">הכלל הפשוט: את משנה טקסט שאנשים קוראים. כל דבר שנראה כמו הוראה למחשב - משאירים.</div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 2 ==================== -->
+<section class="chap" id="c2">
+  <div class="chap-head">
+    <span class="num">2</span>
+    <div>
+      <h2>כללי הכתיבה בקבצים</h2>
+      <div class="sub">חמישה כללים שחוזרים בכל קובץ באתר. שווה לקרוא פעם אחת.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q2-1">
+    <h3><span class="qn">2.1</span>מה מותר לשנות בשורה?</h3>
+    <div class="ans">
+      <p>שורה רגילה נראית כך:</p>
+      <pre class="code">title = "יצירת קשר"</pre>
+      <p>משנים רק את מה שבין הגרשיים. את השם שלפני ה-<span class="f">=</span>, את סימן ה-<span class="f">=</span> ואת הגרשיים עצמם - משאירים בדיוק כמו שהם.</p>
+      <pre class="code">title = "בואו נדבר"     <span class="c">← נכון</span>
+title = בואו נדבר       <span class="c">← חסרים גרשיים</span>
+כותרת = "בואו נדבר"     <span class="c">← השם שלפני ה-= שונה</span></pre>
+      <div class="note">
+        <b>בפוסטים ובעמודי הטיפולים המפריד הוא נקודתיים ולא <span class="f">=</span>:</b>
+        <span class="f">title: "מה זה צל"</span>. הכלל זהה - משנים רק את מה שבין הגרשיים.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q2-2">
+    <h3><span class="qn">2.2</span>איך כותבים טקסט ארוך?</h3>
+    <div class="ans">
+      <p>טקסט שנמשך על כמה שורות עטוף בשלושה גרשיים מכל צד:</p>
+      <pre class="code">paragraph_1 = """
+היי, אני שיר אמיתי.
+אני מלווה אנשים בחיבור לבהירות עמוקה בתוכם.
+"""</pre>
+      <p>משנים רק את הטקסט שבאמצע. את שלושת הגרשיים למעלה ולמטה לא מוחקים. אפשר להוסיף ולהוריד שורות באמצע כרצונך.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q2-3">
+    <h3><span class="qn">2.3</span>איך עובדות רשימות?</h3>
+    <div class="ans">
+      <p>רשימה עטופה בסוגריים מרובעים, וכל פריט בגרשיים עם פסיק אחריו:</p>
+      <pre class="code">items = [
+  "הכשרה בביוסינתזיס - פסיכותרפיה גופנית",
+  "הכשרה בשיאצו",
+  "לימודי פתיחת קול",
+]</pre>
+      <ul class="plain">
+        <li><b>להוסיף פריט:</b> שורה חדשה באותו מבנה - רווחים בהתחלה, גרשיים, פסיק בסוף.</li>
+        <li><b>להוריד פריט:</b> מוחקים את השורה כולה, כולל הפסיק.</li>
+        <li><b>לשנות סדר:</b> גוזרים שורה (<span class="f">Ctrl + X</span>) ומדביקים במקום אחר (<span class="f">Ctrl + V</span>).</li>
+      </ul>
+      <p>רשימה קצרה יכולה להיכתב גם בשורה אחת: <span class="f">tags: ["צל", "פסיכותרפיה"]</span></p>
+    </div>
+  </article>
+
+  <article class="qa" id="q2-4">
+    <h3><span class="qn">2.4</span>איך כותבים true ו-false?</h3>
+    <div class="ans">
+      <p>באותיות קטנות, <b>בלי גרשיים</b>:</p>
+      <pre class="code">draft: false     <span class="c">← הפוסט מוצג באתר</span>
+draft: true      <span class="c">← הפוסט מוסתר</span></pre>
+      <p>אם תעטפי אותן בגרשיים הן יפסיקו לעבוד.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q2-5">
+    <h3><span class="qn">2.5</span>מה השורות שמתחילות ב-#?</h3>
+    <div class="ans">
+      <p>הערות. הן לא מופיעות באתר ולא משפיעות על כלום - רק מסבירות מה יש בקובץ.</p>
+      <pre class="code"># דף יצירת קשר - ערכי רק טקסטים בין הגרשיים</pre>
+      <p>אפשר להתעלם מהן, ואפשר להוסיף לעצמך הערות משלך באותו אופן.</p>
+      <div class="note">שורות שכתוב בהן <span class="f">PLACEHOLDER</span> מסמנות טקסט זמני שממתין לתוכן אמיתי.</div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 3 ==================== -->
+<section class="chap" id="c3">
+  <div class="chap-head">
+    <span class="num">3</span>
+    <div>
+      <h2>תמונות</h2>
+      <div class="sub">לכל תמונה יש שני חלקים: הקובץ עצמו, ורישום שלה ברשימה המרכזית. צריך את שניהם.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q3-1">
+    <h3><span class="qn">3.1</span>איך מעלים תמונה חדשה?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>פותחים <span class="f">public › img</span> ובוחרים תיקייה:
+          <ul class="plain">
+            <li><span class="f">content</span> - תמונות שמופיעות בתוך העמודים והפוסטים.</li>
+            <li><span class="f">recommendations</span> - צילומי מסך של המלצות.</li>
+            <li><span class="f">bg</span> - תמונות רקע.</li>
+          </ul>
+        </li>
+        <li>לחיצה ימנית על התיקייה ← <span class="ui soft">Upload...</span></li>
+        <li>בוחרים את הקובץ מהמחשב. הוא מופיע ברשימה תוך שניות.</li>
+        <li>ממשיכים ל<a class="qref" href="#q3-2">רישום התמונה ברשימה (3.2)</a> - בלי רישום התמונה לא תעבוד.</li>
+      </ol>
+      <figure class="shot narrow">
+        <img src="15-public-img.png" alt="תיקיית התמונות public/img/content פתוחה">
+        <figcaption>תיקיית תמונות התוכן.</figcaption>
+      </figure>
+      <figure class="shot mid">
+        <img src="16-upload-menu.png" alt="תפריט לחיצה ימנית על תיקיית תמונות עם האפשרות Upload">
+        <figcaption>האפשרות <b>Upload...</b> פותחת את חלון בחירת הקבצים של המחשב.</figcaption>
+      </figure>
+      <div class="note">
+        <b>שם הקובץ:</b> אנגלית, אותיות קטנות, מקפים במקום רווחים - למשל <span class="f">heart-in-hands.jpg</span>.<br>
+        <b>משקל:</b> עד 1-2 מגה. תמונה כבדה מאטה את האתר.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q3-2">
+    <h3><span class="qn">3.2</span>איך רושמים אותה ברשימה?</h3>
+    <div class="ans">
+      <p>פותחים <span class="f">src › content › images.toml</span> ומוסיפים בסוף שלוש שורות:</p>
+      <pre class="code">[heart-in-hands]
+file = "/img/content/heart-in-hands.jpg"
+alt  = "לב מונח בתוך ידיים עוטפות"</pre>
+      <figure class="shot">
+        <img src="14-images-toml.png" alt="קובץ images.toml עם רשימת התמונות">
+        <figcaption>רשימת התמונות. כל תמונה באתר חייבת להופיע כאן.</figcaption>
+      </figure>
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td>בסוגריים</td><td>המזהה - שם באנגלית שאת בוחרת. זה מה שתכתבי בכל מקום שמבקש תמונה.</td></tr>
+        <tr><td><span class="key">file</span></td><td>הנתיב. מתחיל תמיד ב-<span class="f">/img/</span>, ואז שם התיקייה ושם הקובץ.</td></tr>
+        <tr><td><span class="key">alt</span></td><td>תיאור בעברית. ראי <a class="qref" href="#q3-3">תיאור התמונה (3.3)</a>.</td></tr>
+      </table>
+      <div class="warn">
+        הנתיב חייב להתאים לקובץ <b>בדיוק</b> - כולל אותיות גדולות וקטנות והסיומת. שימי לב במיוחד להבדל בין <span class="f">.jpg</span> ל-<span class="f">.jpeg</span>.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q3-3">
+    <h3><span class="qn">3.3</span>מה כותבים בתיאור התמונה?</h3>
+    <div class="ans">
+      <p>משפט קצר שמתאר מה רואים בתמונה. הוא משמש שני דברים: מי שגולש עם תוכנת הקראה שומע אותו, ואם התמונה לא נטענת - הוא מוצג במקומה.</p>
+      <pre class="code">alt = "שיר אמיתי מטפלת במגע"
+alt = "אישה מביטה בצל של עצמה"</pre>
+      <p>תמונת רקע או קישוט שאין בהם מידע מקבלים תיאור ריק:</p>
+      <pre class="code">alt = ""</pre>
+    </div>
+  </article>
+
+  <article class="qa" id="q3-4">
+    <h3><span class="qn">3.4</span>איך משתמשים בתמונה קיימת?</h3>
+    <div class="ans">
+      <p>בכל מקום שמבקש תמונה כותבים את המזהה מרשימת התמונות:</p>
+      <table class="fields">
+        <tr><th>איפה</th><th>איזו שורה</th></tr>
+        <tr><td>פוסט בבלוג</td><td><span class="key">cover</span> ל<a class="qref" href="#q4-3">תמונת הנושא (4.3)</a>, או <span class="key">SoftImage</span> ל<a class="qref" href="#q4-4">תמונה בתוך הטקסט (4.4)</a></td></tr>
+        <tr><td>עמוד טיפול</td><td><span class="key">hero_image</span> ו-<span class="key">teaser_image</span></td></tr>
+        <tr><td>דף הבית</td><td><span class="key">portrait</span></td></tr>
+        <tr><td>עמוד אודות</td><td><span class="key">image_id</span></td></tr>
+        <tr><td>המלצה</td><td><span class="key">id</span> - חייב להיות זהה למזהה התמונה</td></tr>
+      </table>
+      <div class="note">
+        רשימת המזהים הקיימים נמצאת ב-<span class="f">images.toml</span>. הכי בטוח לפתוח אותו ולהעתיק את המזהה משם, במקום להקליד מהזיכרון.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q3-5">
+    <h3><span class="qn">3.5</span>איך מחליפים תמונה קיימת?</h3>
+    <div class="ans">
+      <p><b>הדרך הפשוטה:</b> מעלים קובץ חדש עם <b>אותו שם בדיוק</b> לאותה תיקייה, ומאשרים החלפה. אין מה לשנות בשום מקום אחר - התמונה מתחלפת בכל האתר.</p>
+      <p><b>אם השם שונה:</b> מעלים את הקובץ החדש, ואז ב-<span class="f">images.toml</span> מעדכנים את שורת <span class="key">file</span> של אותו מזהה כך שתצביע על הקובץ החדש.</p>
+      <div class="note">אל תשני את המזהה שבסוגריים - הוא מופיע בעוד מקומות באתר.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q3-6">
+    <h3><span class="qn">3.6</span>התמונה לא מופיעה - מה לבדוק?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>הקובץ באמת הועלה? חפשי אותו ברשימת הקבצים תחת <span class="f">public › img</span>.</li>
+        <li>המזהה שכתבת בפוסט או בעמוד זהה למזהה שבסוגריים ב-<span class="f">images.toml</span>?</li>
+        <li>הנתיב בשורת <span class="key">file</span> מצביע על התיקייה הנכונה ועל שם הקובץ המדויק?</li>
+        <li>הסיומת נכונה - <span class="f">.jpg</span> מול <span class="f">.jpeg</span> מול <span class="f">.png</span>?</li>
+        <li>לחצת <span class="f">Commit &amp; Push</span> אחרי כל השינויים?</li>
+      </ol>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 4 ==================== -->
+<section class="chap" id="c4">
+  <div class="chap-head">
+    <span class="num">4</span>
+    <div>
+      <h2>בלוג</h2>
+      <div class="sub">כל פוסט הוא קובץ אחד בתיקייה <span class="f">src › content › blog</span>.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q4-1">
+    <h3><span class="qn">4.1</span>איך מוסיפים פוסט חדש?</h3>
+    <div class="ans">
+      <p>הדרך הבטוחה: יוצרים קובץ ריק, ומעתיקים לתוכו את קובץ הדוגמה.</p>
+      <ol class="steps">
+        <li>פותחים <span class="f">src › content › blog</span>.</li>
+        <li>לחיצה ימנית על התיקייה <span class="f">blog</span> ← <span class="ui soft">New File...</span></li>
+        <li>מקלידים שם בעברית, מקפים במקום רווחים, ובסוף <span class="f">.mdx</span> - למשל <span class="f">רגע-של-שקט.mdx</span> - ולוחצים <span class="f">Enter</span>.</li>
+        <li>פותחים את הקובץ <span class="f">_example.mdx</span>, מסמנים הכול (<span class="f">Ctrl + A</span>) ומעתיקים (<span class="f">Ctrl + C</span>).</li>
+        <li>חוזרים לקובץ החדש ומדביקים (<span class="f">Ctrl + V</span>).</li>
+        <li>ממלאים את <a class="qref" href="#q4-2">הפרטים שבראש הקובץ (4.2)</a> וכותבים את הפוסט מתחתיהם.</li>
+        <li>כשהפוסט מוכן - משנים <span class="f">draft: true</span> ל-<span class="f">draft: false</span> ו<a class="qref" href="#q1-4">מעלים לאתר (1.4)</a>.</li>
+      </ol>
+      <figure class="shot narrow">
+        <img src="08-blog-folder.png" alt="תיקיית blog פתוחה עם קובץ הדוגמה והפוסטים הקיימים">
+        <figcaption>תיקיית הבלוג. כל קובץ הוא פוסט אחד, ו-<b>_example.mdx</b> הוא קובץ הדוגמה.</figcaption>
+      </figure>
+      <figure class="shot mid">
+        <img src="09-folder-menu.png" alt="תפריט לחיצה ימנית על תיקיית blog עם האפשרות New File">
+        <figcaption>לחיצה ימנית על התיקייה <b>blog</b>.</figcaption>
+      </figure>
+      <figure class="shot narrow">
+        <img src="10-new-file.png" alt="הקלדת שם הקובץ החדש בתוך תיקיית blog">
+        <figcaption>מקלידים את שם הקובץ ישירות ברשימה, ומסיימים ב-<b>Enter</b>.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="11-example-post.png" alt="קובץ הדוגמה _example.mdx פתוח">
+        <figcaption>קובץ הדוגמה. הוא נשאר במקומו תמיד - מעתיקים ממנו, לא עורכים אותו.</figcaption>
+      </figure>
+      <div class="note">
+        <b>שם הקובץ הוא גם כתובת הפוסט באתר.</b> לכן כדאי שם קצר וברור, בלי רווחים ובלי סימני פיסוק.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-2">
+    <h3><span class="qn">4.2</span>מה ממלאים בראש הפוסט?</h3>
+    <div class="ans">
+      <p>בראש כל פוסט יש בלוק פרטים, תחום בין שתי שורות של שלושה מקפים.</p>
+      <figure class="shot">
+        <img src="12-post-frontmatter.png" alt="ראש קובץ פוסט עם כל שורות הפרטים">
+        <figcaption>בלוק הפרטים בראש הפוסט, ומתחתיו גוף הטקסט.</figcaption>
+      </figure>
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">title</span></td><td>כותרת הפוסט, בגרשיים.</td></tr>
+        <tr><td><span class="key">excerpt</span></td><td>משפט קצר שמופיע בכרטיס הפוסט ומזמין לקרוא.</td></tr>
+        <tr><td><span class="key">date</span></td><td>תאריך בצורה שנה-חודש-יום: <span class="f">2026-08-18</span>. בלי גרשיים.</td></tr>
+        <tr><td><span class="key">cover</span></td><td>מזהה <a class="qref" href="#q4-3">תמונת הנושא (4.3)</a>.</td></tr>
+        <tr><td><span class="key">tags</span></td><td>מילות נושא ברשימה: <span class="f">["צל", "פסיכותרפיה"]</span></td></tr>
+        <tr><td><span class="key">related_therapy</span></td><td>טיפול קשור: <span class="f">"psychotherapy"</span>, <span class="f">"shiatsu"</span> או <span class="f">"voice"</span>. אפשר למחוק את השורה.</td></tr>
+        <tr><td><span class="key">order</span></td><td>מספר להצמדת הפוסט לראש הרשימה. ראי <a class="qref" href="#q4-6">סדר הפוסטים (4.6)</a>. אפשר למחוק.</td></tr>
+        <tr><td><span class="key">draft</span></td><td><span class="f">true</span> = מוסתר, <span class="f">false</span> = מוצג.</td></tr>
+        <tr><td><span class="key">slug</span></td><td>כתובת הפוסט. אם השורה קיימת היא גוברת על שם הקובץ. ראי <a class="qref" href="#q4-8">כתובת הפוסט (4.8)</a>.</td></tr>
+      </table>
+      <div class="warn">
+        שתי שורות ה-<span class="f">---</span> חייבות להישאר - אחת לפני הפרטים ואחת אחריהם. בלעדיהן הפוסט לא יעבוד.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-3">
+    <h3><span class="qn">4.3</span>איך מגדירים את תמונת הנושא?</h3>
+    <div class="ans">
+      <p>בשורת <span class="key">cover</span> כותבים <b>מזהה</b> של תמונה - לא שם קובץ ולא נתיב:</p>
+      <pre class="code">cover: "light-in-shadow"</pre>
+      <p>אם המזהה לא קיים ברשימה, פשוט לא תופיע תמונה.</p>
+      <div class="note">
+        פוסט חדש בדרך כלל מקבל תמונה חדשה משלו. מעלים אותה לפי <a class="qref" href="#q3-1">העלאת תמונה (3.1)</a>, רושמים אותה לפי <a class="qref" href="#q3-2">רישום ברשימה (3.2)</a>, ואז מעתיקים את המזהה מ-<span class="f">images.toml</span> לשורת <span class="key">cover</span>.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-4">
+    <h3><span class="qn">4.4</span>איך משלבים תמונה בגוף הטקסט?</h3>
+    <div class="ans">
+      <p>במקום שבו רוצים את התמונה, כותבים שורה נפרדת (עם שורה ריקה לפניה ואחריה):</p>
+      <pre class="code">&lt;SoftImage id="light-handed-over" aspect="3/4" float="start" floatWidth="360" /&gt;</pre>
+      <p>אפשר לראות שורה כזו בצילום שב<a class="qref" href="#q4-2">פרטי הפוסט (4.2)</a>, שורה 31.</p>
+      <table class="fields">
+        <tr><th>חלק</th><th>מה הוא עושה</th></tr>
+        <tr><td><span class="key">id</span></td><td>מזהה התמונה מרשימת התמונות.</td></tr>
+        <tr><td><span class="key">aspect</span></td><td>צורת התמונה: <span class="f">"3/4"</span> לאורך, <span class="f">"4/3"</span> לרוחב, <span class="f">"16/9"</span> רחבה.</td></tr>
+        <tr><td><span class="key">float</span></td><td><span class="f">"start"</span> - התמונה צמודה לימין והטקסט זורם לידה. <span class="f">"end"</span> - צמודה לשמאל.</td></tr>
+        <tr><td><span class="key">floatWidth</span></td><td>רוחב התמונה בפיקסלים. 360 זה בערך שליש מרוחב הטקסט.</td></tr>
+      </table>
+      <p>רוצה תמונה ברוחב מלא, בלי טקסט לצידה? מוחקים את שני החלקים האחרונים:</p>
+      <pre class="code">&lt;SoftImage id="light-handed-over" aspect="16/9" /&gt;</pre>
+      <div class="note">הכי פשוט: להעתיק שורה קיימת מפוסט אחר ולהחליף רק את המזהה שאחרי <span class="key">id</span>.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-5">
+    <h3><span class="qn">4.5</span>איך כותבים כותרות ופסקאות?</h3>
+    <div class="ans">
+      <p>גוף הפוסט הוא טקסט חופשי, עם כמה סימנים פשוטים:</p>
+      <table class="fields">
+        <tr><th>מה שכותבים</th><th>מה שיוצא</th></tr>
+        <tr><td><span class="f">## מה זה צל</span></td><td>כותרת ביניים</td></tr>
+        <tr><td>שורה ריקה בין קטעים</td><td>פסקה חדשה</td></tr>
+        <tr><td>ירידת שורה רגילה</td><td>ירידת שורה - נשמרת בדיוק כמו שכתבת</td></tr>
+        <tr><td><span class="f">*מילה*</span></td><td>נטוי</td></tr>
+        <tr><td><span class="f">**מילה**</span></td><td>מודגש</td></tr>
+      </table>
+      <div class="note">אין צורך בסימנים כדי לכתוב פסקה רגילה - פשוט כותבים.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-6">
+    <h3><span class="qn">4.6</span>איך קובעים את סדר הפוסטים?</h3>
+    <div class="ans">
+      <ul class="plain">
+        <li><b>ברירת המחדל:</b> מהחדש לישן, לפי התאריך שבשורת <span class="key">date</span>.</li>
+        <li><b>להצמיד פוסט לראש הרשימה:</b> מוסיפים שורת <span class="key">order</span> עם מספר, למשל <span class="f">order: 1</span>.</li>
+        <li>פוסטים עם <span class="key">order</span> מופיעים תמיד לפני כל השאר.</li>
+        <li>בין פוסטים עם <span class="key">order</span> - <b>המספר הגבוה מופיע ראשון</b>. <span class="f">order: 3</span> יופיע לפני <span class="f">order: 1</span>.</li>
+      </ul>
+      <div class="note">
+        להחזיר פוסט לסדר הרגיל לפי תאריך - פשוט מוחקים את שורת <span class="key">order</span>.
+      </div>
+      <div class="warn">
+        ב<a class="qref" href="#q5-5">סדר הטיפולים (5.5)</a> הכלל הפוך: שם דווקא <b>המספר הנמוך</b> מופיע ראשון.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-7">
+    <h3><span class="qn">4.7</span>איך מסתירים פוסט?</h3>
+    <div class="ans">
+      <p>משנים בראש הפוסט:</p>
+      <pre class="code">draft: true</pre>
+      <p>הפוסט נעלם מהאתר אבל נשאר בתיקייה. להחזיר אותו - <span class="f">draft: false</span>.</p>
+      <div class="note">
+        זו הדרך הנכונה להוריד פוסט מהאתר. <a class="qref" href="#q4-9">מחיקה (4.9)</a> שמורה למקרים שבהם באמת אין צורך בפוסט.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-8">
+    <h3><span class="qn">4.8</span>איך משנים את הכתובת של פוסט?</h3>
+    <div class="ans">
+      <p>הכתובת נקבעת לפי שם הקובץ - אלא אם יש בראש הפוסט שורת <span class="key">slug</span>, ואז היא גוברת.</p>
+      <ul class="plain">
+        <li><b>אם יש שורת <span class="key">slug</span>:</b> משנים את הטקסט שבגרשיים, וגם את שם הקובץ כדי שיישארו זהים.</li>
+        <li><b>אם אין:</b> לחיצה ימנית על הקובץ ← <span class="ui soft">Rename...</span> ← מקלידים שם חדש ← <span class="f">Enter</span>.</li>
+      </ul>
+      <figure class="shot narrow">
+        <img src="13-rename.png" alt="שינוי שם של קובץ פוסט ברשימת הקבצים">
+        <figcaption>שינוי שם הקובץ. שימי לב שהסיומת <b>.mdx</b> נשארת.</figcaption>
+      </figure>
+      <div class="warn">
+        שינוי כתובת שובר את הקישור הישן. אם הפוסט כבר פורסם ושותף - עדיף לא לשנות.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q4-9">
+    <h3><span class="qn">4.9</span>איך מוחקים פוסט?</h3>
+    <div class="ans">
+      <p>לחיצה ימנית על הקובץ ← <span class="ui soft">Delete Permanently</span> ← מאשרים.</p>
+      <div class="warn">
+        אין ביטול מתוך העורך. אם יש ספק כלשהו - עדיף <a class="qref" href="#q4-7">להסתיר (4.7)</a> ולא למחוק.
+      </div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 5 ==================== -->
+<section class="chap" id="c5">
+  <div class="chap-head">
+    <span class="num">5</span>
+    <div>
+      <h2>עמודי הטיפולים</h2>
+      <div class="sub">שלושה עמודים: פסיכותרפיה, טיפול במגע ופתיחת קול.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q5-1">
+    <h3><span class="qn">5.1</span>איפה הטקסט של כל טיפול?</h3>
+    <div class="ans">
+      <p>בתיקייה <span class="f">src › content › therapies</span>, קובץ אחד לכל טיפול:</p>
+      <ul class="plain">
+        <li><span class="f">psychotherapy.mdx</span> - פסיכותרפיה</li>
+        <li><span class="f">shiatsu.mdx</span> - טיפול במגע</li>
+        <li><span class="f">voice.mdx</span> - פתיחת קול</li>
+      </ul>
+      <figure class="shot">
+        <img src="17-therapy-file.png" alt="קובץ עמוד טיפול פתוח, עם בלוק הפרטים וגוף הטקסט">
+        <figcaption>מבנה זהה לפוסט: בלוק פרטים למעלה, וגוף הטקסט מתחתיו.</figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <article class="qa" id="q5-2">
+    <h3><span class="qn">5.2</span>מה יש בראש הקובץ?</h3>
+    <div class="ans">
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">title</span></td><td>שם הטיפול כפי שמופיע בראש העמוד.</td></tr>
+        <tr><td><span class="key">kicker</span></td><td>משפט קטן שמופיע מעל הכותרת. למשל <span class="f">"מבוסס שיאצו"</span>.</td></tr>
+        <tr><td><span class="key">summary</span></td><td>תקציר קצר. מופיע בכרטיס הטיפול בדף הבית.</td></tr>
+        <tr><td><span class="key">hero_image</span></td><td>התמונה הראשית בעמוד - מזהה מ<a class="qref" href="#q3-2">רשימת התמונות (3.2)</a>.</td></tr>
+        <tr><td><span class="key">teaser_image</span></td><td>התמונה בכרטיס שבדף הבית.</td></tr>
+        <tr><td><span class="key">order</span></td><td>סדר הופעה. ראי <a class="qref" href="#q5-5">סדר הטיפולים (5.5)</a>.</td></tr>
+        <tr><td><span class="key">related_blog_tags</span></td><td>מילות נושא. פוסטים עם התגיות האלה יוצעו בתחתית העמוד.</td></tr>
+        <tr><td><span class="key">accent</span></td><td><b>לא נוגעים.</b> קובע את צבע העמוד.</td></tr>
+      </table>
+    </div>
+  </article>
+
+  <article class="qa" id="q5-3">
+    <h3><span class="qn">5.3</span>איך עורכים את גוף הטקסט?</h3>
+    <div class="ans">
+      <p>בדיוק כמו בפוסט (<a class="qref" href="#q4-5">כותרות ופסקאות (4.5)</a>): <span class="f">##</span> לכותרת ביניים, שורה ריקה בין פסקאות, וטקסט חופשי בשאר.</p>
+      <p>הכול מתחת לשורת ה-<span class="f">---</span> התחתונה פתוח לעריכה.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q5-4">
+    <h3><span class="qn">5.4</span>איך משלבים תמונה?</h3>
+    <div class="ans">
+      <p>אותה שורה בדיוק כמו ב<a class="qref" href="#q4-4">תמונה בגוף הפוסט (4.4)</a>:</p>
+      <pre class="code">&lt;SoftImage id="shiatsu-1" aspect="3/4" float="start" floatWidth="360" /&gt;</pre>
+    </div>
+  </article>
+
+  <article class="qa" id="q5-5">
+    <h3><span class="qn">5.5</span>איך קובעים את סדר הטיפולים?</h3>
+    <div class="ans">
+      <p>בשורת <span class="key">order</span> שבראש כל קובץ: <span class="f">1</span>, <span class="f">2</span> או <span class="f">3</span>. <b>המספר הנמוך מופיע ראשון</b>.</p>
+      <p>כרגע: פסיכותרפיה <span class="f">1</span>, טיפול במגע <span class="f">2</span>, פתיחת קול <span class="f">3</span>. כדי להעביר טיפול לראש הרשימה - נותנים לו את המספר הנמוך ביותר.</p>
+      <div class="warn">
+        שימי לב - בטיפולים <b>הנמוך</b> ראשון, וב<a class="qref" href="#q4-6">סדר הפוסטים (4.6)</a> דווקא <b>הגבוה</b> ראשון.
+      </div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 6 ==================== -->
+<section class="chap" id="c6">
+  <div class="chap-head">
+    <span class="num">6</span>
+    <div>
+      <h2>עמודי האתר</h2>
+      <div class="sub">הטקסטים של דף הבית, אודות, יצירת קשר ודף השגיאה - בתיקייה <span class="f">src › content › pages</span>.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q6-1">
+    <h3><span class="qn">6.1</span>איך עורכים את דף הבית?</h3>
+    <div class="ans">
+      <p>פותחים <span class="f">home.toml</span>.</p>
+      <figure class="shot">
+        <img src="18-home-toml.png" alt="קובץ home.toml של דף הבית">
+        <figcaption>דף הבית מחולק לארבעה אזורים, כל אחד בסוגריים מרובעים משלו.</figcaption>
+      </figure>
+      <table class="fields">
+        <tr><th>אזור</th><th>מה יש בו</th></tr>
+        <tr><td><span class="f">[hero]</span></td><td>מסך הפתיחה: <span class="key">title</span> השם, <span class="key">tagline</span> שורת התחומים, <span class="key">descriptor</span> ו-<span class="key">subtitle</span> שתי שורות התיאור.</td></tr>
+        <tr><td><span class="f">[intro]</span></td><td>אזור ההיכרות: <span class="key">portrait</span> התמונה, <span class="key">paragraph_1</span> ו-<span class="key">paragraph_2</span> שני קטעי הפתיחה, <span class="key">cta_label</span> כיתוב הכפתור.</td></tr>
+        <tr><td><span class="f">[teasers.blog]</span></td><td>אזור הבלוג בדף הבית: <span class="key">label</span> הכותרת, <span class="key">cta_label</span> כיתוב הקישור.</td></tr>
+        <tr><td><span class="f">[closing]</span></td><td><span class="key">line</span> משפט הסיום. <span class="f">enabled = false</span> מסתיר את האזור לגמרי.</td></tr>
+      </table>
+      <div class="note">
+        שני קטעי הפתיחה כתובים בין שלושה גרשיים (<a class="qref" href="#q2-2">טקסט ארוך (2.2)</a>) - אפשר לכתוב בהם כמה שורות שרוצים.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q6-2">
+    <h3><span class="qn">6.2</span>איך עורכים את עמוד אודות?</h3>
+    <div class="ans">
+      <p>פותחים <span class="f">about.toml</span>.</p>
+      <figure class="shot">
+        <img src="19-about-toml.png" alt="קובץ about.toml של עמוד אודות">
+        <figcaption>עמוד אודות. שימי לב לשורות ה-<b>PLACEHOLDER</b> - הן מסמנות טקסט זמני שממתין לתוכן.</figcaption>
+      </figure>
+      <table class="fields">
+        <tr><th>אזור</th><th>מה יש בו</th></tr>
+        <tr><td><span class="f">[hero]</span></td><td><span class="key">kicker</span>, <span class="key">title</span> ו-<span class="key">intro</span> - שלוש שורות הפתיחה.</td></tr>
+        <tr><td><span class="f">[portrait]</span></td><td><span class="key">image_id</span> התמונה, <span class="key">opening</span> הפסקה שלצידה.</td></tr>
+        <tr><td><span class="f">[story]</span></td><td><span class="key">blocks</span> - רשימת פסקאות הסיפור האישי. הוספה והורדה לפי <a class="qref" href="#q2-3">רשימות (2.3)</a>.</td></tr>
+        <tr><td><span class="f">[training]</span></td><td><span class="key">items</span> - רשימת ההכשרות.</td></tr>
+        <tr><td><span class="f">[philosophy]</span></td><td><span class="key">quote</span> - הציטוט על הגישה הטיפולית.</td></tr>
+      </table>
+    </div>
+  </article>
+
+  <article class="qa" id="q6-3">
+    <h3><span class="qn">6.3</span>איך עורכים את עמוד יצירת קשר?</h3>
+    <div class="ans">
+      <p>פותחים <span class="f">contact.toml</span>. יש בו שני אזורים בלבד:</p>
+      <ul class="plain">
+        <li><span class="f">[hero]</span> - <span class="key">kicker</span>, <span class="key">title</span>, <span class="key">intro</span>.</li>
+        <li><span class="f">[location]</span> - <span class="key">address</span> המיקום, <span class="key">note</span> הערה נוספת.</li>
+      </ul>
+      <div class="note">
+        מספר הטלפון, הוואטסאפ והאימייל <b>אינם</b> כאן - הם מופיעים בכל עמודי האתר ולכן נמצאים ב<a class="qref" href="#q8-1">פרטי הקשר (8.1)</a>.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q6-4">
+    <h3><span class="qn">6.4</span>מה זה עמוד "הדף לא נמצא"?</h3>
+    <div class="ans">
+      <p>העמוד שמוצג למי שהגיע לכתובת שגויה. נמצא ב-<span class="f">404.toml</span>.</p>
+      <p>אפשר לשנות בו את <span class="key">title</span>, את המשפט ב-<span class="key">poetic</span>, ואת הכיתוב של שני הכפתורים (<span class="key">home_label</span> ו-<span class="key">contact_label</span>). את שורות ה-<span class="key">href</span> לא נוגעים.</p>
+      <div class="note">בדרך כלל אין צורך לגעת בעמוד הזה.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q6-5">
+    <h3><span class="qn">6.5</span>איך מוסיפים פריט לרשימה?</h3>
+    <div class="ans">
+      <p>רשימות כמו ההכשרות בעמוד אודות מתנהגות כולן אותו דבר. להוספת הכשרה חדשה:</p>
+      <pre class="code">items = [
+  "הכשרה בביוסינתזיס - פסיכותרפיה גופנית",
+  "הכשרה בשיאצו",
+  "לימודי פתיחת קול",
+  "קורס קונסטלציה משפחתית",     <span class="c">← השורה החדשה</span>
+]</pre>
+      <p>גרשיים בהתחלה ובסוף, פסיק בסוף השורה, והסוגר <span class="f">]</span> נשאר בשורה נפרדת בסוף. הסדר ברשימה הוא הסדר באתר.</p>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 7 ==================== -->
+<section class="chap" id="c7">
+  <div class="chap-head">
+    <span class="num">7</span>
+    <div>
+      <h2>המלצות</h2>
+      <div class="sub">כל המלצה היא צילום מסך + רישום. הקובץ: <span class="f">src › content › recommendations.toml</span>.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q7-1">
+    <h3><span class="qn">7.1</span>איך מוסיפים המלצה חדשה?</h3>
+    <div class="ans">
+      <p>שלושה שלבים, וחשוב לעשות את שלושתם:</p>
+      <ol class="steps">
+        <li><b>מעלים את צילום המסך</b> לתיקייה <span class="f">public › img › recommendations</span> (לפי <a class="qref" href="#q3-1">העלאת תמונה (3.1)</a>), בשם הבא בתור - למשל <span class="f">recommendation-15.jpeg</span>.</li>
+        <li><b>רושמים אותו ב-<span class="f">images.toml</span></b> (לפי <a class="qref" href="#q3-2">רישום ברשימה (3.2)</a>), כשהמזהה זהה לשם הקובץ:
+          <pre class="code">[recommendation-15]
+file = "/img/recommendations/recommendation-15.jpeg"
+alt = "המלצה על טיפול במגע ושחרור כאבי גב"</pre>
+        </li>
+        <li><b>מוסיפים את ההמלצה בסוף <span class="f">recommendations.toml</span>:</b>
+          <pre class="code">[[recommendations]]
+id = "recommendation-15"
+transcription = """הטקסט המלא של ההמלצה, מועתק כמו שהוא."""
+relatedTherapies = ["shiatsu"]
+active = true</pre>
+        </li>
+      </ol>
+      <figure class="shot">
+        <img src="20-recommendations-toml.png" alt="קובץ recommendations.toml עם בלוקים של המלצות">
+        <figcaption>כל המלצה מתחילה בשורת <b>[[recommendations]]</b> - עם סוגריים כפולים.</figcaption>
+      </figure>
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">id</span></td><td>מזהה התמונה. חייב להיות זהה למזהה ב-<span class="f">images.toml</span>.</td></tr>
+        <tr><td><span class="key">transcription</span></td><td>הטקסט של ההמלצה, בין שלושה גרשיים. משמש לחיפוש ולהקראה.</td></tr>
+        <tr><td><span class="key">relatedTherapies</span></td><td>לאיזה טיפול ההמלצה שייכת. ראי <a class="qref" href="#q7-4">שיוך לטיפול (7.4)</a>.</td></tr>
+        <tr><td><span class="key">active</span></td><td><span class="f">true</span> = מוצגת, <span class="f">false</span> = מוסתרת.</td></tr>
+      </table>
+      <div class="warn">
+        <b>אם ה-<span class="key">id</span> לא קיים ברשימת התמונות - האתר לא ייבנה, וכל ההמלצות ייעלמו.</b>
+        זו הטעות הנפוצה ביותר כאן. בדקי את שני השמות זה מול זה לפני ההעלאה.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q7-2">
+    <h3><span class="qn">7.2</span>איך קובעים את הסדר שלהן?</h3>
+    <div class="ans">
+      <p>ההמלצות מופיעות באתר <b>בדיוק לפי הסדר בקובץ</b>, מלמעלה למטה. אין מספרי סדר.</p>
+      <p>להזזת המלצה: מסמנים את כל הבלוק שלה - משורת <span class="f">[[recommendations]]</span> ועד השורה שלפני הבלוק הבא - גוזרים (<span class="f">Ctrl + X</span>) ומדביקים (<span class="f">Ctrl + V</span>) במקום הרצוי.</p>
+      <div class="note">המספר בשם (<span class="f">recommendation-07</span>) הוא רק שם. הוא לא משפיע על הסדר.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q7-3">
+    <h3><span class="qn">7.3</span>איך מסתירים המלצה?</h3>
+    <div class="ans">
+      <pre class="code">active = false</pre>
+      <p>ההמלצה נשארת בקובץ ונעלמת מהאתר. להחזיר - <span class="f">true</span>.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q7-4">
+    <h3><span class="qn">7.4</span>איך משייכים המלצה לטיפול?</h3>
+    <div class="ans">
+      <pre class="code">relatedTherapies = ["shiatsu"]
+relatedTherapies = ["voice", "shiatsu"]</pre>
+      <p>שלוש המילים המותרות, באנגלית בדיוק כך:</p>
+      <ul class="plain">
+        <li><span class="f">psychotherapy</span> - פסיכותרפיה</li>
+        <li><span class="f">shiatsu</span> - טיפול במגע</li>
+        <li><span class="f">voice</span> - פתיחת קול</li>
+      </ul>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 8 ==================== -->
+<section class="chap" id="c8">
+  <div class="chap-head">
+    <span class="num">8</span>
+    <div>
+      <h2>קשר, תפריט וכותרת תחתונה</h2>
+      <div class="sub">הפרטים שמופיעים בכל עמודי האתר - בשני קבצים בלבד.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q8-1">
+    <h3><span class="qn">8.1</span>איפה משנים טלפון, וואטסאפ ואימייל?</h3>
+    <div class="ans">
+      <p>בקובץ <span class="f">src › content › site.toml</span>, באזור <span class="f">[contact]</span>. אפשר לראות אותו בצילום שב<a class="qref" href="#q1-3">שינוי טקסט (1.3)</a>.</p>
+      <p><b>כל פרט מופיע פעמיים</b> - פעם אחת מה שקורה בלחיצה, ופעם אחת מה שרואים על המסך. צריך לשנות את שניהם:</p>
+      <pre class="code">phone_href    = "tel:+972525201162"   <span class="c">← מה שקורה בלחיצה</span>
+phone_display = "052-520-1162"        <span class="c">← מה שרואים</span></pre>
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">whatsapp_url</span></td><td>המספר בפורמט בינלאומי, בלי אפס ובלי מקפים: <span class="f">https://wa.me/972525201162</span></td></tr>
+        <tr><td><span class="key">phone_href</span></td><td>מתחיל תמיד ב-<span class="f">tel:+972</span> ואז המספר בלי האפס.</td></tr>
+        <tr><td><span class="key">phone_display</span></td><td>המספר כפי שנוח לקרוא: <span class="f">052-520-1162</span></td></tr>
+        <tr><td><span class="key">email_href</span></td><td>מתחיל תמיד ב-<span class="f">mailto:</span> ואז הכתובת.</td></tr>
+        <tr><td><span class="key">email_display</span></td><td>הכתובת עצמה.</td></tr>
+      </table>
+      <div class="warn">
+        אם תשני רק את אחד מהשניים, יופיע מספר אחד על המסך ויתבצע חיוג למספר אחר.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q8-2">
+    <h3><span class="qn">8.2</span>איך משנים את השם ואת שורת התחומים?</h3>
+    <div class="ans">
+      <p>באותו קובץ, באזור <span class="f">[brand]</span>:</p>
+      <pre class="code">name    = "שיר אמיתי"
+tagline = "פסיכותרפיה · טיפול במגע · פתיחת קול"</pre>
+      <p>הנקודות המפרידות הן תו רגיל בתוך הטקסט - אפשר להעתיק אותן משורה קיימת.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q8-3">
+    <h3><span class="qn">8.3</span>איך משנים את התפריט?</h3>
+    <div class="ans">
+      <p>בקובץ <span class="f">src › content › nav.toml</span>. כל פריט בתפריט הוא בלוק שמתחיל ב-<span class="f">[[items]]</span>.</p>
+      <figure class="shot">
+        <img src="21-nav-toml.png" alt="קובץ nav.toml עם פריטי התפריט">
+        <figcaption>סדר הבלוקים בקובץ הוא סדר הפריטים בתפריט.</figcaption>
+      </figure>
+      <ul class="plain">
+        <li><b>לשנות כיתוב:</b> משנים את <span class="key">label</span> בלבד.</li>
+        <li><b>לשנות סדר:</b> גוזרים בלוק שלם ומדביקים במקום אחר.</li>
+        <li><b>להוריד פריט:</b> מוחקים את כל הבלוק שלו - שורת <span class="f">[[items]]</span> וכל השורות שמתחתיה עד הבלוק הבא.</li>
+      </ul>
+      <div class="warn">
+        את השורה <span class="key">href</span> לא משנים. היא מחברת את הפריט לעמוד, ושינוי שלה ישבור את הקישור.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q8-4">
+    <h3><span class="qn">8.4</span>איך משנים קישור לפייסבוק?</h3>
+    <div class="ans">
+      <p>ב-<span class="f">site.toml</span>, באזור <span class="f">[social]</span>. מחליפים את הכתובת שבין הגרשיים.</p>
+      <ul class="plain">
+        <li><span class="key">facebook_url</span> - הקישור לעמוד הפייסבוק.</li>
+        <li><span class="key">biosynthesis_url</span> - הקישור לבית הספר לפסיכותרפיה.</li>
+        <li>שורות ה-<span class="key">label</span> הן הכיתוב שמופיע על הקישור.</li>
+      </ul>
+      <div class="note">
+        כל כתובת חייבת להתחיל ב-<span class="f">https://</span>. הכי בטוח: להעתיק את הכתובת משורת הכתובת של הדפדפן.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q8-5">
+    <h3><span class="qn">8.5</span>איך משנים את הכותרת התחתונה?</h3>
+    <div class="ans">
+      <p>ב-<span class="f">site.toml</span>, באזור <span class="f">[footer]</span>:</p>
+      <table class="fields">
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">copyright_name</span></td><td>השם שמופיע ליד סימן הזכויות.</td></tr>
+        <tr><td><span class="key">rights</span></td><td>נוסח הזכויות. למשל <span class="f">"כל הזכויות שמורות"</span>.</td></tr>
+        <tr><td><span class="key">location</span></td><td>המיקום שמופיע בתחתית. למשל <span class="f">"פרדס חנה | זום"</span>.</td></tr>
+        <tr><td><span class="key">accessibility_label</span></td><td>הכיתוב של קישור הנגישות.</td></tr>
+      </table>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 9 ==================== -->
+<section class="chap" id="c9">
+  <div class="chap-head">
+    <span class="num">9</span>
+    <div>
+      <h2>בדיקה ותקלות</h2>
+      <div class="sub">מה לעבור עליו לפני שמעלים, ומה לעשות כשמשהו לא נראה טוב.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q9-1">
+    <h3><span class="qn">9.1</span>מה בודקים לפני שמעלים?</h3>
+    <div class="ans">
+      <ul class="plain">
+        <li>לא נמחקו גרשיים, סוגריים, פסיקים או שורות של <span class="f">---</span>.</li>
+        <li>שינית רק טקסט - לא שמות שלפני סימן ה-<span class="f">=</span>.</li>
+        <li>פוסט חדש: התאריך בצורה <span class="f">2026-08-18</span>, וה-<span class="key">draft</span> על <span class="f">false</span>.</li>
+        <li>תמונה חדשה: גם הועלתה וגם נרשמה ב-<span class="f">images.toml</span>.</li>
+        <li>המלצה חדשה: ה-<span class="key">id</span> זהה למזהה התמונה.</li>
+      </ul>
+      <div class="note">אחרי ההעלאה - תמיד לפתוח את האתר ולהסתכל על העמוד ששינית. זו הבדיקה האמיתית.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q9-2">
+    <h3><span class="qn">9.2</span>איך יודעים שהשינוי עלה?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li>ב-<span class="ui soft">Source Control</span>, רשימת ה-<span class="f">Changes</span> מתרוקנת והמספר שליד הסמל נעלם.</li>
+        <li>מחכים 1-3 דקות.</li>
+        <li>פותחים את <a class="link" href="https://www.shir-amitai.com">www.shir-amitai.com</a> ומרעננים עם <span class="f">Ctrl + F5</span>.</li>
+      </ol>
+      <p>אם הרשימה לא התרוקנה - ההעלאה לא הצליחה. נסי שוב.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q9-3">
+    <h3><span class="qn">9.3</span>משהו נראה שבור - מה עושים?</h3>
+    <div class="ans">
+      <ol class="steps">
+        <li><b>עוצרים.</b> לא ממשיכים לערוך ולא מעלים שוב - זה מקשה על התיקון.</li>
+        <li>אם עוד לא לחצת <span class="f">Commit &amp; Push</span> - מבטלים לפי <a class="qref" href="#q1-6">ביטול שינוי (1.6)</a> והכול חוזר לקדמותו.</li>
+        <li>אם כבר העלית - פני לעזרה. תמיד אפשר לחזור לגרסה קודמת.</li>
+      </ol>
+      <div class="note">
+        <b>מה לצרף:</b> צילום מסך של מה שנראה שבור, שם הקובץ ששינית, ומשפט על מה שינית. זה כל מה שצריך כדי לתקן מהר.
+      </div>
+      <p><b>העמוד ריק לגמרי או שכל ההמלצות נעלמו?</b> כמעט תמיד הסיבה היא גרשיים או סוגריים שנמחקו, או מזהה תמונה שלא קיים.</p>
+    </div>
+  </article>
+
+  <article class="qa" id="q9-4">
+    <h3><span class="qn">9.4</span>איזה קובץ שייך לאיזו משימה?</h3>
+    <div class="ans">
+      <table class="fields">
+        <tr><th>מה רוצים לשנות</th><th>איפה</th></tr>
+        <tr><td>פוסט בבלוג</td><td><span class="f">src › content › blog</span></td></tr>
+        <tr><td>עמוד טיפול</td><td><span class="f">src › content › therapies</span></td></tr>
+        <tr><td>דף הבית</td><td><span class="f">src › content › pages › home.toml</span></td></tr>
+        <tr><td>עמוד אודות</td><td><span class="f">src › content › pages › about.toml</span></td></tr>
+        <tr><td>עמוד יצירת קשר</td><td><span class="f">src › content › pages › contact.toml</span></td></tr>
+        <tr><td>דף "לא נמצא"</td><td><span class="f">src › content › pages › 404.toml</span></td></tr>
+        <tr><td>טלפון, אימייל, פייסבוק, כותרת תחתונה</td><td><span class="f">src › content › site.toml</span></td></tr>
+        <tr><td>תפריט</td><td><span class="f">src › content › nav.toml</span></td></tr>
+        <tr><td>המלצות</td><td><span class="f">src › content › recommendations.toml</span></td></tr>
+        <tr><td>רשימת התמונות</td><td><span class="f">src › content › images.toml</span></td></tr>
+        <tr><td>קבצי התמונות עצמם</td><td><span class="f">public › img</span></td></tr>
+        <tr><td>הצהרת נגישות</td><td><span class="f">src › content › pages › accessibility.toml</span></td></tr>
+        <tr><td>תנאי שימוש ומדיניות פרטיות</td><td><span class="f">src › content › pages › terms.toml</span></td></tr>
+      </table>
+    </div>
+  </article>
+
+  <article class="qa" id="q9-5">
+    <h3><span class="qn">9.5</span>מה לא לעשות לבד?</h3>
+    <div class="ans">
+      <ul class="plain">
+        <li>לשנות שמות של תיקיות, או להזיז קבצים בין תיקיות.</li>
+        <li>למחוק קבצים שאינם פוסט או תמונה שהעלית בעצמך.</li>
+        <li>לערוך קבצים מחוץ ל-<span class="f">src › content</span> ו-<span class="f">public › img</span>.</li>
+        <li>לשנות את השורות <span class="key">accent</span>, <span class="key">href</span> או את השמות שלפני סימן ה-<span class="f">=</span>.</li>
+        <li>להוסיף עמוד חדש לאתר.</li>
+        <li>להוסיף Google Analytics, פיקסל פרסומי או כל כלי מעקב אחר - ראי <a class="qref" href="#q10-5">10.5</a>.</li>
+        <li>לשנות את מה שכתוב בהצהרת הנגישות על מה שהאתר עושה - ראי <a class="qref" href="#q10-4">10.4</a>.</li>
+      </ul>
+      <div class="note">כל אלה אפשריים - הם פשוט דורשים גם שינוי בקוד. שווה לבקש.</div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+<!-- ==================== פרק 10 ==================== -->
+<section class="chap" id="c10">
+  <div class="chap-head">
+    <span class="num">10</span>
+    <div>
+      <h2>העמודים המשפטיים</h2>
+      <div class="sub">הצהרת נגישות, תנאי שימוש ומדיניות פרטיות - מה מותר לשנות בהם ומה לא.</div>
+    </div>
+  </div>
+
+  <article class="qa" id="q10-1">
+    <h3><span class="qn">10.1</span>איפה העמודים המשפטיים?</h3>
+    <div class="ans">
+      <p>שני עמודים, ושניהם מקושרים מהכותרת התחתונה בכל עמוד באתר:</p>
+      <table class="fields">
+        <tr><th>העמוד</th><th>הקובץ</th></tr>
+        <tr><td>הצהרת נגישות</td><td><span class="f">src › content › pages › accessibility.toml</span></td></tr>
+        <tr><td>תנאי שימוש ומדיניות פרטיות</td><td><span class="f">src › content › pages › terms.toml</span></td></tr>
+      </table>
+      <p>הם נערכים בדיוק כמו כל קובץ אחר במדריך: משנים רק את הטקסט שבין הגרשיים, לפי הכללים בפרק <a class="qref" href="#c2">2</a>.</p>
+      <div class="warn">
+        <b>הבדל אחד חשוב:</b> בכל שאר הקבצים באתר, טעות בטקסט היא בעיה של יופי. כאן זו בעיה משפטית. מה שכתוב בעמודים האלה מחייב אותך, ולכן הוא חייב לתאר את המציאות במדויק.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q10-2">
+    <h3><span class="qn">10.2</span>מה חובה למלא לפני שהאתר עולה?</h3>
+    <div class="ans">
+      <p>יש מקום אחד שהושאר ריק בכוונה, כי רק את יודעת מה התשובה. חפשי בקובץ <span class="f">accessibility.toml</span> את הסעיף <b>"נגישות הקליניקה והשירות הפיזי"</b>.</p>
+      <p>צריך לתאר שם בכנות את המרחב הטיפולי בפרדס חנה:</p>
+      <ul class="plain">
+        <li>איך מגיעים לכניסה, והאם יש בדרך מדרגות - וכמה.</li>
+        <li>האם יש חניה קרובה, והאם יש חניית נכים.</li>
+        <li>האם השירותים נגישים.</li>
+        <li>האם המעברים והפתחים רחבים מספיק לכיסא גלגלים.</li>
+      </ul>
+      <div class="warn">
+        <b>לתאר יותר טוב ממה שיש זו טעות יקרה.</b> אדם שיגיע על סמך התיאור ולא יוכל להיכנס - זו בדיוק העילה לתביעה. תיאור כן של מקום שאינו נגיש, יחד עם הצעה חלופית (פגישה בזום), עדיף משפטית פי כמה מתיאור ורוד.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q10-3">
+    <h3><span class="qn">10.3</span>מתי חייבים לעדכן את התאריך?</h3>
+    <div class="ans">
+      <p>בראש כל אחד משני הקבצים יש שורה כזו:</p>
+      <div class="code">updated     = "2026-09-05"</div>
+      <p>התאריך הזה מוצג לגולשים מתחת לכותרת העמוד. מעדכנים אותו בכל פעם שמשנים משהו <b>בתוכן</b> של אותו עמוד - לא בכל שינוי באתר.</p>
+      <p>הצורה היא תמיד <span class="f">שנה-חודש-יום</span>, כמו בתאריך של פוסט בבלוג.</p>
+      <div class="note">שינית משפט בתנאי השימוש? עדכני את התאריך ב-<span class="f">terms.toml</span> בלבד. הוספת פרטים על נגישות הקליניקה? עדכני את התאריך ב-<span class="f">accessibility.toml</span> בלבד.</div>
+    </div>
+  </article>
+
+  <article class="qa" id="q10-4">
+    <h3><span class="qn">10.4</span>מה אסור לשנות בהצהרת הנגישות?</h3>
+    <div class="ans">
+      <p>הצהרת הנגישות אינה טקסט שיווקי - היא הצהרה על מה שהאתר באמת עושה. אפשר לשפר את הניסוח, אבל אסור לשנות את העובדות עצמן.</p>
+      <p><b>מותר לשנות:</b> את הניסוח בסעיפים "המחויבות שלנו", "נגישות הקליניקה" ו"פניות בנושא נגישות".</p>
+      <p><b>אסור לשנות בלי לשאול:</b></p>
+      <ul class="plain">
+        <li>את שם התקן ורמת הנגישות (הסעיף על ת"י 5568).</li>
+        <li>את רשימת ההתאמות שבוצעו - כל שורה שם מתארת משהו שקיים באתר בפועל.</li>
+        <li>את הסעיף "מגבלות ידועות".</li>
+        <li>את המשפט על כך שלא ניתן פטור.</li>
+      </ul>
+      <div class="warn">
+        הצהרה שמבטיחה יותר ממה שהאתר עושה גרועה מהיעדר הצהרה: היא הופכת כל פער לעניין שהוצהר עליו במפורש. אם משנים משהו באתר עצמו שמשפיע על הנגישות - צריך לעדכן גם את ההצהרה, וכדאי לבקש עזרה.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q10-5">
+    <h3><span class="qn">10.5</span>רוצים להוסיף Google Analytics?</h3>
+    <div class="ans">
+      <p>נכון להיום אין באתר שום כלי מדידה, ומדיניות הפרטיות אומרת זאת במפורש. זה מה שהופך אותה לפשוטה כל כך.</p>
+      <p>ברגע שמוסיפים כלי מדידה, פרסום או מעקב - גם הקטן ביותר - המצב המשפטי משתנה: כתובת ה-IP והעוגיות נחשבות מידע אישי, ולפי עמדת הרשות להגנת הפרטיות נדרשת <b>הסכמה אקטיבית של הגולש לפני</b> שהכלי בכלל נטען.</p>
+      <p>כלומר צריך שלושה דברים יחד, ואי אפשר להסתפק באחד מהם:</p>
+      <ol class="steps">
+        <li>מנגנון הסכמה באתר, שהכלי אינו פועל לפניו.</li>
+        <li>עדכון הסעיף "מדידה וסטטיסטיקה" ב-<span class="f">terms.toml</span>.</li>
+        <li>קוד שמחבר בין השניים.</li>
+      </ol>
+      <div class="warn">
+        <b>זו לא משימה של עריכת תוכן.</b> להדביק קוד מעקב באתר בלי המנגנון הזה חושף לקנס. אם רוצים אנליטיקס - זו בקשה שמגיעה אלי, לא שינוי בקובץ.
+      </div>
+    </div>
+  </article>
+
+  <article class="qa" id="q10-6">
+    <h3><span class="qn">10.6</span>מישהו ביקש להסיר המלצה?</h3>
+    <div class="ans">
+      <p>מסירים אותה. מיד, בלי לבקש נימוק ובלי לנסות לשכנע - כך גם כתוב בתנאי השימוש, וכך נכון לעשות.</p>
+      <p>ההסרה עצמה פשוטה: בקובץ <span class="f">recommendations.toml</span> משנים אצל אותה המלצה את השורה <span class="key">active</span> מ-<span class="f">true</span> ל-<span class="f">false</span>, בדיוק כמו ב-<a class="qref" href="#q7-3">7.3</a>.</p>
+      <div class="note">אם ההמלצה הופיעה גם כתמונה, כדאי לבקש שגם קובץ התמונה יימחק מהאתר ולא רק יוסתר.</div>
+    </div>
+  </article>
+  <a class="backtop" href="#toc">↑ חזרה לתוכן העניינים</a>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p><b>כלל הזהב:</b> משנים מעט, מעלים, פותחים את האתר ובודקים. אחר כך ממשיכים לשינוי הבא.</p>
+    <p>המדריך מכסה עריכת תוכן בלבד: טקסטים, תמונות, פוסטים והמלצות. שינוי מבנה או עיצוב אינו חלק ממנו.</p>
+  </div>
+</footer>
+
+</body>
+</html>
