@@ -136,6 +136,13 @@ const blogPosts = sortBlogPosts(
 </script>
 
 <style>
+  /* Tighten inter-section rhythm on the home page (applies to child sections too,
+     since --space-section/--space-block are inherited CSS custom properties). */
+  main {
+    --space-section: clamp(2rem, 4vh, 3rem);
+    --space-block: clamp(1.25rem, 2.5vh, 2rem);
+  }
+
   .closing-section {
     padding-block: var(--space-section);
     display: flex;
