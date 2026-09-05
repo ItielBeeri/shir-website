@@ -16,6 +16,7 @@
  * and re-runs every script on every page - reliable and simple.
  */
 import BackgroundField from './BackgroundField.astro';
+import { SITE_URL } from '../../lib/seo';
 
 interface Props {
   title: string;
@@ -26,7 +27,7 @@ interface Props {
   canonical?: string;
   /** OG image URL */
   ogImage?: string;
-  /** noindex - for _design route */
+  /** Keep the page out of search results - used by the 404 page */
   noindex?: boolean;
 }
 
@@ -39,8 +40,7 @@ const {
   noindex = false,
 } = Astro.props;
 
-const siteUrl = 'https://www.shir-amitai.com';
-const canonicalUrl = canonical ?? new URL(Astro.url.pathname, siteUrl).href;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, SITE_URL).href;
 const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שיר אמיתי`;
 ---
 
@@ -73,22 +73,21 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
-    {!noindex && <meta name="robots" content="index, follow" />}
+    <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
 
     <!-- Open Graph -->
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:locale" content="he_IL" />
-    <meta property="og:image" content={new URL(ogImage, siteUrl).href} />
+    <meta property="og:image" content={new URL(ogImage, SITE_URL).href} />
     <meta property="og:type" content="website" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL(ogImage, siteUrl).href} />
+    <meta name="twitter:image" content={new URL(ogImage, SITE_URL).href} />
 
     <!-- hreflang -->
     <link rel="alternate" hreflang="he" href={canonicalUrl} />

@@ -9,6 +9,10 @@ import { z } from 'zod';
 import Icon from '../ui/Icon.astro';
 import MotionToggle from './MotionToggle.astro';
 
+const navSchema = z.object({
+  items: z.array(z.object({ label: z.string(), href: z.string() })),
+});
+
 const siteSchema = z.object({
   brand:   z.object({ name: z.string(), tagline: z.string() }),
   contact: z.object({
@@ -39,6 +43,8 @@ const siteSchema = z.object({
 });
 
 const site = loadToml('site.toml', siteSchema);
+// Same source as the header (nav.toml), so a renamed page is renamed in both.
+const nav = loadToml('nav.toml', navSchema);
 const year = new Date().getFullYear();
 ---
 
@@ -55,14 +61,9 @@ const year = new Date().getFullYear();
     <nav class="footer-col" aria-label="ניווט - כותרת תחתונה">
       <p class="footer-col-title">ניווט</p>
       <ul role="list">
-        <li><a href="/">בית</a></li>
-        <li><a href="/about">אודות</a></li>
-        <li><a href="/psychotherapy">פסיכותרפיה גופנית</a></li>
-        <li><a href="/shiatsu">שיאצו</a></li>
-        <li><a href="/voice">פתיחת קול</a></li>
-        <li><a href="/recommendations">המלצות</a></li>
-        <li><a href="/blog">בלוג</a></li>
-        <li><a href="/contact">יצירת קשר</a></li>
+        {nav.items.map((item) => (
+          <li><a href={item.href}>{item.label}</a></li>
+        ))}
       </ul>
     </nav>
 

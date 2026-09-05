@@ -1,4 +1,13 @@
-# ניווט האתר - כל פריט הוא קישור עצמאי, ללא תפריטי משנה
+# ניווט האתר - מקור האמת היחיד לשמות העמודים ולסדרם,
+# גם בתפריט העליון וגם בכותרת התחתונה.
+#
+# header = false משמעו: הפריט יופיע רק בכותרת התחתונה,
+# כדי לשמור על תפריט עליון קצר.
+
+[[items]]
+label  = "בית"
+href   = "/"
+header = false
 
 [[items]]
 label = "אודות"
@@ -18,6 +27,11 @@ theme = "shiatsu"
 label = "פתיחת קול"
 href  = "/voice"
 theme = "voice"
+
+[[items]]
+label  = "המלצות"
+href   = "/recommendations"
+header = false
 
 [[items]]
 label = "בלוג"

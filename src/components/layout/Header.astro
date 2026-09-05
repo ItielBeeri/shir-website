@@ -8,16 +8,21 @@ import { loadToml } from '../../lib/content';
 import { z } from 'zod';
 
 const navItemSchema = z.object({
-  label: z.string(),
-  href:  z.string(),
-  theme: z.string().optional(),
+  label:  z.string(),
+  href:   z.string(),
+  theme:  z.string().optional(),
+  header: z.boolean().default(true),
 });
 
 const navSchema = z.object({
   items: z.array(navItemSchema),
 });
 
+// nav.toml is the single source of truth for page names and their order, for
+// both this header and the footer. Items flagged header = false are
+// footer-only, which keeps the top bar short.
 const nav = loadToml('nav.toml', navSchema);
+const headerItems = nav.items.filter((item) => item.header);
 const currentPath = Astro.url.pathname;
 ---
 
@@ -41,7 +46,7 @@ const currentPath = Astro.url.pathname;
     <!-- Desktop nav - inline-end (left in RTL) -->
     <nav class="desktop-nav" aria-label="ניווט ראשי">
       <ul role="list">
-        {nav.items.map((item) => (
+        {headerItems.map((item) => (
           <li>
             <a
               href={item.href}
@@ -96,7 +101,7 @@ const currentPath = Astro.url.pathname;
         </a>
       </li>
 
-      {nav.items.map((item) => (
+      {headerItems.map((item) => (
         <li>
           <a
             href={item.href}

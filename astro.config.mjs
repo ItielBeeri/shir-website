@@ -12,9 +12,7 @@ export default defineConfig({
   },
   integrations: [
     mdx(),
-    sitemap({
-      filter: (page) => !page.includes('/design'),
-    }),
+    sitemap(),
     icon({
       iconDir: 'src/icons',
     }),
