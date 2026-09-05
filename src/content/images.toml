@@ -33,6 +33,10 @@ alt  = "תמונה של שיר אמיתי"
 file = "/img/content/portrait-3.jpeg"
 alt  = "תמונה של שיר אמיתי"
 
+[portrait-4]
+file = "/img/content/portrait-4.jpg"
+alt  = "תמונה של שיר אמיתי"
+
 [shiatsu-1]
 file = "/img/content/shiatsu-1.jpeg"
 alt  = "שיר אמיתי מטפלת במגע"
