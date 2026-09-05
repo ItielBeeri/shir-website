@@ -11,7 +11,7 @@ export interface ScreenshotMetrics {
    *
    * Render a screenshot `typeUnits * k` CSS px wide and its text lands at `k`px
    * of ink. So a row whose card widths are proportional to `typeUnits` shows
-   * every screenshot at the same apparent type size — which is the whole point:
+   * every screenshot at the same apparent type size - which is the whole point:
    * the screenshots are captures from different phones and apps, so their text
    * is *not* a fixed fraction of their frame. Sizing by aspect ratio or by
    * frame width instead makes one card's letters twice the size of its
@@ -34,8 +34,10 @@ const MIN_INK_PIXELS = 8;
  *  photos or full-bleed images rather than a line of type. */
 const MIN_LINE_FRACTION = 0.005;
 const MAX_LINE_FRACTION = 0.075;
-/** Median of the current screenshot set — used only if no text is detectable. */
+/** Median of the current screenshot set - used only if no text is detectable. */
 const FALLBACK_TYPE_UNITS = 38;
+/** In a typical screenshots there the type units don't fill its entire width; also, a typical type unit width is less than its height */
+const PADDING_AND_WIDTH_HEIGHT_RATIO_FACTOR = 0.75;
 
 const cache = new Map<string, Promise<ScreenshotMetrics>>();
 
@@ -44,7 +46,7 @@ const cache = new Map<string, Promise<ScreenshotMetrics>>();
  * large the text inside it is.
  *
  * `publicPath` is the site-absolute path as written in images.toml, e.g.
- * "/img/recommendations/recommendation-01.jpeg". Results are cached per path —
+ * "/img/recommendations/recommendation-01.jpeg". Results are cached per path -
  * several pages render the same screenshots in one build.
  */
 export function screenshotMetrics(publicPath: string): Promise<ScreenshotMetrics> {
@@ -69,13 +71,13 @@ async function measure(publicPath: string): Promise<ScreenshotMetrics> {
 
   if (!textInk) {
     console.warn(
-      `[screenshots] no text lines detected in ${publicPath} — falling back to ` +
+      `[screenshots] no text lines detected in ${publicPath} - falling back to ` +
         `typeUnits ${FALLBACK_TYPE_UNITS}, so its type size may not match its neighbours`,
     );
-    return { width, height, textInk: width / FALLBACK_TYPE_UNITS, typeUnits: FALLBACK_TYPE_UNITS };
+    return { width, height, textInk: width / FALLBACK_TYPE_UNITS, typeUnits: FALLBACK_TYPE_UNITS * PADDING_AND_WIDTH_HEIGHT_RATIO_FACTOR };
   }
 
-  return { width, height, textInk, typeUnits: width / textInk };
+  return { width, height, textInk, typeUnits: width / textInk * PADDING_AND_WIDTH_HEIGHT_RATIO_FACTOR };
 }
 
 /**

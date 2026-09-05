@@ -1,0 +1,102 @@
+---
+/**
+ * RecommendationText - the transcription of a recommendation screenshot,
+ * available as real, selectable, reflowable text.
+ *
+ * Why it exists: the recommendations are screenshots, i.e. images of text.
+ * WCAG 2.0 SC 1.4.5 (Images of Text, Level AA) - adopted in Israel through
+ * ת"י 5568 חלק 1 - asks that text be used rather than a picture of text
+ * wherever the presentation is not essential. Here the screenshot *is*
+ * partly essential (it is what makes the recommendation verifiably real),
+ * so the screenshot stays and the text is offered alongside it.
+ *
+ * A <details> disclosure rather than permanently visible text: it keeps the
+ * gallery's visual rhythm, is keyboard-operable and screen-reader-operable
+ * with no JavaScript at all, and reflows and zooms like any other text
+ * (SC 1.4.4, SC 1.4.10).
+ *
+ * The trigger is icon-only. A gallery of screenshots repeats this control
+ * once per card, and a repeated line of prose competed with the content it
+ * was offering. The label moves to aria-label + title, so the control keeps
+ * a proper accessible name and a hover tooltip while going visually quiet.
+ *
+ * That name is a noun phrase rather than "הצגת..." on purpose: <details>
+ * exposes its own expanded/collapsed state to assistive technology, so a
+ * name that reads correctly in both states avoids having to rewrite it with
+ * JavaScript on toggle - and keeps this component script-free.
+ */
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Full transcribed text of the recommendation. */
+  text: string;
+  class?: string;
+}
+
+const { text, class: className } = Astro.props;
+
+const LABEL = 'ההמלצה כטקסט';
+---
+
+<details class:list={['rec-text', className]}>
+  <summary class="rec-text__summary" aria-label={LABEL} title={LABEL}>
+    <span class="rec-text__summary-inner">
+      <Icon name="quote" decorative size={16} />
+    </span>
+  </summary>
+  <p class="rec-text__body">{text}</p>
+</details>
+
+<style>
+  .rec-text {
+    /* Fill the card whatever the card's layout is. The gallery card is a
+       centring flex column and the home card is a plain block; without this
+       the control floated to the middle in one place and sat at the
+       inline-start edge in the other. */
+    inline-size: 100%;
+    margin-block-start: 0.25rem;
+    font-size: var(--fs-small);
+  }
+
+  /* The summary keeps its default display. Overriding it - with flex in
+     particular - is a long-standing cross-browser hazard for <details>, so the
+     layout lives on an inner span instead. */
+  .rec-text__summary {
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    list-style: none;
+    inline-size: fit-content;
+    border-radius: var(--radius-pill);
+    transition: color var(--dur-fast), background var(--dur-fast);
+  }
+  .rec-text__summary::-webkit-details-marker { display: none; }
+  .rec-text__summary::marker { content: ''; }
+
+  /* 44x44 hit target (AGENTS.md §10) around a deliberately small glyph. */
+  .rec-text__summary-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 44px;
+    block-size: 44px;
+  }
+
+  .rec-text__summary:hover,
+  .rec-text[open] .rec-text__summary {
+    color: var(--color-ink);
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .rec-text__summary:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  .rec-text__body {
+    /* The transcriptions carry the sender's own line breaks. */
+    white-space: pre-line;
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+    padding-block-start: 0.25rem;
+  }
+</style>

@@ -1,5 +1,5 @@
 /**
- * parallax.ts — applies translateY to [data-parallax] elements.
+ * parallax.ts - applies translateY to [data-parallax] elements.
  * Sets CSS transform based on scroll position and data-speed factor.
  * Disabled when prefers-reduced-motion: reduce.
  */

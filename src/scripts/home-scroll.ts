@@ -1,5 +1,5 @@
 /**
- * home-scroll.ts — GSAP scroll choreography for the home page.
+ * home-scroll.ts - GSAP scroll choreography for the home page.
  *
  * Behaviours:
  * 1. Therapy triptych: image scale 1.0 → 1.08 on scroll (scrub).

@@ -1,5 +1,5 @@
 /* ============================================================
-   THEMES — modality accent registry
+   THEMES - modality accent registry
    Each page / section sets data-theme on body or a wrapper.
    All accent-sensitive styles read var(--accent) only.
    ============================================================ */

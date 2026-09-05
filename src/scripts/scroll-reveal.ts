@@ -1,5 +1,5 @@
 /**
- * scroll-reveal.ts — IntersectionObserver-based reveal for [data-reveal] elements.
+ * scroll-reveal.ts - IntersectionObserver-based reveal for [data-reveal] elements.
  * On enter: adds .is-visible → CSS handles fade + translateY(0).
  * Supports data-stagger="80" to cascade direct children.
  */

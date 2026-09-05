@@ -1,8 +1,8 @@
 ---
 /**
- * BaseLayout — wraps every page with:
+ * BaseLayout - wraps every page with:
  * - <html lang="he" dir="rtl">
- * - Google Fonts preconnect
+ * - Self-hosted Heebo (preloaded)
  * - Global styles
  * - Skip link
  * - BackgroundField (fixed watercolor layer)
@@ -13,20 +13,20 @@
  * caused Lenis/GSAP/ScrollTrigger to hold stale DOM references after Back
  * navigation (broken header glass, broken scroll restore, etc).
  * Standard full-page navigation gives the browser native scroll restoration
- * and re-runs every script on every page — reliable and simple.
+ * and re-runs every script on every page - reliable and simple.
  */
 import BackgroundField from './BackgroundField.astro';
 
 interface Props {
   title: string;
   description: string;
-  /** data-theme value for body — drives accent color */
+  /** data-theme value for body - drives accent color */
   theme?: 'default' | 'psychotherapy' | 'shiatsu' | 'voice';
   /** Canonical URL override */
   canonical?: string;
   /** OG image URL */
   ogImage?: string;
-  /** noindex — for _design route */
+  /** noindex - for _design route */
   noindex?: boolean;
 }
 
@@ -39,17 +39,36 @@ const {
   noindex = false,
 } = Astro.props;
 
-const siteUrl = 'https://shir-amitai.co.il';
+const siteUrl = 'https://www.shir-amitai.com';
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, siteUrl).href;
 const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שיר אמיתי`;
 ---
 
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" class="no-js">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="language" content="Hebrew" />
+
+    <!-- Runs before first paint. Two jobs, both accessibility:
+         1. Drop .no-js so [data-reveal] content is animated rather than
+            revealed outright - without JS it stays visible (see global.css).
+         2. Restore the visitor's "stop animations" choice (SC 2.2.2) before
+            anything has a chance to animate. -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.remove('no-js');
+        try {
+          if (localStorage.getItem('shir:motion') === 'off') {
+            d.setAttribute('data-motion', 'off');
+          }
+        } catch (e) {
+          /* private mode / storage blocked - motion simply stays on */
+        }
+      })();
+    </script>
 
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
@@ -77,12 +96,15 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Google Fonts — Hebrew subset -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Heebo, self-hosted - see the @font-face block in global.css. The
+         body face is the visitor's own system font and needs no download.
+         No preconnect: nothing is fetched from a third-party origin. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Heebo:wght@100;200;300;400;500;700&subset=hebrew&display=swap"
+      rel="preload"
+      href="/fonts/heebo-hebrew.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
 
     <!-- Global styles: tokens, themes, reset, typography, RTL, utilities -->

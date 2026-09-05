@@ -1,6 +1,6 @@
 ---
 /**
- * BreathDivider — animated SVG sine wave between sections.
+ * BreathDivider - animated SVG sine wave between sections.
  * Oscillates on a 12s loop. Color driven by --accent.
  */
 interface Props {
@@ -10,6 +10,13 @@ interface Props {
 }
 
 const { flip = false, class: className } = Astro.props;
+
+/**
+ * SVG filter ids live in the global document id space, so several dividers on
+ * one page collided on id="wave-shadow" - duplicate ids fail WCAG 2.0 SC 4.1.1
+ * (Parsing, Level A), which ת"י 5568 חלק 1 adopts. One id per instance.
+ */
+const filterId = `wave-shadow-${crypto.randomUUID().slice(0, 8)}`;
 ---
 
 <div
@@ -24,7 +31,7 @@ const { flip = false, class: className } = Astro.props;
   >
     <defs>
       <!-- Dual-shadow filter: white highlight above, soft dark below -->
-      <filter id="wave-shadow" x="-2%" y="-50%" width="104%" height="200%">
+      <filter id={filterId} x="-2%" y="-50%" width="104%" height="200%">
         <feDropShadow dx="0" dy="-1" stdDeviation="0.5" flood-color="rgba(255,255,255,0.7)" flood-opacity="1" result="highlight"/>
         <feDropShadow dx="0" dy="1.5" stdDeviation="1" flood-color="rgba(30,50,40,0.18)" flood-opacity="1"/>
       </filter>
@@ -36,7 +43,7 @@ const { flip = false, class: className } = Astro.props;
       stroke="var(--accent, var(--color-teal))"
       stroke-width="1.5"
       stroke-linecap="round"
-      filter="url(#wave-shadow)"
+      filter={`url(#${filterId})`}
     />
     <path
       class="wave-fill"

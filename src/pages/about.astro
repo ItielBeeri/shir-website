@@ -43,7 +43,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
                 class="rule-path"
                 d="M0,6 Q80,0 160,6 Q240,12 320,6"
                 fill="none"
-                stroke="var(--color-mist)"
+                stroke="var(--color-rule)"
                 stroke-width="1"
                 stroke-linecap="round"
               />
@@ -151,7 +151,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   }
 
   .about-title {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-display);
     font-weight: 300;
     letter-spacing: -0.01em;
@@ -229,7 +229,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   }
 
   .philosophy-quote {
-    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: var(--fs-h1);
     font-weight: 300;
     line-height: 1.55;
@@ -307,7 +307,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   }
 
   .therapy-cta-title {
-    font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: var(--fs-h3);
     font-weight: 300;
     color: var(--color-ink);

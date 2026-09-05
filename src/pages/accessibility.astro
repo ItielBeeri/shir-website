@@ -1,0 +1,116 @@
+---
+/**
+ * הצהרת נגישות - required by תקנה 35 to the Equal Rights for Persons with
+ * Disabilities (Accessibility Adjustments to Service) Regulations, 2013.
+ *
+ * Kept as its own page, and linked from the footer of every page, because the
+ * regulation requires the statement to be published "במקום בולט" - a section
+ * buried inside a combined legal page would not satisfy that.
+ */
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import LegalPage from '../components/legal/LegalPage.astro';
+import CTAButton from '../components/ui/CTAButton.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const sectionSchema = z.object({
+  title: z.string(),
+  body:  z.array(z.string()).optional(),
+  items: z.array(z.string()).optional(),
+});
+
+const accessibilitySchema = z.object({
+  meta: z.object({
+    title:         z.string(),
+    description:   z.string(),
+    updated:       z.string(),
+    updated_label: z.string(),
+  }),
+  sections: z.array(sectionSchema),
+});
+
+const siteSchema = z.object({
+  contact: z.object({
+    whatsapp_url:   z.string(),
+    whatsapp_label: z.string(),
+    phone_href:     z.string(),
+    phone_display:  z.string(),
+    email_href:     z.string(),
+    email_display:  z.string(),
+  }),
+});
+
+const doc  = loadToml('pages/accessibility.toml', accessibilitySchema);
+const site = loadToml('site.toml', siteSchema);
+---
+
+<BaseLayout title={doc.meta.title} description={doc.meta.description}>
+  <Header />
+
+  <main id="main">
+    <LegalPage
+      title={doc.meta.title}
+      updated={doc.meta.updated}
+      updatedLabel={doc.meta.updated_label}
+      sections={doc.sections}
+    >
+      <!-- Contact channels for accessibility requests. Details come from
+           site.toml so there is one source of truth, and the order is the
+           site-wide WhatsApp → Phone → Email (AGENTS.md §9). -->
+      <section class="a11y-contact" aria-labelledby="a11y-contact-heading">
+        <h2 id="a11y-contact-heading" class="a11y-contact-title">דרכי פנייה בנושאי נגישות</h2>
+        <div class="a11y-contact-actions">
+          <CTAButton
+            href={site.contact.whatsapp_url}
+            label={site.contact.whatsapp_label}
+            icon="whatsapp"
+            variant="primary"
+            external
+          />
+          <CTAButton
+            href={site.contact.phone_href}
+            label={site.contact.phone_display}
+            icon="phone"
+            variant="secondary"
+          />
+          <CTAButton
+            href={site.contact.email_href}
+            label={site.contact.email_display}
+            icon="mail"
+            variant="tertiary"
+          />
+        </div>
+      </section>
+    </LegalPage>
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>
+
+<style>
+  .a11y-contact {
+    padding-block: var(--space-block) 0;
+    border-block-start: 1px solid var(--color-glass-stroke);
+  }
+
+  .a11y-contact-title {
+    font-size: var(--fs-h3);
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--color-ink);
+    margin-block-end: 1rem;
+  }
+
+  .a11y-contact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+</style>

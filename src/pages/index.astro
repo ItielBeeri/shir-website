@@ -49,7 +49,7 @@ const blogPosts = sortBlogPosts(
 
 <BaseLayout
   title="שיר אמיתי | פסיכותרפיה גופנית, שיאצו ופתיחת קול"
-  description="שיר אמיתי — מרחב לטיפול בגוף, נפש וקול. פסיכותרפיה גופנית, שיאצו ופתיחת קול בפרדס חנה ובזום."
+  description="שיר אמיתי - מרחב לטיפול בגוף, נפש וקול. פסיכותרפיה גופנית, שיאצו ופתיחת קול בפרדס חנה ובזום."
 >
   <Fragment slot="head">
     <Fragment set:html={jsonLd(personSchema())} />
@@ -59,7 +59,7 @@ const blogPosts = sortBlogPosts(
   <Header />
 
   <main id="main">
-    <!-- A. Identity section — unified portrait + title + intro -->
+    <!-- A. Identity section - unified portrait + title + intro -->
     <IdentitySection
       title={home.hero.title}
       subtitle={home.hero.subtitle}
@@ -152,7 +152,7 @@ const blogPosts = sortBlogPosts(
   }
 
   .closing-line {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-h2);
     font-weight: 200;
     color: var(--color-ink);

@@ -144,7 +144,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
    * Own backdrop that mirrors the site's fixed watercolor field.
    * It is opaque enough to hide the sticky cover image behind it,
    * yet reproduces the same watercolor + paper wash the rest of the
-   * site shows — so the running text always sits on the watercolor,
+   * site shows - so the running text always sits on the watercolor,
    * never on the cover photo. A translucent paper wash keeps text
    * readable exactly like GlassCard surfaces elsewhere.
    */
@@ -205,7 +205,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   }
 
   .post-title {
-    font-family: "Frank Ruhl Libre", "Heebo", serif;
+    font-family: var(--font-display);
     font-size: var(--fs-h1);
     font-weight: 500;
     color: var(--color-ink);
@@ -250,7 +250,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
 
   /* Drop cap */
   /* .prose :global(p:first-of-type::first-letter) {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 3.5rem;
     font-weight: 500;
     line-height: 0.8;
@@ -281,7 +281,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     margin-block-end: 1.25rem;
   }
   .prose :global(blockquote) {
-    font-family: "Heebo", "Arial Hebrew", system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-h3);
     font-weight: 300;
     border-inline-start: 3px solid var(--accent, var(--color-teal));

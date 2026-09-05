@@ -1,10 +1,10 @@
 ---
 /**
- * CTAButton — primary/secondary/tertiary contact CTA.
+ * CTAButton - primary/secondary/tertiary contact CTA.
  * Variants:
- *   primary   — WhatsApp (filled, accent-tinted)
- *   secondary — phone (outlined/ghost)
- *   tertiary  — email (text + icon only)
+ *   primary   - WhatsApp (filled, accent-tinted)
+ *   secondary - phone (outlined/ghost)
+ *   tertiary  - email (text + icon only)
  */
 import Icon from './Icon.astro';
 
@@ -34,7 +34,7 @@ const {
   class:list={['cta-btn', `cta-btn--${variant}`, className]}
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener' : undefined}
-  aria-label={external ? `${label} — נפתח בטאב חדש` : undefined}
+  aria-label={external ? `${label} - נפתח בטאב חדש` : undefined}
 >
   {icon && <Icon name={icon} decorative size={variant === 'primary' ? 22 : 18} />}
   <span>{label}</span>

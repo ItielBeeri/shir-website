@@ -1,16 +1,16 @@
 /**
- * seo.ts — SEO / JSON-LD helpers.
+ * seo.ts - SEO / JSON-LD helpers.
  * Used by BaseLayout and individual pages to generate structured data.
  */
 
-const SITE_URL = 'https://shir-amitai.co.il';
+const SITE_URL = 'https://www.shir-amitai.com';
 const PERSON_NAME = 'שיר אמיתי';
 const WHATSAPP_URL = 'https://wa.me/972525201162';
 const PHONE = '+972525201162';
 const EMAIL = 'shir.amitai1@gmail.com';
 const LOCATION = 'פרדס חנה-כרכור';
 
-/** Person schema — sitewide */
+/** Person schema - sitewide */
 export function personSchema() {
   return {
     '@context': 'https://schema.org',
@@ -44,7 +44,7 @@ export function personSchema() {
   };
 }
 
-/** LocalBusiness / HealthAndBeautyBusiness — home page */
+/** LocalBusiness / HealthAndBeautyBusiness - home page */
 export function localBusinessSchema() {
   return {
     '@context': 'https://schema.org',
@@ -63,7 +63,7 @@ export function localBusinessSchema() {
   };
 }
 
-/** Service schema — therapy pages */
+/** Service schema - therapy pages */
 export function serviceSchema(serviceType: string, url: string) {
   return {
     '@context': 'https://schema.org',

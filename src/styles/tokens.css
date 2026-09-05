@@ -1,12 +1,18 @@
 /* ============================================================
-   DESIGN TOKENS — single source of truth for all visual constants
+   DESIGN TOKENS - single source of truth for all visual constants
    ============================================================ */
+
+/* Type families - the site's only two */
+:root {
+  --font-sans:    'Segoe UI', 'Arial Hebrew', system-ui, sans-serif;
+  --font-display: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+}
 
 /* Colors */
 :root {
   --color-ink:          #22332a;
   --color-ink-soft:     #4a5c51;
-  --color-mist:         #7a8a82;
+  --color-mist:         #5e6d66;
   --color-paper:        #fdfaf4;
   --color-cream:        #f5ecda;
   --color-sand:         #e8d4a8;
@@ -56,6 +62,6 @@
   --bp-xl:  1280px;
   --bp-xxl: 1600px;
 
-  /* RTL direction multiplier — used for directional transforms */
+  /* RTL direction multiplier - used for directional transforms */
   --dir-x: -1;
 }

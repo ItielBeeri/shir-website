@@ -46,7 +46,7 @@ const { contact, social } = loadToml('site.toml', siteSchema);
       <ScrollReveal>
         <GlassCard>
           <div class="contact-group">
-            <!-- 1. WhatsApp — primary (§5.4) -->
+            <!-- 1. WhatsApp - primary (§5.4) -->
             <CTAButton
               href={contact.whatsapp_url}
               label={contact.whatsapp_label}
@@ -54,14 +54,14 @@ const { contact, social } = loadToml('site.toml', siteSchema);
               variant="primary"
               external
             />
-            <!-- 2. Phone — secondary -->
+            <!-- 2. Phone - secondary -->
             <CTAButton
               href={contact.phone_href}
               label={`${contact.phone_label} · ${contact.phone_display}`}
               icon="phone"
               variant="secondary"
             />
-            <!-- 3. Email — tertiary -->
+            <!-- 3. Email - tertiary -->
             <CTAButton
               href={contact.email_href}
               label={contact.email_display}
@@ -114,7 +114,7 @@ const { contact, social } = loadToml('site.toml', siteSchema);
   }
 
   .contact-title {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-display);
     font-weight: 300;
     letter-spacing: -0.01em;
@@ -131,27 +131,43 @@ const { contact, social } = loadToml('site.toml', siteSchema);
 
   .contact-actions {
     padding-block: var(--space-block);
-    max-inline-size: 480px;
+    max-inline-size: 560px;
   }
 
   .contact-group {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
+  }
+
+  /* Keep CTA labels (email address, phone) on a single line - the card is
+     sized to fit them. Wrapping is only released on very narrow phones,
+     where there is no other option. */
+  .contact-group :global(.cta-btn span) {
+    white-space: nowrap;
   }
 
   .contact-social {
     margin-block-start: 1.5rem;
     font-size: var(--fs-small);
     color: var(--color-mist);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 520px) {
+    .contact-group :global(.cta-btn span),
+    .contact-social {
+      white-space: normal;
+    }
   }
 
   .social-link { color: var(--color-ink-soft); }
 
   .contact-location {
     padding-block: var(--space-block);
-    max-inline-size: 480px;
+    max-inline-size: 560px;
   }
 
   .location-title {

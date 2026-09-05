@@ -1,12 +1,13 @@
 ---
 /**
- * Footer — calm, generous (~50vh on desktop).
+ * Footer - calm, generous (~50vh on desktop).
  * Three-column layout (RTL): Navigation | Contact | Social
  * Bottom bar: copyright + accessibility link + builder credit (EN, by design)
  */
 import { loadToml } from '../../lib/content';
 import { z } from 'zod';
 import Icon from '../ui/Icon.astro';
+import MotionToggle from './MotionToggle.astro';
 
 const siteSchema = z.object({
   brand:   z.object({ name: z.string(), tagline: z.string() }),
@@ -31,6 +32,8 @@ const siteSchema = z.object({
     rights:             z.string(),
     accessibility_label: z.string(),
     accessibility_href: z.string(),
+    terms_label:        z.string(),
+    terms_href:         z.string(),
     location:           z.string(),
   }),
 });
@@ -49,7 +52,7 @@ const year = new Date().getFullYear();
 
   <div class="container footer-body">
     <!-- Column 1: Navigation -->
-    <nav class="footer-col" aria-label="ניווט — כותרת תחתונה">
+    <nav class="footer-col" aria-label="ניווט - כותרת תחתונה">
       <p class="footer-col-title">ניווט</p>
       <ul role="list">
         <li><a href="/">בית</a></li>
@@ -63,24 +66,24 @@ const year = new Date().getFullYear();
       </ul>
     </nav>
 
-    <!-- Column 2: Contact — WhatsApp → Phone → Email (§5.4 order) -->
+    <!-- Column 2: Contact - WhatsApp → Phone → Email (§5.4 order) -->
     <div class="footer-col" role="complementary" aria-label="פרטי יצירת קשר">
       <p class="footer-col-title">יצירת קשר</p>
       <ul role="list" class="contact-list">
-        <!-- 1. WhatsApp — primary -->
+        <!-- 1. WhatsApp - primary -->
         <li>
           <a
             href={site.contact.whatsapp_url}
             target="_blank"
             rel="noopener"
             class="contact-link contact-primary"
-            aria-label={`${site.contact.whatsapp_label} — נפתח בטאב חדש`}
+            aria-label={`${site.contact.whatsapp_label} - נפתח בטאב חדש`}
           >
             <Icon name="whatsapp" decorative size={18} />
             {site.contact.whatsapp_label}
           </a>
         </li>
-        <!-- 2. Phone — secondary -->
+        <!-- 2. Phone - secondary -->
         <li>
           <a
             href={site.contact.phone_href}
@@ -91,7 +94,7 @@ const year = new Date().getFullYear();
             <span dir="ltr">{site.contact.phone_display}</span>
           </a>
         </li>
-        <!-- 3. Email — tertiary -->
+        <!-- 3. Email - tertiary -->
         <li>
           <a
             href={site.contact.email_href}
@@ -115,7 +118,7 @@ const year = new Date().getFullYear();
             href={site.social.facebook_url}
             target="_blank"
             rel="noopener"
-            aria-label={`${site.social.facebook_label} — נפתח בטאב חדש`}
+            aria-label={`${site.social.facebook_label} - נפתח בטאב חדש`}
             class="footer-link"
           >
             <Icon name="facebook" decorative size={16} />
@@ -127,7 +130,7 @@ const year = new Date().getFullYear();
             href={site.social.biosynthesis_url}
             target="_blank"
             rel="noopener"
-            aria-label={`${site.social.biosynthesis_label} — נפתח בטאב חדש`}
+            aria-label={`${site.social.biosynthesis_label} - נפתח בטאב חדש`}
             class="footer-link"
           >
             <Icon name="external" decorative size={16} />
@@ -149,14 +152,20 @@ const year = new Date().getFullYear();
       <a href={site.footer.accessibility_href} class="footer-bottom-link">
         {site.footer.accessibility_label}
       </a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <a href={site.footer.terms_href} class="footer-bottom-link">
+        {site.footer.terms_label}
+      </a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <MotionToggle />
     </div>
-    <!-- Builder credit — the one intentional English string on the site (§5.3.1) -->
+    <!-- Builder credit - the one intentional English string on the site (§5.3.1) -->
     <span class="builder-credit" lang="en" dir="ltr">
       Built by <a
         href="https://www.linkedin.com/in/itiel"
         target="_blank"
         rel="noopener author"
-        aria-label="Built by Itiel Beeri — opens LinkedIn profile in new tab"
+        aria-label="Built by Itiel Beeri - opens LinkedIn profile in new tab"
       >Itiel Beeri</a>
     </span>
   </div>
@@ -178,7 +187,7 @@ const year = new Date().getFullYear();
   /* Large transparent wordmark */
   .footer-wordmark {
     text-align: center;
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(3rem, 10vw, 8rem);
     font-weight: 100;
     color: var(--color-ink);
@@ -286,7 +295,7 @@ const year = new Date().getFullYear();
   }
   .footer-bottom-link:hover { color: var(--color-ink-soft); }
 
-  /* Builder credit (§5.3.1) — aligned to inline-start (left), even when wrapped */
+  /* Builder credit (§5.3.1) - aligned to inline-start (left), even when wrapped */
   .builder-credit {
     display: block;
     font-size: 0.72rem;

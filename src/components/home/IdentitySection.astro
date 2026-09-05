@@ -1,6 +1,6 @@
 ---
 /**
- * IdentitySection — unified intro for homepage.
+ * IdentitySection - unified intro for homepage.
  * Combines the former Hero + IntroBlock into one cohesive section.
  *
  * Layout (desktop):
@@ -19,7 +19,7 @@
  *   └─────────────────────────────────────────────────────────┘
  *
  * On mobile: portrait top, then title/text, then chips, then CTA.
- * No full-viewport hero barrier — content visible immediately.
+ * No full-viewport hero barrier - content visible immediately.
  */
 import SoftImage from '../ui/SoftImage.astro';
 
@@ -69,7 +69,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
               class="rule-path"
               d="M0,6 Q80,0 160,6 Q240,12 320,6"
               fill="none"
-              stroke="var(--color-mist)"
+              stroke="var(--color-rule)"
               stroke-width="1"
               stroke-linecap="round"
             />
@@ -181,7 +181,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
   }
 
   .identity-title {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(2.4rem, 5.5vw, 5rem);
     font-weight: 300;
     letter-spacing: -0.01em;
@@ -191,7 +191,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
   }
 
   .identity-subtitle {
-    font-family: var(--font-serif);
+    font-family: var(--font-sans);
     font-size: var(--fs-h2);
     font-weight: 300;
     color: var(--color-ink-soft);

@@ -1,10 +1,53 @@
 /* ============================================================
+   FONTS - self-hosted Heebo (the only webfont)
+   ------------------------------------------------------------
+   Previously pulled from fonts.googleapis.com, which exposed every
+   visitor's IP address and user-agent to Google on each page view.
+   Serving the files from our own origin removes that third-party
+   request entirely, so the site makes no external calls at all.
+
+   Google ships Heebo as a VARIABLE font: the six weight URLs their
+   CSS hands out are all byte-identical files. Two files is therefore
+   the whole family - one per subset - declared over the full
+   100-900 axis so any weight interpolates from it.
+
+   Only the hebrew and latin subsets are shipped. Heebo has no glyphs
+   for the arrows used in link text, and emoji always come from the
+   platform's own colour-emoji font, so the math, symbols and
+   latin-ext slices would never have painted anything.
+   ============================================================ */
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/heebo-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/heebo-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* ============================================================
    DESIGN TOKENS
    ============================================================ */
 :root {
+  /* The site's two type families. Declared once so "only these two" is a
+     fact of the token file rather than a convention to remember. */
+  --font-sans:    'Segoe UI', 'Arial Hebrew', system-ui, sans-serif;
+  --font-display: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+
   --color-ink:          #22332a;
   --color-ink-soft:     #4a5c51;
-  --color-mist:         #7a8a82;
+  --color-mist:         #5e6d66;
+  /* Decorative rules and hairlines only - never text. WCAG 1.4.3 governs
+     text contrast and 1.4.11 exempts pure decoration, so these keep the
+     original soft grey and are not dragged along when text darkens. */
+  --color-rule:         #7a8a82;
   --color-paper:        #fdfaf4;
   --color-cream:        #f5ecda;
   --color-sand:         #e8d4a8;
@@ -91,7 +134,7 @@ html {
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
-  font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
@@ -148,8 +191,8 @@ section { padding-block: var(--space-section); }
 /* ============================================================
    TYPOGRAPHY
    ============================================================ */
-.font-sans  { font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif; }
-.font-serif { font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif; }
+.font-sans    { font-family: var(--font-sans); }
+.font-display { font-family: var(--font-display); }
 
 .text-display { font-size: var(--fs-display); line-height: var(--lh-display); letter-spacing: var(--ls-display); font-weight: 300; }
 .text-h1      { font-size: var(--fs-h1); font-weight: 300; }
@@ -157,14 +200,14 @@ section { padding-block: var(--space-section); }
 .text-h3      { font-size: var(--fs-h3); font-weight: 400; }
 .text-body    { font-size: var(--fs-body); line-height: var(--lh-body); }
 .text-small   { font-size: var(--fs-small); }
-.text-kicker  { font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif; font-size: 0.95rem; font-weight: 400; color: var(--color-ink-soft); letter-spacing: 0.02em; }
+.text-kicker  { font-family: var(--font-display); font-size: 0.95rem; font-weight: 400; color: var(--color-ink-soft); letter-spacing: 0.02em; }
 .text-mist    { color: var(--color-mist); }
 .text-ink-soft { color: var(--color-ink-soft); }
 
 em, i { font-style: normal; font-weight: 600; }
 
 blockquote {
-  font-family: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  font-family: var(--font-display);
   font-size: var(--fs-h2);
   font-weight: 300;
   line-height: 1.55;
@@ -231,7 +274,7 @@ blockquote {
   margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  clip-path: inset(50%);
   border: 0;
 }
 
@@ -322,7 +365,7 @@ blockquote {
   text-align: center;
 }
 .section-heading__kicker {
-  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 400;
   color: var(--color-ink-soft);
@@ -331,7 +374,7 @@ blockquote {
 .section-heading__title {
   font-size: var(--fs-h2);
   font-weight: 300;
-  font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-sans);
   color: var(--color-ink);
   letter-spacing: var(--ls-display);
   line-height: var(--lh-display);
@@ -383,7 +426,7 @@ blockquote {
   justify-content: center;
   gap: 0.6rem;
   border-radius: var(--radius-pill);
-  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-body);
   font-weight: 400;
   padding: 0.8rem 1.75rem;
@@ -500,4 +543,40 @@ blockquote {
   .pill-secondary { inline-size: 46px; block-size: 46px; }
   .pill-tertiary  { inline-size: 42px; block-size: 42px; }
   .pill-trigger   { inline-size: 60px; block-size: 60px; }
+}
+
+/* ============================================================
+   ACCESSIBILITY - motion control & no-JS safety net
+   ת"י 5568 חלק 1 / WCAG 2.0 AA
+   ============================================================ */
+
+/* SC 2.2.2 Pause, Stop, Hide - the watercolour drift, the breath waves and the
+   hero rules all loop for longer than five seconds alongside the page content.
+   prefers-reduced-motion covers visitors who set it at OS level; this class is
+   the in-page mechanism for everyone else, toggled by MotionToggle and
+   persisted in localStorage. Kept last in the file so it wins on specificity
+   without !important on individual rules. */
+[data-motion="off"] *,
+[data-motion="off"] *::before,
+[data-motion="off"] *::after {
+  animation-play-state: paused !important;
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* The reveal-on-scroll transform is a motion effect, not a layout rule - with
+   motion off the content must simply be present. */
+[data-motion="off"] [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* SC 1.4.13 / general robustness: [data-reveal] starts at opacity:0 and is
+   revealed by IntersectionObserver. Without JS that content would never appear,
+   so the no-JS path opts out of the effect entirely. */
+.no-js [data-reveal] {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }

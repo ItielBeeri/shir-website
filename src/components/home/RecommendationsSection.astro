@@ -1,26 +1,27 @@
 ---
 /**
- * RecommendationsSection — recommendations teaser for the home and therapy pages.
+ * RecommendationsSection - recommendations teaser for the home and therapy pages.
  *
  * Shows the full screenshots (never a crop, never a modal, never inner scrolling):
  * two justified lines on desktop, a horizontal scroll-snap strip on narrow
- * screens. The heading row is the BlogTeaser's — kicker, title and a "see all"
+ * screens. The heading row is the BlogTeaser's - kicker, title and a "see all"
  * text link at the far end. Two lines rather than the blog's one because a
  * recommendation carries a whole message, and only two of those fit across a
  * line at a readable size.
  *
  * Sizing is driven by the *type inside* each screenshot, not by its frame. The
  * screenshots are captures from different phones and apps, so a given frame
- * width says little about how big its letters are — sizing every card to a
+ * width says little about how big its letters are - sizing every card to a
  * shared height (or a shared width) leaves one card's text twice the size of its
  * neighbour's. Instead each card's width is proportional to the screenshot's
  * measured `typeUnits`, which lands every screenshot on the same rendered type
- * size, close to the page's own body size. Heights then differ — a longer
- * message really is taller — so cards sit centred on their line's axis.
+ * size, close to the page's own body size. Heights then differ - a longer
+ * message really is taller - so cards sit centred on their line's axis.
  *
  * The dedicated /recommendations page owns the full masonry gallery.
  */
 import GlassCard from '../ui/GlassCard.astro';
+import RecommendationText from '../ui/RecommendationText.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
 import { screenshotMetrics } from '../../lib/screenshots';
 
@@ -48,7 +49,7 @@ interface Props {
   allLinkHref?: string;
   /**
    * How many cards to render, which is also how many the strip shows.
-   * Desktop shows the first two lines of them — see LINE_LENGTH.
+   * The wrapped layout shows the first two rows of them; the strip shows all.
    */
   limit?: number;
 }
@@ -65,50 +66,26 @@ const {
   limit = 6,
 } = Astro.props;
 
-/**
- * Cards per desktop line. Two is what fits across this container at a readable
- * type size; the CSS below hides every line after the second.
- */
-const LINE_LENGTH = 2;
-
 const total = recommendations.length;
 
+/**
+ * Every card carries its own `typeUnits` - the screenshot's width divided by
+ * the height of one line of text inside it. A card `typeUnits * k` px wide
+ * renders that text at `k` px, whatever phone or app took the capture.
+ *
+ * There is deliberately no fixed cards-per-row figure. Each card asks for the
+ * width its own text needs to stay readable, and the row packs whatever fits:
+ * a row of text-heavy screenshots holds two, a row of lighter ones holds
+ * three, at the very same viewport width. Pinning the count instead - which is
+ * what this component used to do - forces text-dense captures to shrink under
+ * the page's own body size to make the number come out right.
+ */
 const items = await Promise.all(
   recommendations.slice(0, limit).map(async (rec) => {
     const image = images[rec.id];
     const { width, height, typeUnits } = await screenshotMetrics(image.file);
     return { ...rec, image, width, height, typeUnits };
   }),
-);
-
-/**
- * Lines keep the running order — each is the next slice, never a reshuffle.
- * Beyond the second they exist only for the mobile strip.
- */
-const lines = Array.from({ length: Math.ceil(items.length / LINE_LENGTH) }, (_, i) =>
-  items.slice(i * LINE_LENGTH, (i + 1) * LINE_LENGTH),
-);
-
-/**
- * The widest card the strip has to fit on screen. Normalising the strip to it
- * keeps every card's type the same size while still showing each screenshot
- * whole — see --rec-strip-w below.
- */
-const maxTypeUnits = Math.max(...items.map((item) => item.typeUnits));
-
-/**
- * The desktop lines are sized off whichever of them needs the most width per
- * unit of type — the "tightest" line. That line fills the container exactly and
- * the other falls a little short of it, which is the price of the two lines
- * sharing one type size rather than each justifying to its own.
- */
-const desktopLines = lines.slice(0, 2);
-const tightestLine = desktopLines.reduce(
-  (tightest, line) => {
-    const units = line.reduce((sum, item) => sum + item.typeUnits, 0);
-    return units > tightest.units ? { units, count: line.length } : tightest;
-  },
-  { units: 0, count: 1 },
 );
 ---
 
@@ -128,31 +105,22 @@ const tightestLine = desktopLines.reduce(
       )}
     </div>
 
-    <div
-      class="recommendations-lines"
-      data-reveal
-      data-stagger="80"
-      style={`--rec-units-max: ${maxTypeUnits.toFixed(3)}; --rec-units-line: ${tightestLine.units.toFixed(3)}; --rec-line-count: ${tightestLine.count};`}
-    >
-      {lines.map((line) => (
-        <div class="recommendations-line">
-          {line.map((rec) => (
-            <article class="rec-tile" data-reveal style={`--rec-units: ${rec.typeUnits.toFixed(3)};`}>
-              <GlassCard>
-                <img
-                  class="rec-tile__img"
-                  src={rec.image.file}
-                  alt={rec.image.alt}
-                  width={rec.width}
-                  height={rec.height}
-                  loading="lazy"
-                  decoding="async"
-                />
-                <p class="sr-only">{rec.transcription}</p>
-              </GlassCard>
-            </article>
-          ))}
-        </div>
+    <div class="recommendations-wall" data-reveal data-stagger="80">
+      {items.map((rec) => (
+        <article class="rec-tile" data-reveal style={`--rec-units: ${rec.typeUnits.toFixed(3)};`}>
+          <GlassCard>
+            <img
+              class="rec-tile__img"
+              src={rec.image.file}
+              alt={rec.image.alt}
+              width={rec.width}
+              height={rec.height}
+              loading="lazy"
+              decoding="async"
+            />
+            <RecommendationText text={rec.transcription} />
+          </GlassCard>
+        </article>
       ))}
     </div>
   </section>
@@ -161,7 +129,7 @@ const tightestLine = desktopLines.reduce(
 <style>
   .recommendations { padding-block: var(--space-section); }
 
-  /* Heading row — same shape as .blog-teaser-header */
+  /* Heading row - same shape as .blog-teaser-header */
   .recommendations-header {
     display: flex;
     align-items: flex-end;
@@ -190,62 +158,59 @@ const tightestLine = desktopLines.reduce(
   /* ============================================================
      Cards
 
-     A card is `typeUnits × k` wide, where k is the rendered height of one
-     line of the screenshot's text. Every card on a line shares one k, so the
-     screenshots all read at the same size; k is capped near the page's own
-     body size so they never tower over the page's text either.
+     A card is `typeUnits * k` wide, where k is the rendered height of one
+     line of the screenshot's text. Cards on a row share one k, so every
+     screenshot reads at the same size no matter what captured it.
 
-     Below 960px the lines collapse into a single horizontal scroll-snap
-     strip: two cards side by side there would have to shrink under page type
-     size to fit, and one card alone would leave most of the line empty.
+     The row count is not set anywhere. Each card's flex-basis is the width
+     its own text needs; the row takes as many as fit and wraps. Two dense
+     screenshots or three sparse ones both fill a row at the same viewport
+     width, which is the point - a fixed count would have to shrink the dense
+     ones under the page's body size to make the number work.
+
+     Because basis AND grow are both proportional to typeUnits, the leftover
+     space on a row is shared in the same proportion, so the finished widths
+     stay proportional too and the shared type size survives justification.
      ============================================================ */
-  .recommendations-lines {
+  .recommendations-wall {
     --rec-pad: clamp(0.6rem, 1.4vw, 1rem);
     /* Card width that isn't the screenshot: padding both sides plus border */
     --rec-chrome: calc(2 * var(--rec-pad) + 2px);
-    /* Largest rendered text-line height allowed. Page body copy measures
-       around 10.5px the same way, so this keeps screenshot type close to
-       page type at its biggest. */
-    --rec-ink-max: 12px;
-    /* How much of the viewport a strip card may fill */
-    --rec-strip-w: 94vw;
+    /* Target rendered text-line height. The page's own body copy measures
+       around 10.5px the same way, so screenshot text sits just above it. */
+    --rec-ink: 11px;
+    /* Ceiling, so a card alone on a row cannot balloon its type. */
+    --rec-ink-max: 13px;
 
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    /* Let the strip bleed past the container padding */
-    padding-inline: clamp(1rem, 5vw, 4rem);
-    margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
-    /* Hide the scrollbar visually but keep the scrolling */
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1.5rem;
   }
-
-  .recommendations-lines::-webkit-scrollbar { display: none; }
-
-  /* On the strip the lines step out of the way and every card sits in one row */
-  .recommendations-line { display: contents; }
 
   .rec-tile {
     display: block;
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    /*
-     * Whichever limit binds — fitting the widest card on screen, or the type
-     * size ceiling — binds for every card at once, because both scale with
-     * this card's own typeUnits. So the strip keeps one shared type size
-     * either way.
-     */
-    inline-size: min(
-      calc(
-        (var(--rec-strip-w) - var(--rec-chrome)) * var(--rec-units) / var(--rec-units-max)
-        + var(--rec-chrome)
-      ),
+    flex-grow: var(--rec-units);
+    /* Shrink is what stops a single card wider than its container from
+       overflowing - together with the 100% ceiling below, nothing is ever
+       cropped once the strip is off. */
+    flex-shrink: 1;
+    flex-basis: calc(var(--rec-units) * var(--rec-ink) + var(--rec-chrome));
+    max-inline-size: min(
+      100%,
       calc(var(--rec-units) * var(--rec-ink-max) + var(--rec-chrome))
     );
   }
+
+  /* Two rows is the teaser's allowance, applied by the script below once the
+     rows have actually formed - the count per row follows the screenshots, so
+     no fixed number of cards expresses it. Beats the .rec-tile display rule
+     on specificity, which the bare [hidden] attribute would not. */
+  .rec-tile[hidden] { display: none; }
+
+  /* Without JavaScript the rows cannot be measured, so fall back to four -
+     two rows wherever two cards fit side by side. */
+  :global(.no-js) .rec-tile:nth-child(n + 5) { display: none; }
 
   .rec-tile :global(.glass-card) {
     padding: var(--rec-pad);
@@ -262,58 +227,48 @@ const tightestLine = desktopLines.reduce(
   .rec-tile__img {
     display: block;
     inline-size: 100%;
-    /* The screenshot's own aspect ratio — the whole message, never cropped */
+    /* The screenshot's own aspect ratio - the whole message, never cropped */
     block-size: auto;
     border-radius: calc(var(--radius-card) - 12px);
     box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
   }
 
   /* ============================================================
-     960px and up: two justified lines, no horizontal scrolling.
+     Narrow screens: one horizontal scroll-snap strip.
 
-     k here is the container's free space divided by --rec-units-line, the
-     type units of the tightest of the two lines. Both lines are sized off
-     that one k, so a card in the lower line reads at exactly the size of the
-     card above it. The tightest line fills the container; the other ends a
-     little short of it, and its slack falls at the far end so both lines keep
-     the same starting edge as the heading.
+     The breakpoint is the blog teaser's, deliberately. Those two sections sit
+     one above the other on the home page, and a visitor resizing past a width
+     where one of them scrolls sideways and the other does not reads as a bug.
+     Above it both wrap into rows; at or below it both become strips.
      ============================================================ */
-  @media (min-width: 960px) {
-    .recommendations-lines {
-      --rec-line-overhead: calc(
-        (var(--rec-line-count) - 1) * 1.5rem + var(--rec-line-count) * var(--rec-chrome)
-      );
-
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1.5rem;
-      overflow-x: visible;
-      scroll-snap-type: none;
-      padding-inline: 0;
-      margin-inline: 0;
+  @media (max-width: 599px) {
+    .recommendations-wall {
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 1rem;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      /* Let the strip bleed past the container padding */
+      padding-inline: clamp(1rem, 5vw, 4rem);
+      margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
+      /* Hide the scrollbar visually but keep the scrolling */
+      scrollbar-width: none;
     }
 
-    .recommendations-line {
-      display: flex;
-      /* Cards start together, so each line has a flat top edge and the
-         difference in message length shows as a shorter card, not as a card
-         floating loose in the middle of the line. */
-      align-items: flex-start;
-      gap: 1.5rem;
-    }
-
-    /* Two lines is the allowance; the rest stay for the strip */
-    .recommendations-line:nth-child(n+3) { display: none; }
+    .recommendations-wall::-webkit-scrollbar { display: none; }
 
     .rec-tile {
+      flex-grow: 0;
+      flex-shrink: 0;
+      flex-basis: auto;
+      scroll-snap-align: start;
+      /* Whole card on screen at a time, never wider than the viewport. */
       inline-size: min(
-        calc(var(--rec-units) * var(--rec-ink-max) + var(--rec-chrome)),
-        calc(
-          (100% - var(--rec-line-overhead)) * var(--rec-units) / var(--rec-units-line)
-          + var(--rec-chrome)
-        )
+        86vw,
+        calc(var(--rec-units) * var(--rec-ink-max) + var(--rec-chrome))
       );
-      scroll-snap-align: none;
+      max-inline-size: 86vw;
     }
   }
 
@@ -321,3 +276,83 @@ const tightestLine = desktopLines.reduce(
     .rec-tile :global(.glass-card:hover) { transform: none; }
   }
 </style>
+
+<script>
+  /**
+   * Cap the wrapped teaser at two rows.
+   *
+   * How many cards share a row is decided by the screenshots themselves - a
+   * row takes as many as fit at a readable type size - so the cap cannot be a
+   * card count in CSS. It has to be read off the finished layout: group the
+   * cards by the top edge they came to rest on, then hide everything below
+   * the second group.
+   *
+   * The strip keeps every card, because there is only ever one row of them
+   * and swiping is how you reach the rest.
+   */
+  const wall = document.querySelector<HTMLElement>('.recommendations-wall');
+
+  if (wall) {
+    const tiles = Array.from(wall.querySelectorAll<HTMLElement>('.rec-tile'));
+    const SAME_ROW = 8; // px tolerance - cards on a row start within a hair of each other
+
+    /**
+     * Whether the strip is on is read off the layout itself rather than from a
+     * matchMedia of the same breakpoint. The two are separate sources of truth
+     * that can disagree for an instant while a resize settles, and this one is
+     * by definition in step with the rows being measured.
+     */
+    const isStrip = () => getComputedStyle(wall).flexWrap === 'nowrap';
+
+    const apply = () => {
+      // Measure with everything showing, or a previous pass biases this one.
+      tiles.forEach((tile) => tile.removeAttribute('hidden'));
+      if (isStrip()) return;
+
+      const tops = tiles.map((tile) => tile.getBoundingClientRect().top);
+      const rows: number[] = [];
+      tops.forEach((top) => {
+        if (!rows.some((row) => Math.abs(row - top) < SAME_ROW)) rows.push(top);
+      });
+      rows.sort((a, b) => a - b);
+
+      const thirdRow = rows[2];
+      if (thirdRow === undefined) return;
+      tiles.forEach((tile, i) => {
+        if (tops[i] >= thirdRow - SAME_ROW) tile.setAttribute('hidden', '');
+      });
+    };
+
+    /**
+     * A ResizeObserver rather than the window resize event. Its callback runs
+     * after layout has settled at the new size, so the rows being measured are
+     * the ones actually on screen; the resize event can fire while the old
+     * layout is still in place, and the cap is then computed from stale rows.
+     * Guarding on the width means hiding cards - which only changes height -
+     * cannot feed back into another pass.
+     */
+    let lastWidth = -1;
+    const applyIfResized = () => {
+      const width = Math.round(wall.clientWidth);
+      if (width === lastWidth) return;
+      lastWidth = width;
+      apply();
+    };
+
+    new ResizeObserver(applyIfResized).observe(wall);
+
+    // Belt and braces: a ResizeObserver is delivered with the rendering steps,
+    // which a browser may pause for a hidden tab. The timer covers that, and
+    // its delay also means layout has settled - the bare resize event can fire
+    // while the previous layout is still in place, which would measure rows
+    // that are already gone.
+    let queued = 0;
+    addEventListener('resize', () => {
+      clearTimeout(queued);
+      queued = setTimeout(applyIfResized, 120);
+    });
+
+    // Web fonts change the card chrome, and so can change where rows break.
+    document.fonts?.ready.then(apply);
+  }
+</script>

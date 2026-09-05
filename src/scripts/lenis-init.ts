@@ -17,7 +17,7 @@ if (!prefersReducedMotion) {
     wheelMultiplier: 1,
     touchMultiplier: 1.5,
     smoothWheel: true,
-    // smoothTouch: false — native touch scroll feels better on mobile
+    // smoothTouch: false - native touch scroll feels better on mobile
   });
 
   // Drive GSAP's ticker from Lenis

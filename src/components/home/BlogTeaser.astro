@@ -1,6 +1,6 @@
 ---
 /**
- * BlogTeaser — home page blog section.
+ * BlogTeaser - home page blog section.
  * Shows up to 3 latest posts in a horizontal grid.
  */
 import GlassCard from '../ui/GlassCard.astro';
@@ -106,7 +106,7 @@ function formatDate(date: Date): string {
 
   .blog-tile__date {
     display: block;
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-small);
     color: var(--color-mist);
     margin-block-end: 0.5rem;

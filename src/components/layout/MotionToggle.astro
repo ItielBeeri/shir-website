@@ -1,0 +1,102 @@
+---
+/**
+ * MotionToggle - the in-page mechanism required by WCAG 2.0 SC 2.2.2
+ * (Pause, Stop, Hide), adopted in Israel through ת"י 5568 חלק 1.
+ *
+ * The site runs several animations that loop indefinitely and sit alongside the
+ * content: the watercolour BackgroundField drift, the BreathDivider waves and
+ * the hero rules. `prefers-reduced-motion` already covers visitors who set that
+ * preference at OS level, but the criterion asks for a mechanism *in the page*
+ * - this is it.
+ *
+ * State lives on <html data-motion>, is persisted in localStorage, and is
+ * restored before first paint by the inline script in BaseLayout. The button
+ * is rendered pressed/unpressed via aria-pressed so it announces its state.
+ *
+ * Lives in the footer, beside the accessibility statement link.
+ */
+---
+
+<button
+  type="button"
+  class="motion-toggle"
+  id="motion-toggle"
+  aria-pressed="false"
+>
+  <span class="motion-toggle-icon" aria-hidden="true"></span>
+  <span class="motion-toggle-label" data-label-on="עצירת אנימציות" data-label-off="הפעלת אנימציות"
+    >עצירת אנימציות</span
+  >
+</button>
+
+<style>
+  .motion-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: none;
+    padding: 0.5rem 0;
+    /* 44px minimum hit target, met through line-height + padding */
+    min-block-size: 44px;
+    color: var(--color-mist);
+    font-size: var(--fs-small);
+    cursor: pointer;
+    transition: color var(--dur-fast);
+  }
+  .motion-toggle:hover { color: var(--color-ink-soft); }
+  .motion-toggle:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Two concentric rings - filled when motion is on, hollow when paused.
+     Purely supporting: the label carries the meaning (SC 1.4.1). */
+  .motion-toggle-icon {
+    inline-size: 12px;
+    block-size: 12px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .motion-toggle[aria-pressed='true'] .motion-toggle-icon {
+    background: transparent;
+  }
+</style>
+
+<script>
+  const KEY = 'shir:motion';
+  const root = document.documentElement;
+  const btn = document.getElementById('motion-toggle');
+  const label = btn?.querySelector<HTMLElement>('.motion-toggle-label');
+
+  /** Reflect current state onto the button. Pressed === animations stopped. */
+  const sync = () => {
+    const off = root.getAttribute('data-motion') === 'off';
+    btn?.setAttribute('aria-pressed', String(off));
+    if (label) {
+      label.textContent = off
+        ? (label.dataset.labelOff ?? 'הפעלת אנימציות')
+        : (label.dataset.labelOn ?? 'עצירת אנימציות');
+    }
+  };
+
+  btn?.addEventListener('click', () => {
+    const off = root.getAttribute('data-motion') === 'off';
+    if (off) {
+      root.removeAttribute('data-motion');
+    } else {
+      root.setAttribute('data-motion', 'off');
+    }
+    try {
+      localStorage.setItem(KEY, off ? 'on' : 'off');
+    } catch (e) {
+      /* storage blocked - the choice still applies for this page view */
+    }
+    sync();
+  });
+
+  sync();
+</script>

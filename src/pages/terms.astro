@@ -1,0 +1,58 @@
+---
+/**
+ * תנאי שימוש ומדיניות פרטיות - combined, which Israeli law permits.
+ *
+ * The accessibility statement is deliberately NOT merged in here: תקנה 35
+ * requires it to be published prominently and on its own (/accessibility).
+ */
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import ContactPill from '../components/layout/ContactPill.astro';
+import BreathDivider from '../components/ui/BreathDivider.astro';
+import LegalPage from '../components/legal/LegalPage.astro';
+import { loadToml } from '../lib/content';
+import { z } from 'zod';
+
+const sectionSchema = z.object({
+  title: z.string(),
+  body:  z.array(z.string()).optional(),
+  items: z.array(z.string()).optional(),
+});
+
+const termsSchema = z.object({
+  meta: z.object({
+    title:         z.string(),
+    description:   z.string(),
+    updated:       z.string(),
+    updated_label: z.string(),
+    intro:         z.string(),
+  }),
+  parts: z.array(
+    z.object({
+      heading:  z.string(),
+      sections: z.array(sectionSchema),
+    }),
+  ),
+});
+
+const doc = loadToml('pages/terms.toml', termsSchema);
+---
+
+<BaseLayout title={doc.meta.title} description={doc.meta.description}>
+  <Header />
+
+  <main id="main">
+    <LegalPage
+      title={doc.meta.title}
+      updated={doc.meta.updated}
+      updatedLabel={doc.meta.updated_label}
+      intro={doc.meta.intro}
+      parts={doc.parts}
+    />
+  </main>
+
+  <BreathDivider />
+  <Footer />
+  <ContactPill />
+</BaseLayout>

@@ -4,6 +4,7 @@ import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import ContactPill from '../components/layout/ContactPill.astro';
 import GlassCard from '../components/ui/GlassCard.astro';
+import RecommendationText from '../components/ui/RecommendationText.astro';
 import CTAButton from '../components/ui/CTAButton.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
@@ -59,7 +60,7 @@ const recommendations = loadRecommendations().map((item) => {
               class="rule-path"
               d="M0,6 Q80,0 160,6 Q240,12 320,6"
               fill="none"
-              stroke="var(--color-mist)"
+              stroke="var(--color-rule)"
               stroke-width="1"
               stroke-linecap="round"
             />
@@ -91,7 +92,7 @@ const recommendations = loadRecommendations().map((item) => {
                   loading="lazy"
                   decoding="async"
                 />
-                <p class="sr-only">{rec.transcription}</p>
+                <RecommendationText text={rec.transcription} />
               </div>
             </GlassCard>
           </article>
@@ -136,10 +137,10 @@ const recommendations = loadRecommendations().map((item) => {
     <BreathDivider />
 
     <!-- CTA strip -->
-    <section class="therapy-cta container" aria-label="תיאום פגישה">
+    <section class="recs-cta container" aria-label="תיאום פגישה">
       <ScrollReveal>
         <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
-        <div class="cta-group">
+        <div class="recs-cta-group">
           <CTAButton
             href={contact.whatsapp_url}
             label={contact.whatsapp_label}
@@ -183,7 +184,7 @@ const recommendations = loadRecommendations().map((item) => {
   }
 
   .recs-page-title {
-    font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: var(--fs-display);
     font-weight: 300;
     letter-spacing: -0.01em;
@@ -319,28 +320,22 @@ const recommendations = loadRecommendations().map((item) => {
     box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
   }
 
-  /* CTA Section */
+  /* CTA Section - mirrors the home page closing contact block
+     (.closing-section / .closing-cta in src/pages/index.astro) */
   .recs-cta {
     padding-block: var(--space-section);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 1rem;
-  }
-
-  .recs-cta-text {
-    font-size: var(--fs-body);
-    color: var(--color-ink-soft);
-    margin-block-end: 1rem;
-    max-inline-size: 50ch;
   }
 
   .recs-cta-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
+    padding-block-start: 2rem;
   }
 
   .sr-only {

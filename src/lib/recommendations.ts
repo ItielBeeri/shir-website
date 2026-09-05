@@ -25,7 +25,7 @@ const recommendationsSchema = z.object({
  * Load active recommendations from recommendations.toml.
  *
  * Ordering guarantee: the returned array keeps the exact order in which
- * recommendations appear in the TOML file — never sorted by id, image
+ * recommendations appear in the TOML file - never sorted by id, image
  * file name, or any other key. Callers must not reorder it.
  */
 export function loadRecommendations(): Recommendation[] {

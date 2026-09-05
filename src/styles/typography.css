@@ -1,17 +1,17 @@
 /* ============================================================
-   TYPOGRAPHY — font loading, scale application, text styles
+   TYPOGRAPHY - font loading, scale application, text styles
    ============================================================ */
 
-/* Google Fonts — Hebrew subset only */
-@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;600&family=Frank+Ruhl+Libre:wght@300;400;500;700&subset=hebrew&display=swap');
+/* Google Fonts - Hebrew subset only */
+/* Fonts are self-hosted - see the @font-face block at the top of public/global.css. */
 
 /* Font stacks */
 .font-sans {
-  font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
-.font-serif {
-  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* Scale helpers */
@@ -47,7 +47,7 @@
 }
 
 .text-kicker {
-  font-family: 'Assistant', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.95rem;
   font-weight: 400;
   color: var(--color-ink-soft);
@@ -68,9 +68,9 @@ em, i {
   font-weight: 600;
 }
 
-/* Blockquote — Frank Ruhl Libre large */
+/* Blockquote - Heebo large */
 blockquote {
-  font-family: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-h2);
   font-weight: 300;
   line-height: 1.55;

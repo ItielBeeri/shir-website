@@ -1,6 +1,6 @@
 ---
 /**
- * BackgroundField — the fixed watercolor layer present on every page.
+ * BackgroundField - the fixed watercolor layer present on every page.
  * Layer 1: background.jpg (fixed, parallax via JS translateY on oversized image)
  * Layer 2: SVG grain overlay (~4% opacity)
  * Layer 3: drifting radial gradient blobs (CSS keyframes)
@@ -30,7 +30,10 @@
     <div class="blob blob-3"></div>
   </div>
 
-  <!-- Layer 4: accent tint (driven by data-theme) -->
+  <!-- Layer 4: legibility veil - see note in the stylesheet below -->
+  <div class="bg-layer bg-veil"></div>
+
+  <!-- Layer 5: accent tint (driven by data-theme) -->
   <div class="bg-layer bg-accent-tint"></div>
 </div>
 
@@ -48,7 +51,7 @@
   }
 
   /*
-   * Layer 1 — oversized by 30% vertically so parallax translateY
+   * Layer 1 - oversized by 30% vertically so parallax translateY
    * never exposes bare background. Starts 15% above the viewport.
    * JS scrolls it upward at ~0.18× speed.
    */
@@ -62,7 +65,7 @@
     /* will-change set only while animating (added/removed by JS) */
   }
 
-  /* Layer 2 — grain SVG tiled */
+  /* Layer 2 - grain SVG tiled */
   .bg-grain {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     background-repeat: repeat;
@@ -72,7 +75,7 @@
   /* hide inner svg */
   .bg-grain svg { display: none; }
 
-  /* Layer 3 — ambient blobs */
+  /* Layer 3 - ambient blobs */
   .bg-blobs {
     pointer-events: none;
   }
@@ -112,7 +115,28 @@
     animation: drift-3 90s ease-in-out infinite alternate;
   }
 
-  /* Layer 4 — accent tint */
+  /*
+   * Layer 4 - legibility veil.
+   *
+   * The watercolour photograph swings from luminance 0.34 to 0.98. Measured
+   * against the raw image, --color-ink-soft (the site's body-text colour)
+   * dropped to 2.63:1 over the darker 6% of it, well under the 4.5:1 that
+   * WCAG 2.0 SC 1.4.3 requires and that ת"י 5568 חלק 1 makes binding here.
+   * Text sits directly on this backdrop across the site, so the failure was
+   * real rather than theoretical.
+   *
+   * A flat 30% paper wash lifts the darkest areas without flattening the
+   * watercolour: it raises the worst case to 4.54:1 for body text and 6.77:1
+   * for --color-ink. Placed above the blobs because they blend in multiply
+   * and would otherwise darken the page again after the veil.
+   */
+  .bg-veil {
+    background: var(--color-paper);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* Layer 5 - accent tint */
   .bg-accent-tint {
     background: var(--accent, transparent);
     mix-blend-mode: soft-light;
@@ -141,9 +165,9 @@
 
 <script>
   /**
-   * Background parallax — translates the oversized bg-image layer
+   * Background parallax - translates the oversized bg-image layer
    * based on SCROLL PROGRESS (0→1) within a bounded range.
-   * The image is 130% tall (top/bottom -15%) — it shifts up to 15% of
+   * The image is 130% tall (top/bottom -15%) - it shifts up to 15% of
    * viewport height as the user scrolls from 0% → 100% of the page.
    * This guarantees the image never leaves the viewport.
    * Disabled when prefers-reduced-motion: reduce.
