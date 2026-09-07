@@ -275,6 +275,20 @@
     ],
     "digest": "3b1c0a515a6b7c46"
   },
+  "/img/content/shir-272.jpg": {
+    "key": "content/shir-272",
+    "width": 3456,
+    "height": 4856,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "2d976d0bb06eca6c"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
