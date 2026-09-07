@@ -233,19 +233,6 @@
     ],
     "digest": "8e14c0889557b9d0"
   },
-  "/img/content/contact-2.jpg": {
-    "key": "content/contact-2",
-    "width": 1377,
-    "height": 768,
-    "widths": [
-      400,
-      640,
-      900,
-      1280,
-      1377
-    ],
-    "digest": "8e14c0889557b9d0"
-  },
   "/img/content/light-in-shadow.jpg": {
     "key": "content/light-in-shadow",
     "width": 1709,
