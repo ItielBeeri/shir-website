@@ -28,6 +28,7 @@ interface Props {
   subtitle: string;
   modalityTagline: string;
   portraitImageId: string;
+  portraitFetchPriority?: 'high' | 'auto';
   introParagraph1: string;
   introParagraph2: string;
   ctaLabel: string;
@@ -40,6 +41,7 @@ const {
   subtitle,
   modalityTagline,
   portraitImageId,
+  portraitFetchPriority = 'auto',
   introParagraph1,
   introParagraph2,
   ctaLabel,
@@ -59,6 +61,7 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
         id={portraitImageId}
         aspect="3/4"
         loading="eager"
+        fetchpriority={portraitFetchPriority}
         sizes="(max-width: 767px) 240px, 380px"
       />
     </a>
