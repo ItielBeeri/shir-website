@@ -77,6 +77,10 @@ alt = "לב מונח בתוך ידיים עוטפות"
 file = "/img/content/contact.jpg"
 alt = "אישה נשענת על אישה אחרת בריקוד קונטקט"
 
+[contact-2]
+file = "/img/content/contact-2.jpg"
+alt = "אישה נשענת על אישה אחרת בריקוד קונטקט"
+
 [light-in-shadow]
 file = "/img/content/light-in-shadow.jpg"
 alt = "אישה מביטה בצל של עצמה ורואה אותו מחזיק מתנה יקרה מוארת"
