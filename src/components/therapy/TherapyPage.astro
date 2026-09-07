@@ -1,12 +1,7 @@
 ---
 /**
- * TherapyPage - shared template for all three therapy pages.
- * 
- * New layout: Content-first, no hero barrier.
- * - Title/image block at top (natural height)
- * - Intro text flows directly below
- * - Body content continues naturally with the text
- * - Images are integrated throughout via the MDX content
+ * Shared template for every therapy page; the pages themselves are thin
+ * wrappers. Body images come from the MDX, via the `components` map below.
  */
 import BaseLayout from '../layout/BaseLayout.astro';
 import Header from '../layout/Header.astro';
@@ -67,7 +62,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   <Header />
 
   <main id="main">
-    <!-- Intro: Image + title block (natural height, not full viewport) -->
     <section class="therapy-intro" data-theme={accent} aria-labelledby="therapy-h1">
       <div class="therapy-intro__inner container">
         <div class="therapy-intro__text">
@@ -101,7 +95,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
       </div>
     </section>
 
-    <!-- Body content from MDX - text flows freely -->
     <section class="therapy-body container" data-reveal>
       <div class="prose">
         <Content components={{ SoftImage }} />
@@ -121,7 +114,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 
     <BreathDivider />
 
-    <!-- CTA strip -->
     <section class="therapy-cta container" aria-label="תיאום פגישה">
       <ScrollReveal>
         <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
@@ -149,7 +141,6 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
       </ScrollReveal>
     </section>
 
-    <!-- Related therapies -->
     <section class="therapy-related container" aria-labelledby="related-heading">
       <ScrollReveal>
         <SectionHeading title="מסלולים אחרים" center id="related-heading" />
@@ -308,7 +299,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     overflow: hidden;
   }
 
-  /* Clear floats after h2 headings to start fresh sections */
+  /* A floated body image must not run past its own section. */
   .prose :global(h2) {
     clear: both;
   }

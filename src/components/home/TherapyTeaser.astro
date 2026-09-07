@@ -1,14 +1,11 @@
 ---
-/**
- * TherapyTeaser - one modality card on the home triptych.
- * Full-viewport section with alternating image/text layout.
- */
+/** One modality on the home triptych. */
 import SoftImage from '../ui/SoftImage.astro';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
   entry: CollectionEntry<'therapies'>;
-  /** Alternate layout (image on left) */
+  /** Mirror the columns, so consecutive teasers alternate. */
   flip?: boolean;
 }
 
@@ -27,13 +24,11 @@ const slug = entry.slug;
   <div class="accent-overlay" aria-hidden="true"></div>
 
   <div class="teaser-inner container">
-    <!-- Image -->
     <div class="teaser-image" data-parallax data-speed="0.92" data-reveal>
       <!--
-        The mobile slot is 260px, not the full column: .teaser-image is capped
-        at 20vh there, so the 4/3 figure is sized by its height and comes out
-        around 220px wide however wide the phone is. Describing it as 92vw
-        fetched a source two rungs too large for every teaser on the page.
+        260px on mobile, not 92vw: .teaser-image is capped at 20vh there, so
+        the 4/3 figure is sized by its height and lands near 220px wide
+        whatever the phone's width.
       -->
       <SoftImage
         id={hero_image}
@@ -44,7 +39,6 @@ const slug = entry.slug;
       />
     </div>
 
-    <!-- Text -->
     <div class="teaser-text" data-reveal>
       <p class="teaser-kicker">{kicker}</p>
       <h2 id={`therapy-title-${slug}`} class="teaser-title">{title}</h2>
@@ -89,16 +83,15 @@ const slug = entry.slug;
     align-items: center;
     position: relative;
     z-index: 1;
-    /* Give content vertical breathing room within the 100svh container */
     padding-block: clamp(2rem, 4vh, 3rem);
   }
 
-  /* Flip: swap columns */
+  /* Mirrors the two columns; the children restore RTL for their content. */
   .therapy-teaser--flip .teaser-inner {
-    direction: ltr; /* temporarily flip direction for visual mirror */
+    direction: ltr;
   }
   .therapy-teaser--flip .teaser-inner > * {
-    direction: rtl; /* restore RTL for content inside */
+    direction: rtl;
   }
 
   .teaser-kicker {

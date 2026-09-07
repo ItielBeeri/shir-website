@@ -1,10 +1,6 @@
 ---
-/**
- * ParallaxLayer - sets --p CSS variable based on scroll position.
- * Children use: transform: translateY(calc(var(--p) * <factor>px))
- */
 interface Props {
-  /** Scroll speed factor (0 = fixed, 1 = normal, 0.5 = half speed) */
+  /** 0 = fixed, 1 = scrolls with the page. */
   speed?: number;
   class?: string;
 }

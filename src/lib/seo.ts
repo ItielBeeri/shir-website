@@ -1,10 +1,4 @@
-/**
- * seo.ts - SEO / JSON-LD helpers.
- * Used by BaseLayout and individual pages to generate structured data.
- *
- * Brand name and contact details are read from site.toml rather than repeated
- * here, so there is one place to change a phone number or an address.
- */
+/** JSON-LD builders. Brand and contact details come from site.toml, never from here. */
 import { loadToml } from './content';
 import { z } from 'zod';
 
@@ -26,10 +20,9 @@ const PERSON_NAME = site.brand.name;
 const WHATSAPP_URL = site.contact.whatsapp_url;
 const PHONE = site.contact.phone_href.replace(/^tel:/, '');
 const EMAIL = site.contact.email_href.replace(/^mailto:/, '');
-/** Schema.org areaServed / addressLocality - the town, without the "| זום" the footer adds. */
+/** areaServed / addressLocality - the town alone, without the "| זום" the footer adds. */
 const LOCATION = 'פרדס חנה-כרכור';
 
-/** Person schema - sitewide */
 export function personSchema() {
   return {
     '@context': 'https://schema.org',
@@ -43,7 +36,7 @@ export function personSchema() {
       addressCountry: 'IL',
     },
     contactPoint: [
-      // WhatsApp first (§5.4)
+      // WhatsApp first - the sitewide channel priority.
       {
         '@type': 'ContactPoint',
         contactType: 'WhatsApp',
@@ -63,7 +56,6 @@ export function personSchema() {
   };
 }
 
-/** LocalBusiness / HealthAndBeautyBusiness - home page */
 export function localBusinessSchema() {
   return {
     '@context': 'https://schema.org',
@@ -82,7 +74,7 @@ export function localBusinessSchema() {
   };
 }
 
-/** Service schema - therapy pages. `path` is the page's pathname, e.g. "/shiatsu". */
+/** `path` is the page's pathname, e.g. "/shiatsu". */
 export function serviceSchema(serviceType: string, path: string) {
   return {
     '@context': 'https://schema.org',
@@ -99,7 +91,6 @@ export function serviceSchema(serviceType: string, path: string) {
   };
 }
 
-/** BlogPosting schema */
 export function blogPostingSchema(opts: {
   title: string;
   excerpt: string;
@@ -120,7 +111,6 @@ export function blogPostingSchema(opts: {
   };
 }
 
-/** Inject JSON-LD into <head> */
 export function jsonLd(schema: object): string {
   return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
 }

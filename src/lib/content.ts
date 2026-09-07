@@ -3,13 +3,7 @@ import { resolve } from 'node:path';
 import { parse } from 'smol-toml';
 import type { ZodTypeAny, z } from 'zod';
 
-/**
- * Load and parse a TOML file from src/content/, validate with a Zod schema,
- * and return a fully-typed object.
- *
- * Usage:
- *   const home = await loadToml('pages/home.toml', homeSchema);
- */
+/** Load a TOML file from src/content/, validated against a Zod schema. */
 export function loadToml<T extends ZodTypeAny>(
   relativePath: string,
   schema: T,

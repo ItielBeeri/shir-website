@@ -7,48 +7,37 @@ export interface ScreenshotMetrics {
   /** Median ink height of one line of text, in the screenshot's own pixels. */
   textInk: number;
   /**
-   * Screenshot pixels per 1px of rendered text.
-   *
-   * Render a screenshot `typeUnits * k` CSS px wide and its text lands at `k`px
-   * of ink. So a row whose card widths are proportional to `typeUnits` shows
-   * every screenshot at the same apparent type size - which is the whole point:
-   * the screenshots are captures from different phones and apps, so their text
-   * is *not* a fixed fraction of their frame. Sizing by aspect ratio or by
-   * frame width instead makes one card's letters twice the size of its
-   * neighbour's.
+   * Screenshot pixels per 1px of rendered text: at `typeUnits * k` CSS px wide,
+   * the text lands at `k`px of ink. Card widths proportional to `typeUnits`
+   * therefore show every screenshot at the same apparent type size. Sizing by
+   * aspect ratio or frame width cannot - these are captures from different
+   * phones and apps, so their text is not a fixed fraction of their frame.
    */
   typeUnits: number;
 }
 
 /**
- * Luma below this counts as ink, and a row needs this many ink pixels to count
- * as part of a line of text. Both are deliberately strict: they measure the
- * dense core of a text line rather than the sparse tips of its ascenders, which
- * is what makes the reading stable. Loosening either one lets stray pixels from
- * borders and emoji stretch a run, and the measurement starts drifting with the
- * threshold instead of with the type.
+ * Ink threshold, and the ink pixels a row needs to count as text. Strict on
+ * purpose: they measure the dense core of a line, not the sparse tips of its
+ * ascenders. Loosen either and stray pixels from borders and emoji stretch a
+ * run, so the measurement drifts with the threshold instead of with the type.
  */
 const INK_LUMA = 100;
 const MIN_INK_PIXELS = 8;
-/** Text-line runs outside this fraction of the frame width are avatars, rules,
- *  photos or full-bleed images rather than a line of type. */
+/** Runs outside this fraction of the frame width are avatars, rules or photos. */
 const MIN_LINE_FRACTION = 0.005;
 const MAX_LINE_FRACTION = 0.075;
 /** Median of the current screenshot set - used only if no text is detectable. */
 const FALLBACK_TYPE_UNITS = 38;
-/** In a typical screenshots there the type units don't fill its entire width; also, a typical type unit width is less than its height */
+/** Type units don't fill the frame width, and a unit is narrower than it is tall. */
 const PADDING_AND_WIDTH_HEIGHT_RATIO_FACTOR = 0.75;
 
 const cache = new Map<string, Promise<ScreenshotMetrics>>();
 
 /**
- * Measure a screenshot in public/ at build time: its pixel dimensions and how
- * large the text inside it is.
- *
- * `publicPath` is the site-absolute path as written in the recommendation's
- * `screenshot` field, e.g.
- * "/img/recommendations/recommendation-01.jpeg". Results are cached per path -
- * several pages render the same screenshots in one build.
+ * Measure a screenshot in public/ at build time. `publicPath` is site-absolute,
+ * as written in a recommendation's `screenshot` field. Cached per path: several
+ * pages render the same screenshots in one build.
  */
 export function screenshotMetrics(publicPath: string): Promise<ScreenshotMetrics> {
   const cached = cache.get(publicPath);
@@ -82,10 +71,8 @@ async function measure(publicPath: string): Promise<ScreenshotMetrics> {
 }
 
 /**
- * Median height of a text line, found from the image's row-by-row ink profile:
- * consecutive rows carrying ink are one line of type, the gaps between them are
- * leading. Robust enough for chat and post screenshots, which is all this needs
- * to handle.
+ * Median text-line height from the row-by-row ink profile: consecutive inked
+ * rows are one line of type, the gaps between them leading.
  */
 function medianTextLine(
   data: Buffer,
@@ -107,7 +94,7 @@ function medianTextLine(
   for (let y = 0; y < height; y++) {
     const row = y * width * channels;
     let ink = 0;
-    // Every second column is plenty to tell a line of text from leading.
+    // Every second column is plenty to tell text from leading.
     for (let x = 0; x < width; x += 2) {
       if (data[row + x * channels] < INK_LUMA && ++ink >= MIN_INK_PIXELS) break;
     }

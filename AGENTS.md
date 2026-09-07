@@ -1,12 +1,18 @@
 # AGENTS.md - Shir Amitai Website
 
-Operational guide for developers and coding agents. It describes the repo as it is; where it and the code disagree, the code wins. Most files carry a header comment explaining *why* they are the way they are - read it before changing them.
+Operational guide for developers and coding agents. It describes the repo as it is; where it and the code disagree, the code wins.
 
-## 0. The rule for this file
+## 0. The rules about words
 
-**Under 200 lines, forever** - it loads into every session in this repo, so space here is taxed on all of them. An addition is a trade, never an append: name what it displaces and cut that first; reasoning belongs in the header comment of the file it explains.
+**This file stays under 200 lines, forever** - it loads into every session in this repo, so space here is taxed on all of them. An addition is a trade, never an append: name what it displaces and cut that first.
 
 **Weight by frequency, not recency.** A deep session makes its own subject feel fundamental; it rarely is. Most findings earn a clause, some a line, few a section.
+
+**Comments are taxed the same way.** Read a file's header comment before changing it; hold new ones to the same bar:
+- Restating the code or labelling a block: delete, don't shorten.
+- **Never a changelog** - no "previously", no what a session tried or measured, no arguing with the reader. Reasons in the present tense, as facts.
+- Earn one only where a simpler alternative exists that a maintainer would plausibly "fix" the code back to - then say why that is wrong, briefly.
+- Hebrew comments in `src/content/` instruct the owner, not a maintainer: keep them accurate.
 
 ## 1. Project overview
 
@@ -95,8 +101,8 @@ Two roles, one webfont. `--font-display` is **Heebo**, the only downloaded face,
 
 - **Logical properties only**: `margin-inline-*`, `padding-inline-*`, `inset-inline-*`, `text-align: start/end`. Never `margin-left/right` or `text-align: left/right`.
 - Let `dir="rtl"` flow do its work - don't fight it with `row-reverse`.
-- For directional transforms multiply by `--dir-x` (`-1` in RTL) instead of hardcoding a sign; see `.drawer` in `global.css`.
-- Mirror directional icons: "next" points left ←, "back" points right →. The mobile drawer slides in from the **right**.
+- For directional transforms multiply by `--dir-x` (`-1` in RTL) instead of hardcoding a sign; see `.contact-pill` in `global.css`.
+- Mirror directional icons: "next" points left ←, "back" points right →. The mobile drawer is pinned to `inset-inline-end` and slides in from the **left** in RTL - the same edge as the hamburger, so it reads as coming out of the tap target.
 - Rare LTR islands (email/phone strings, builder credit) wrap in `dir="ltr"`.
 
 ## 5. Content & data layer

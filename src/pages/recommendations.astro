@@ -44,7 +44,6 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
   <Header />
 
   <main id="main">
-    <!-- Intro / Page Header -->
     <section class="recs-page-intro container" aria-labelledby="recommendations-page-h1">
       <div class="recs-page-intro__content">
         <p class="text-kicker">מילים מאנשים שפגשו את הדרך</p>
@@ -68,7 +67,6 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
       </div>
     </section>
 
-    <!-- Masonry Gallery of Full Recommendation Screenshots -->
     <section class="recs-masonry-section container" aria-label="גלריית המלצות מלאה">
       <div class="recs-masonry">
         {recommendations.map((rec, index) => (
@@ -139,7 +137,6 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
 
     <BreathDivider />
 
-    <!-- CTA strip -->
     <section class="recs-cta container" aria-label="תיאום פגישה">
       <ScrollReveal>
         <SectionHeading kicker="מוזמנים לפנות" title="תיאום פגישה" center />
@@ -230,12 +227,6 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
     font-weight: 500;
   }
 
-  /* ============================================================
-     Masonry Grid
-     - Mobile: 1 column
-     - Tablet: 2 columns
-     - Desktop: 3 columns
-     ============================================================ */
   .recs-masonry-section {
     padding-block: var(--space-block) var(--space-section);
   }
@@ -323,8 +314,7 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
     box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
   }
 
-  /* CTA Section - mirrors the home page closing contact block
-     (.closing-section / .closing-cta in src/pages/index.astro) */
+  /* Mirrors .closing-section / .closing-cta in src/pages/index.astro. */
   .recs-cta {
     padding-block: var(--space-section);
     display: flex;

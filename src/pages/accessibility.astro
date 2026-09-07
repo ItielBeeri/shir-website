@@ -1,11 +1,7 @@
 ---
 /**
- * הצהרת נגישות - required by תקנה 35 to the Equal Rights for Persons with
- * Disabilities (Accessibility Adjustments to Service) Regulations, 2013.
- *
- * Kept as its own page, and linked from the footer of every page, because the
- * regulation requires the statement to be published "במקום בולט" - a section
- * buried inside a combined legal page would not satisfy that.
+ * הצהרת נגישות, required by תקנה 35. Its own page rather than a section of
+ * /terms because the regulation requires publication "במקום בולט".
  */
 import BaseLayout from '../components/layout/BaseLayout.astro';
 import Header from '../components/layout/Header.astro';
@@ -58,9 +54,6 @@ const site = loadToml('site.toml', siteSchema);
       updatedLabel={doc.meta.updated_label}
       sections={doc.sections}
     >
-      <!-- Contact channels for accessibility requests. Details come from
-           site.toml so there is one source of truth, and the order is the
-           site-wide WhatsApp → Phone → Email (AGENTS.md §9). -->
       <section class="a11y-contact" aria-labelledby="a11y-contact-heading">
         <h2 id="a11y-contact-heading" class="a11y-contact-title">דרכי פנייה בנושאי נגישות</h2>
         <div class="a11y-contact-actions">

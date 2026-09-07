@@ -31,7 +31,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   <Header />
 
   <main id="main">
-    <!-- Unified intro: portrait + title + opening -->
     <section class="about-intro container" aria-labelledby="about-h1">
       <div class="about-intro-grid">
         <div class="about-intro-text">
@@ -58,7 +57,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
       </div>
     </section>
 
-    <!-- Story -->
     <BreathDivider />
     <section class="about-story container" aria-labelledby="story-heading">
       <SectionHeading kicker="הסיפור שלי" title="המסע" id="story-heading" />
@@ -73,7 +71,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
       </div>
     </section>
 
-    <!-- Training -->
     <section class="about-training container" aria-labelledby="training-heading">
       <SectionHeading kicker="רקע מקצועי" title={about.training.title} id="training-heading" />
       <GlassCard>
@@ -85,7 +82,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
       </GlassCard>
     </section>
 
-    <!-- Philosophy -->
     <section class="about-philosophy container" aria-labelledby="philosophy-heading">
       <ScrollReveal>
         <blockquote class="philosophy-quote">
@@ -94,7 +90,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
       </ScrollReveal>
     </section>
 
-    <!-- CTA row to therapies -->
     <section class="about-therapies-cta container" aria-labelledby="therapies-cta-heading">
       <ScrollReveal>
         <SectionHeading title="המסלולים שלי" center id="therapies-cta-heading" />
@@ -138,12 +133,10 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   }
 
   /*
-   * The aspect ratio is repeated here, and it has to be. SoftImage states it on
-   * its own <figure>, but the figure also carries height: 100% so it can fill
-   * fixed-height slots elsewhere, and a specified height beats aspect-ratio.
-   * On this auto-height wrapper that left the figure measuring 0 until the
-   * photograph loaded. Stating the ratio here gives the grid a definite row
-   * from the first layout pass. Keep the two in step with the `aspect` prop.
+   * The ratio is duplicated from the `aspect` prop, and has to be: SoftImage's
+   * figure also carries height: 100%, which beats its own aspect-ratio, so on
+   * this auto-height wrapper it measures 0 until the photo loads. Keep the two
+   * in step.
    */
   .about-portrait {
     position: relative;
@@ -333,19 +326,15 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
       grid-template-columns: 1fr;
     }
     /*
-     * inline-size, not max-inline-size. Auto inline margins on a grid item
-     * absorb the free space instead of stretching it, so the box fell back to
-     * shrink-to-fit - and "fit" here means the photograph's own width, which is
-     * nothing until it has loaded. The column reserved no space, the divider
-     * and everything under it sat 347px too high, and the page jumped when the
-     * image landed: CLS 0.19, the whole of this page's instability. A definite
-     * width resolves in the first layout pass and the auto margins still centre
-     * it. min() keeps it from overflowing a viewport narrower than 260px.
+     * inline-size, not max-inline-size: the auto margins below absorb the free
+     * space rather than stretching the box, so a max leaves it shrink-to-fit -
+     * i.e. zero until the photo loads, which cost CLS 0.19 here. A definite
+     * width resolves in the first layout pass and still centres.
      */
     .about-portrait {
       inline-size: min(100%, 260px);
-      /* Drops the 40cqi cap from the base rule, which would otherwise still
-         win - max-inline-size clamps inline-size, not the other way round. */
+      /* The base rule's 40cqi cap would still win: max clamps inline-size,
+         not the other way round. */
       max-inline-size: none;
       margin-inline: auto;
     }

@@ -1,8 +1,4 @@
-/**
- * parallax.ts - applies translateY to [data-parallax] elements.
- * Sets CSS transform based on scroll position and data-speed factor.
- * Disabled when prefers-reduced-motion: reduce.
- */
+/** translateY on [data-parallax], by scroll position and data-speed. */
 
 function initParallax() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,7 +18,6 @@ function initParallax() {
     });
   };
 
-  // Use Lenis scroll if available, otherwise native
   const lenis = (window as unknown as Record<string, unknown>).__lenis;
   if (lenis && typeof (lenis as { on: (...args: unknown[]) => void }).on === 'function') {
     (lenis as { on: (event: string, cb: () => void) => void }).on('scroll', update);

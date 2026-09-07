@@ -1,24 +1,12 @@
 ---
 /**
- * RecommendationsSection - recommendations teaser for the home and therapy pages.
+ * The recommendations teaser. Screenshots show whole, never cropped and never
+ * behind a modal; /recommendations owns the full gallery.
  *
- * Shows the full screenshots (never a crop, never a modal, never inner scrolling):
- * two justified lines on desktop, a horizontal scroll-snap strip on narrow
- * screens. The heading row is the BlogTeaser's - kicker, title and a "see all"
- * text link at the far end. Two lines rather than the blog's one because a
- * recommendation carries a whole message, and only two of those fit across a
- * line at a readable size.
- *
- * Sizing is driven by the *type inside* each screenshot, not by its frame. The
- * screenshots are captures from different phones and apps, so a given frame
- * width says little about how big its letters are - sizing every card to a
- * shared height (or a shared width) leaves one card's text twice the size of its
- * neighbour's. Instead each card's width is proportional to the screenshot's
- * measured `typeUnits`, which lands every screenshot on the same rendered type
- * size, close to the page's own body size. Heights then differ - a longer
- * message really is taller - so cards sit centred on their line's axis.
- *
- * The dedicated /recommendations page owns the full masonry gallery.
+ * Card width is proportional to each screenshot's measured `typeUnits`, not to
+ * its frame: the captures come from different phones and apps, so sizing them
+ * to a shared width or height leaves one card's letters twice the size of its
+ * neighbour's. Heights differ instead, because a longer message is taller.
  */
 import GlassCard from '../ui/GlassCard.astro';
 import RecommendationText from '../ui/RecommendationText.astro';
@@ -44,10 +32,7 @@ interface Props {
   showAllLink?: boolean;
   allLinkText?: string;
   allLinkHref?: string;
-  /**
-   * How many cards to render, which is also how many the strip shows.
-   * The wrapped layout shows the first two rows of them; the strip shows all.
-   */
+  /** Cards rendered. The strip shows all of them; the wall shows two rows. */
   limit?: number;
 }
 
@@ -64,18 +49,6 @@ const {
 
 const total = recommendations.length;
 
-/**
- * Every card carries its own `typeUnits` - the screenshot's width divided by
- * the height of one line of text inside it. A card `typeUnits * k` px wide
- * renders that text at `k` px, whatever phone or app took the capture.
- *
- * There is deliberately no fixed cards-per-row figure. Each card asks for the
- * width its own text needs to stay readable, and the row packs whatever fits:
- * a row of text-heavy screenshots holds two, a row of lighter ones holds
- * three, at the very same viewport width. Pinning the count instead - which is
- * what this component used to do - forces text-dense captures to shrink under
- * the page's own body size to make the number come out right.
- */
 /** Card width in the wall: near-full-bleed on a phone, ~420px in the grid. */
 const REC_SIZES = '(max-width: 767px) 92vw, 420px';
 
@@ -135,7 +108,8 @@ const items = await Promise.all(
 <style>
   .recommendations { padding-block: var(--space-section); }
 
-  /* Heading row - same shape as .blog-teaser-header */
+  /* Same shape as .blog-teaser-header - the two sections sit one above the
+     other on the home page. */
   .recommendations-header {
     display: flex;
     align-items: flex-end;
@@ -161,29 +135,25 @@ const items = await Promise.all(
     color: var(--color-ink-soft);
   }
 
-  /* ============================================================
-     Cards
-
-     A card is `typeUnits * k` wide, where k is the rendered height of one
-     line of the screenshot's text. Cards on a row share one k, so every
-     screenshot reads at the same size no matter what captured it.
-
-     The row count is not set anywhere. Each card's flex-basis is the width
-     its own text needs; the row takes as many as fit and wraps. Two dense
-     screenshots or three sparse ones both fill a row at the same viewport
-     width, which is the point - a fixed count would have to shrink the dense
-     ones under the page's body size to make the number work.
-
-     Because basis AND grow are both proportional to typeUnits, the leftover
-     space on a row is shared in the same proportion, so the finished widths
-     stay proportional too and the shared type size survives justification.
-     ============================================================ */
+  /*
+   * A card is `typeUnits * k` wide, k being the rendered height of one line of
+   * its screenshot's text; cards on a row share one k, so every screenshot
+   * reads at the same size. No cards-per-row figure is set anywhere: each card
+   * asks for the width its own text needs and the row wraps at whatever fits,
+   * so two dense screenshots or three sparse ones both fill a row at the same
+   * viewport width. Pinning the count would shrink dense captures below the
+   * page's body size to make the number come out.
+   *
+   * basis and grow are both proportional to typeUnits, so leftover space is
+   * shared in the same proportion and the shared type size survives
+   * justification.
+   */
   .recommendations-wall {
     --rec-pad: clamp(0.6rem, 1.4vw, 1rem);
-    /* Card width that isn't the screenshot: padding both sides plus border */
+    /* Card width that isn't screenshot: padding both sides plus border. */
     --rec-chrome: calc(2 * var(--rec-pad) + 2px);
-    /* Target rendered text-line height. The page's own body copy measures
-       around 10.5px the same way, so screenshot text sits just above it. */
+    /* Target text-line height. Body copy measures ~10.5px the same way, so
+       screenshot text sits just above it. */
     --rec-ink: 11px;
     /* Ceiling, so a card alone on a row cannot balloon its type. */
     --rec-ink-max: 13px;
@@ -197,9 +167,8 @@ const items = await Promise.all(
   .rec-tile {
     display: block;
     flex-grow: var(--rec-units);
-    /* Shrink is what stops a single card wider than its container from
-       overflowing - together with the 100% ceiling below, nothing is ever
-       cropped once the strip is off. */
+    /* Shrink plus the 100% ceiling below is what keeps a card wider than its
+       container from overflowing. */
     flex-shrink: 1;
     flex-basis: calc(var(--rec-units) * var(--rec-ink) + var(--rec-chrome));
     max-inline-size: min(
@@ -208,14 +177,12 @@ const items = await Promise.all(
     );
   }
 
-  /* Two rows is the teaser's allowance, applied by the script below once the
-     rows have actually formed - the count per row follows the screenshots, so
-     no fixed number of cards expresses it. Beats the .rec-tile display rule
-     on specificity, which the bare [hidden] attribute would not. */
+  /* Needed for specificity over .rec-tile's own display rule, which the bare
+     [hidden] attribute would lose to. The script below sets it. */
   .rec-tile[hidden] { display: none; }
 
-  /* Without JavaScript the rows cannot be measured, so fall back to four -
-     two rows wherever two cards fit side by side. */
+  /* Rows cannot be measured without JS, so fall back to four cards - two rows
+     wherever two fit side by side. */
   :global(.no-js) .rec-tile:nth-child(n + 5) { display: none; }
 
   .rec-tile :global(.glass-card) {
@@ -233,20 +200,15 @@ const items = await Promise.all(
   .rec-tile__img {
     display: block;
     inline-size: 100%;
-    /* The screenshot's own aspect ratio - the whole message, never cropped */
+    /* The screenshot's own ratio - the whole message, never cropped. */
     block-size: auto;
     border-radius: calc(var(--radius-card) - 12px);
     box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
   }
 
-  /* ============================================================
-     Narrow screens: one horizontal scroll-snap strip.
-
-     The breakpoint is the blog teaser's, deliberately. Those two sections sit
-     one above the other on the home page, and a visitor resizing past a width
-     where one of them scrolls sideways and the other does not reads as a bug.
-     Above it both wrap into rows; at or below it both become strips.
-     ============================================================ */
+  /* Horizontal strip. The breakpoint is the blog teaser's on purpose: the two
+     sit one above the other, and resizing past a width where one scrolls
+     sideways and the other does not reads as a bug. */
   @media (max-width: 599px) {
     .recommendations-wall {
       flex-wrap: nowrap;
@@ -255,10 +217,9 @@ const items = await Promise.all(
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
-      /* Let the strip bleed past the container padding */
+      /* Negative margin lets the strip bleed past the container padding. */
       padding-inline: clamp(1rem, 5vw, 4rem);
       margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
-      /* Hide the scrollbar visually but keep the scrolling */
       scrollbar-width: none;
     }
 
@@ -269,7 +230,6 @@ const items = await Promise.all(
       flex-shrink: 0;
       flex-basis: auto;
       scroll-snap-align: start;
-      /* Whole card on screen at a time, never wider than the viewport. */
       inline-size: min(
         86vw,
         calc(var(--rec-units) * var(--rec-ink-max) + var(--rec-chrome))
@@ -285,28 +245,21 @@ const items = await Promise.all(
 
 <script>
   /**
-   * Cap the wrapped teaser at two rows.
-   *
-   * How many cards share a row is decided by the screenshots themselves - a
-   * row takes as many as fit at a readable type size - so the cap cannot be a
-   * card count in CSS. It has to be read off the finished layout: group the
-   * cards by the top edge they came to rest on, then hide everything below
-   * the second group.
-   *
-   * The strip keeps every card, because there is only ever one row of them
-   * and swiping is how you reach the rest.
+   * Caps the wall at two rows. The cap cannot be a card count in CSS, because
+   * how many cards share a row is decided by the screenshots; it has to be
+   * read off the finished layout. The strip is exempt - it is one row, and
+   * swiping is how you reach the rest.
    */
   const wall = document.querySelector<HTMLElement>('.recommendations-wall');
 
   if (wall) {
     const tiles = Array.from(wall.querySelectorAll<HTMLElement>('.rec-tile'));
-    const SAME_ROW = 8; // px tolerance - cards on a row start within a hair of each other
+    const SAME_ROW = 8; // px tolerance for "started on the same row"
 
     /**
-     * Whether the strip is on is read off the layout itself rather than from a
-     * matchMedia of the same breakpoint. The two are separate sources of truth
-     * that can disagree for an instant while a resize settles, and this one is
-     * by definition in step with the rows being measured.
+     * Read off the layout rather than a matchMedia of the same breakpoint:
+     * two sources of truth can disagree for an instant mid-resize, and this
+     * one is by definition in step with the rows being measured.
      */
     const isStrip = () => getComputedStyle(wall).flexWrap === 'nowrap';
 
@@ -330,12 +283,9 @@ const items = await Promise.all(
     };
 
     /**
-     * A ResizeObserver rather than the window resize event. Its callback runs
-     * after layout has settled at the new size, so the rows being measured are
-     * the ones actually on screen; the resize event can fire while the old
-     * layout is still in place, and the cap is then computed from stale rows.
-     * Guarding on the width means hiding cards - which only changes height -
-     * cannot feed back into another pass.
+     * ResizeObserver, not the resize event: its callback runs after layout has
+     * settled, so the rows measured are the ones on screen. The width guard
+     * stops hiding cards - a height-only change - from feeding back in.
      */
     let lastWidth = -1;
     const applyIfResized = () => {
@@ -347,11 +297,9 @@ const items = await Promise.all(
 
     new ResizeObserver(applyIfResized).observe(wall);
 
-    // Belt and braces: a ResizeObserver is delivered with the rendering steps,
-    // which a browser may pause for a hidden tab. The timer covers that, and
-    // its delay also means layout has settled - the bare resize event can fire
-    // while the previous layout is still in place, which would measure rows
-    // that are already gone.
+    // A ResizeObserver is delivered with the rendering steps, which a browser
+    // may pause for a hidden tab; the debounce covers that, and its delay is
+    // also what lets layout settle before measuring.
     let queued: ReturnType<typeof setTimeout>;
     addEventListener('resize', () => {
       clearTimeout(queued);

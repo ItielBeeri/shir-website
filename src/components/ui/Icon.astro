@@ -1,21 +1,13 @@
 ---
-/**
- * Icon component - inline SVG backed by src/icons/*.svg
- *
- * Usage:
- *   <Icon name="phone" label="טלפון" />          - labelled (role="img" + title)
- *   <Icon name="phone" decorative />              - aria-hidden="true"
- *   <Icon name="phone" class="my-class" size={24} />
- */
+/** Inline SVG from src/icons/. Pass `label` or `decorative`, never neither. */
 import { Icon as AstroIcon } from 'astro-icon/components';
 
 interface Props {
   name: string;
-  /** Hebrew label - renders as <title> inside SVG for screen readers */
+  /** Hebrew, and required unless decorative. */
   label?: string;
-  /** Mark as decorative - aria-hidden="true", no title needed */
   decorative?: boolean;
-  /** Size in px (applied as width & height). Default: 1em */
+  /** px, applied as both width and height. Defaults to 1em. */
   size?: number;
   class?: string;
 }

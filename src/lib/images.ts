@@ -3,34 +3,23 @@ import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 
 /**
- * Responsive sources for the images in public/img/.
+ * Responsive sources for images under public/img/.
  *
- * SoftImage renders a plain <img> out of public/ rather than going through
- * astro:assets, so Astro generates no modern formats and no srcset for us.
- * `scripts/optimize-images.mjs` fills that gap ahead of the build and writes
- * the manifest this module reads: for every source it records the intrinsic
- * size and the widths that were actually emitted into public/img/_opt/.
+ * SoftImage renders a plain <img> from public/, so Astro emits no modern
+ * formats and no srcset; scripts/optimize-images.mjs writes both, plus the
+ * manifest read here.
  *
- * Everything here degrades to nothing. An image with no manifest entry - one
- * just dropped in, before the images workflow has rebuilt - returns no sources
- * at all, and the callers fall back to the original <img src>. A missing
- * derivative is a missed optimisation, never a missing picture.
- *
- * The same holds for a *replaced* image, which matters more: a photo swapped
- * under a name that already has derivatives would otherwise keep serving the
- * old picture to every browser that takes AVIF, and that is precisely the
- * state of the repository between the commit that uploads it and the one the
- * workflow pushes back. Each entry therefore carries a digest of the source it
- * was built from, and an entry whose source no longer matches is ignored.
- * Wrong-but-fast is the one failure mode not on offer.
+ * A source whose digest no longer matches its manifest entry is ignored and
+ * the caller falls back to the original <img src>. Without that, a photo
+ * replaced under an existing name keeps serving the old derivatives to every
+ * browser that takes AVIF, until the images workflow catches up.
  */
 
 export interface ImageSources {
-  /** srcset for <source type="image/avif">, empty when unavailable. */
+  /** srcset, empty when unavailable. */
   avif: string;
-  /** srcset for <source type="image/webp">, empty when unavailable. */
   webp: string;
-  /** Intrinsic pixel size of the original - lets callers set width/height. */
+  /** Intrinsic pixel size of the original. */
   width?: number;
   height?: number;
 }
@@ -41,18 +30,13 @@ interface ManifestEntry {
   height: number;
   widths: number[];
   /**
-   * First 16 hex of the sha256 of the source the derivatives were built from.
-   * Used twice: to spot a source that has changed since (see currentEntry) and
-   * as part of every derivative's filename, which is what lets vercel.json
-   * serve _opt/ as immutable.
+   * First 16 hex of the source's sha256. Also part of every derivative's
+   * filename, which is what lets vercel.json serve _opt/ as immutable.
    */
   digest: string;
 }
 
-/**
- * The one place a derivative's path is spelled out on this side.
- * scripts/optimize-images.mjs writes the same string - keep the two in step.
- */
+/** scripts/optimize-images.mjs writes the same string - keep the two in step. */
 function derivativeUrl(entry: ManifestEntry, width: number, ext: 'avif' | 'webp'): string {
   return `/img/_opt/${entry.key}-${width}.${entry.digest}.${ext}`;
 }
@@ -60,7 +44,7 @@ function derivativeUrl(entry: ManifestEntry, width: number, ext: 'avif' | 'webp'
 const MANIFEST_PATH = 'public/img/_opt/manifest.json';
 
 let manifest: Record<string, ManifestEntry> | null = null;
-/** publicPath -> "source no longer matches its derivatives". Hash each file once. */
+/** publicPath -> source no longer matches its derivatives. Hash each file once. */
 const staleness = new Map<string, boolean>();
 
 function load(): Record<string, ManifestEntry> {
@@ -68,22 +52,19 @@ function load(): Record<string, ManifestEntry> {
   try {
     manifest = JSON.parse(readFileSync(resolve(process.cwd(), MANIFEST_PATH), 'utf-8'));
   } catch {
-    // No manifest yet - the site still builds and still renders every image.
+    // No manifest yet - callers fall back to the originals.
     manifest = {};
   }
   return manifest!;
 }
 
 /**
- * The largest emitted derivative of each modern format, as a bare URL.
+ * Largest derivative of each format, as bare URLs.
  *
- * For a full-bleed `object-fit: cover` layer, srcset is the wrong tool: the
- * box is portrait and the photograph landscape, so the rendered image is
- * roughly 2.3x the viewport's *height* wide - about 1968px on a phone and
- * 2098px on a 1440px desktop. Every viewport therefore wants the source at its
- * native width, and a `sizes` hint expressed in viewport widths would quietly
- * hand a phone a 400px file to stretch fivefold. One full-size AVIF, at ~27 KB
- * against the 401 KB JPEG, is both simpler and sharper.
+ * srcset is the wrong tool for a full-bleed `object-fit: cover` layer: the box
+ * is portrait and the photo landscape, so the rendered width tracks the
+ * viewport's *height* (~2.3x it) on every viewport, and a `sizes` hint in
+ * viewport widths would hand a phone a 400px file to stretch fivefold.
  */
 export function largestSources(publicPath: string): { avif: string; webp: string } {
   const entry = currentEntry(publicPath);
@@ -95,14 +76,7 @@ export function largestSources(publicPath: string): { avif: string; webp: string
   };
 }
 
-/**
- * A CSS `image-set()` for a public path, for the few places a decorative
- * backdrop genuinely wants a CSS background rather than an <img>.
- *
- * `preferredWidth` snaps to the nearest emitted width at or above it. Returns
- * a plain `url()` of the original when there are no derivatives, so the
- * declaration is always valid.
- */
+/** CSS `image-set()`, for the rare backdrop that wants a background over an <img>. */
 export function imageSet(publicPath: string, preferredWidth: number): string {
   const entry = currentEntry(publicPath);
   if (!entry) return `url("${publicPath}")`;
@@ -115,14 +89,7 @@ export function imageSet(publicPath: string, preferredWidth: number): string {
   ].join(', ');
 }
 
-/**
- * Build the AVIF and WebP srcsets for a public path such as
- * "/img/content/portrait-2.jpeg".
- */
-/**
- * The manifest entry for a source, or undefined when there is none or when the
- * source has changed since the derivatives were built.
- */
+/** The manifest entry for a source, or undefined when missing or stale. */
 function currentEntry(publicPath: string): ManifestEntry | undefined {
   const entry = load()[publicPath];
   if (!entry) return undefined;
@@ -133,8 +100,8 @@ function currentEntry(publicPath: string): ManifestEntry | undefined {
   let stale = true;
   try {
     const buf = readFileSync(resolve(process.cwd(), 'public', publicPath.replace(/^\//, '')));
-    // A view rather than the Buffer itself: @types/node types Buffer's backing
-    // store loosely enough that createHash rejects it under strict settings.
+    // A view, not the Buffer itself: @types/node types Buffer's backing store
+    // loosely enough that createHash rejects it under strict settings.
     const bytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
     stale = createHash('sha256').update(bytes).digest('hex').slice(0, 16) !== entry.digest;
   } catch {

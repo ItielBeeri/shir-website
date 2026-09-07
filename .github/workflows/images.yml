@@ -1,16 +1,10 @@
-# Builds the responsive image derivatives and commits them back.
+# Builds the responsive image derivatives and commits them back, so an owner
+# uploading through the GitHub web editor never has to run anything.
 #
-# Why: the site's images are rendered straight out of public/ rather than
-# through astro:assets, so scripts/optimize-images.mjs is what produces the
-# AVIF/WebP sources that <picture> points at. Shir edits through the GitHub web
-# editor and has no way to run it. This does it for her - she uploads a photo,
-# and a minute later the derivatives are in the repository and deployed.
-#
-# The window between her commit and this one is safe and needs no coordination:
-# the manifest records a digest of every source, so src/lib/images.ts declines
-# to serve derivatives that no longer match and the page falls back to the
-# original. New or replaced images look right immediately; they are merely
-# unoptimised until this run lands.
+# The window between their commit and this one needs no coordination: the
+# manifest carries a digest of every source, so src/lib/images.ts declines
+# mismatched derivatives and the page falls back to the original - correct
+# immediately, merely unoptimised until this run lands.
 name: images
 
 on:
@@ -21,17 +15,15 @@ on:
       - 'src/content/images.toml'
       - 'src/content/recommendations.toml'
       - 'scripts/optimize-images.mjs'
-      # A push made with GITHUB_TOKEN cannot start a workflow run, so this
-      # job's own commit is already incapable of retriggering it. The exclusion
-      # is here so that stays true if the token is ever swapped for a PAT.
+      # Redundant under GITHUB_TOKEN, whose pushes cannot trigger a run - kept
+      # so this job's own commit still cannot retrigger it under a PAT.
       - '!public/img/_opt/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# Two uploads in quick succession would otherwise race to push. Let the later
-# one wait rather than cancel: every push must be processed, not just the last.
+# Queue rather than cancel: every push must be processed, not just the last.
 concurrency:
   group: images
   cancel-in-progress: false
@@ -53,9 +45,8 @@ jobs:
 
       - run: pnpm run images
 
-      # Build too: a malformed images.toml or a screenshot path that points at
-      # nothing should fail here, loudly, rather than be committed and break the
-      # deploy. It costs seconds and the dependencies are already installed.
+      # A malformed manifest or a dead screenshot path should fail here rather
+      # than be committed and break the deploy.
       - run: pnpm run build
 
       - name: Commit derivatives

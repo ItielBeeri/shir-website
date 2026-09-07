@@ -1,26 +1,6 @@
 ---
-/**
- * IdentitySection - unified intro for homepage.
- * Combines the former Hero + IntroBlock into one cohesive section.
- *
- * Layout (desktop):
- *   ┌─────────────────────────────────────────────────────────┐
- *   │                     [portrait]                          │
- *   │                                                         │
- *   │   שיר אמיתי                                             │
- *   │   ─────────────────────                                 │
- *   │   מרחב לטיפול בגוף, נפש וקול                          │
- *   │                                                         │
- *   │   [intro paragraph text flowing naturally...]           │
- *   │                                                         │
- *   │   פסיכותרפיה גופנית · שיאצו · פתיחת קול                │
- *   │                                                         │
- *   │   [קרא עוד עליי ←]                                      │
- *   └─────────────────────────────────────────────────────────┘
- *
- * On mobile: portrait top, then title/text, then chips, then CTA.
- * No full-viewport hero barrier - content visible immediately.
- */
+/** The home page intro. Deliberately not a full-viewport hero: content is
+ *  visible without scrolling. */
 import SoftImage from '../ui/SoftImage.astro';
 
 interface Props {
@@ -55,7 +35,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 <section class="identity" aria-labelledby="identity-title">
   <div class="identity-inner container">
 
-    <!-- col: portrait (desktop left / mobile centre) -->
     <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
       <SoftImage
         id={portraitImageId}
@@ -66,7 +45,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
       />
     </a>
 
-    <!-- col: title block (desktop right / mobile top) -->
     <div class="identity-text">
       <a href={ctaHref} class="identity-text-link">
         <h1 id="identity-title" class="identity-title">{title}</h1>
@@ -86,10 +64,8 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
       </a>
 
       <!--
-        A real ul/li rather than role="list" with role="listitem" on the
-        anchors. role="listitem" overrode each anchor's own link role, so the
-        list read as three pieces of static text and the chips stopped being
-        announced as navigable at all.
+        A real ul/li, not role="listitem" on the anchors: that role overrides
+        the anchor's own, and the chips stop being announced as links.
       -->
       <ul class="identity-modalities">
         {modalities.map((m, i) => {
@@ -109,7 +85,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
       </ul>
     </div>
 
-    <!-- paragraph 1: aside the portrait on desktop; between title and portrait on mobile -->
     <div class="identity-intro-1">
       <a href={ctaHref} class="identity-text-link">
         <p class="identity-intro">
@@ -118,7 +93,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
       </a>
     </div>
 
-    <!-- paragraph 2: spans full width below both columns on desktop; below portrait on mobile -->
     <div class="identity-intro-2">
       <a href={ctaHref} class="identity-text-link">
         <p class="identity-intro">
@@ -140,12 +114,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     padding-block-end: var(--space-section);
   }
 
-  /* ── Desktop grid ──────────────────────────────────────────────────────────
-     portrait  │  title + modalities   (row 1)
-     portrait  │  paragraph 1          (row 2, portrait spans both rows)
-               ┴
-               paragraph 2 full width  (row 3, spans both columns)
-  ──────────────────────────────────────────────────────────────────────── */
   .identity-inner {
     max-inline-size: 1000px;
     display: grid;
@@ -189,7 +157,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     padding-block-start: 0.5rem;
   }
 
-  /* ── Shared text styles ──────────────────────────────────────────────── */
   .identity-text-link {
     text-decoration: none;
     color: inherit;
@@ -238,13 +205,13 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     flex-wrap: wrap;
     gap: 0.65rem;
     margin-block-end: 0.5rem;
-    /* There is no global list reset - see global.css. */
+    /* There is no global list reset. */
     list-style: none;
     padding-inline-start: 0;
     margin-block-start: 0;
   }
 
-  /* The li is a pass-through wrapper; the chip keeps every visual property. */
+  /* Pass-through wrapper; the chip keeps every visual property. */
   .identity-modalities li {
     display: flex;
   }
@@ -294,12 +261,6 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     color: var(--color-ink-soft);
   }
 
-  /* ── Mobile ────────────────────────────────────────────────────────────
-     title/subtitle/modalities
-     paragraph 1
-     portrait (centred)
-     paragraph 2 + CTA
-  ──────────────────────────────────────────────────────────────────────── */
   @media (max-width: 767px) {
     .identity {
       padding-block-end: 5rem;

@@ -1,11 +1,8 @@
 import type { CollectionEntry } from 'astro:content';
 
 /**
- * Sort blog posts for the blog index and home page teaser.
- *
- * 1. Posts with `order` > 0 appear first, sorted by `order` descending.
- * 2. Posts sharing the same `order` are sorted by date, descending.
- * 3. All remaining posts (no `order`) follow, sorted by date, descending.
+ * The one ordering for blog posts, shared by the blog index and home teaser:
+ * `order` > 0 first by `order` descending, then everything by date descending.
  */
 export function sortBlogPosts(posts: CollectionEntry<'blog'>[]): CollectionEntry<'blog'>[] {
   return [...posts].sort((a, b) => {

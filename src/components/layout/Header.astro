@@ -1,9 +1,5 @@
 ---
-/**
- * Header - sticky, transparent, becomes frosted glass on scroll.
- * RTL: logo on the right (inline-start), nav on the left (inline-end).
- * Data-driven from nav.toml. All items are flat top-level links.
- */
+/** Sticky header, frosted on scroll. Items come from nav.toml. */
 import { loadToml } from '../../lib/content';
 import { z } from 'zod';
 
@@ -18,9 +14,7 @@ const navSchema = z.object({
   items: z.array(navItemSchema),
 });
 
-// nav.toml is the single source of truth for page names and their order, for
-// both this header and the footer. Items flagged header = false are
-// footer-only, which keeps the top bar short.
+// header = false marks an item footer-only.
 const nav = loadToml('nav.toml', navSchema);
 const headerItems = nav.items.filter((item) => item.header);
 const currentPath = Astro.url.pathname;
@@ -29,9 +23,8 @@ const currentPath = Astro.url.pathname;
 <header class="site-header" id="site-header" data-home-morph={Astro.url.pathname === '/' ? 'true' : undefined}>
   <div class="header-bg" aria-hidden="true"></div>
   <div class="header-inner container">
-    <!-- Logo / wordmark - inline-start (right in RTL).
-         On the home page, it stays invisible until the hero scrolls away;
-         a morph animation transforms the hero title into this slot. -->
+    <!-- On the home page this starts hidden: the morph script fades it in as
+         the hero title scrolls away into this slot. -->
     <a
       href="/"
       class="wordmark"
@@ -43,7 +36,6 @@ const currentPath = Astro.url.pathname;
       שיר אמיתי
     </a>
 
-    <!-- Desktop nav - inline-end (left in RTL) -->
     <nav class="desktop-nav" aria-label="ניווט ראשי">
       <ul role="list">
         {headerItems.map((item) => (
@@ -62,8 +54,8 @@ const currentPath = Astro.url.pathname;
   </div>
 </header>
 
-<!-- Mobile hamburger button - sibling of <header> so it escapes the header's
-     stacking context and can float above the drawer. Visible on mobile only. -->
+<!-- A sibling of <header>, not a child: it must escape the header's stacking
+     context to float above the drawer. -->
 <button
   class="hamburger hit-target"
   id="mobile-menu-btn"
@@ -78,7 +70,6 @@ const currentPath = Astro.url.pathname;
   </span>
 </button>
 
-<!-- Mobile drawer -->
 <div
   class="mobile-drawer glass"
   id="mobile-drawer"
@@ -90,7 +81,6 @@ const currentPath = Astro.url.pathname;
 >
   <nav aria-label="ניווט ראשי - נייד">
     <ul role="list" class="drawer-nav">
-      <!-- Site title / home link - first item, anchors the drawer -->
       <li class="drawer-home-item">
         <a
           href="/"
@@ -117,7 +107,6 @@ const currentPath = Astro.url.pathname;
   </nav>
 </div>
 
-<!-- Overlay backdrop -->
 <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
 
 <style>
@@ -129,13 +118,10 @@ const currentPath = Astro.url.pathname;
     display: flex;
     align-items: center;
     isolation: isolate;
-    /* No transition here - avoids backdrop-filter jank.
-       The .header-bg layer fades via opacity instead. */
   }
 
-  /* Frosted-glass background as a separate layer so we can animate
-     opacity (cheap, GPU-composited) instead of backdrop-filter
-     (expensive, causes the visible "vibration" during scroll). */
+  /* The glass lives on its own layer so scroll animates opacity, not
+     backdrop-filter - transitioning the filter itself vibrates visibly. */
   .header-bg {
     position: absolute;
     inset: 0;
@@ -147,8 +133,6 @@ const currentPath = Astro.url.pathname;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--dur-base) var(--ease-soft);
-    /* Promote to own compositor layer so opacity changes don't
-       trigger relayout/repaint of the header content. */
     will-change: opacity;
     contain: layout paint;
   }
@@ -157,15 +141,13 @@ const currentPath = Astro.url.pathname;
     opacity: 1;
   }
 
-  /* On home page, inline styles from the morph script drive opacity directly;
-     CSS transitions would fight with the scrub, so disable them. */
+  /* The morph script sets opacity inline per frame; a CSS transition would
+     fight the scrub. */
   .site-header[data-home-morph] .header-bg {
     transition: none;
   }
 
-  /* On the home page, the header wordmark visibility is controlled
-     entirely by the morph script via inline styles.
-     The CSS below is only a no-JS / reduced-motion safety net. */
+  /* No-JS and reduced-motion safety net; otherwise the morph script owns this. */
   .site-header[data-home-morph] .wordmark {
     opacity: 0;
     pointer-events: none;
@@ -182,7 +164,6 @@ const currentPath = Astro.url.pathname;
     inline-size: 100%;
   }
 
-  /* Wordmark */
   .wordmark {
     font-family: var(--font-display);
     font-size: 1.5rem;
@@ -193,7 +174,6 @@ const currentPath = Astro.url.pathname;
   }
   .wordmark:hover { opacity: 0.7; }
 
-  /* Desktop nav */
   .desktop-nav ul {
     list-style: none;
     display: flex;
@@ -220,9 +200,6 @@ const currentPath = Astro.url.pathname;
   }
   .nav-link[aria-current="page"] { font-weight: 600; }
 
-  /* Hamburger - top-level sibling of <header>, hidden on desktop.
-     On mobile: position: fixed in top-left (RTL: inline-end) corner at z-index 300,
-     so it floats above the drawer (200) and backdrop (190). */
   .hamburger {
     display: none;
     background: transparent;
@@ -238,7 +215,6 @@ const currentPath = Astro.url.pathname;
     border-radius: 4px;
   }
 
-  /* Animated hamburger icon - three bars morph into × */
   .hamburger-icon {
     display: flex;
     flex-direction: column;
@@ -266,7 +242,7 @@ const currentPath = Astro.url.pathname;
   .bar-mid { transform: translateY(0); }
   .bar-bot { transform: translateY(6px); }
 
-  /* Open state - bars rotate into × */
+  /* Bars rotate into × */
   .hamburger[aria-expanded="true"] .bar-top {
     transform: translateY(0) rotate(45deg);
   }
@@ -282,28 +258,25 @@ const currentPath = Astro.url.pathname;
     .bar { transition: none; }
   }
 
-  /* Mobile drawer - always in DOM, off-screen by default via transform.
-     Anchored to inline-end (left edge in RTL) - same side as the hamburger button.
-     Slides in from the left so it feels connected to the tap target. */
+  /* Always in the DOM, held off-screen by transform. Anchored to the same
+     edge as the hamburger so it feels connected to the tap target. */
   .mobile-drawer {
     position: fixed;
     inset-block: 0;
     inset-inline-end: 0;          /* left edge in RTL */
     inline-size: min(320px, 85vw);
     z-index: 200;
-    /* Top padding clears the fixed hamburger button (56px) + breathing room */
+    /* Top padding clears the fixed 56px hamburger. */
     padding: calc(56px + 1rem) 1.5rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    /* Sharp corners on the screen edge (inline-end = left in RTL),
-       rounded on the exposed interior side (inline-start = right in RTL).
-       Overrides the uniform border-radius from .glass utility. */
-    border-start-start-radius: var(--radius-card);  /* top-right in RTL */
-    border-end-start-radius:   var(--radius-card);  /* bottom-right in RTL */
-    border-start-end-radius:   0;                   /* top-left in RTL - flush to screen */
-    border-end-end-radius:     0;                   /* bottom-left in RTL - flush to screen */
-    /* Push off-screen to the left (negative X) when closed */
+    /* Overrides .glass: rounded on the interior side, flush to the screen
+       edge on the inline-end side it is anchored to. */
+    border-start-start-radius: var(--radius-card);
+    border-end-start-radius:   var(--radius-card);
+    border-start-end-radius:   0;
+    border-end-end-radius:     0;
     transform: translateX(-100%);
     visibility: hidden;
     transition:
@@ -332,7 +305,6 @@ const currentPath = Astro.url.pathname;
   .drawer-link:hover,
   .drawer-link[aria-current="page"] { background: rgba(255, 255, 255, 0.4); }
 
-  /* Site title - home link at the top of the drawer */
   .drawer-home-item {
     margin-block-end: 0.5rem;
     padding-block-end: 0.75rem;
@@ -353,7 +325,6 @@ const currentPath = Astro.url.pathname;
   .drawer-home-link:hover,
   .drawer-home-link[aria-current="page"] { background: rgba(255, 255, 255, 0.4); }
 
-  /* Backdrop */
   .drawer-backdrop {
     position: fixed;
     inset: 0;
@@ -376,13 +347,11 @@ const currentPath = Astro.url.pathname;
       visibility var(--dur-base) step-start;
   }
 
-  /* Mobile breakpoint */
   @media (max-width: 767px) {
     .site-header { block-size: 56px; }
     .desktop-nav { display: none; }
 
-    /* Fix the hamburger independently so it floats above the drawer.
-       Pinned to the same corner as the drawer (inline-end = left in RTL). */
+    /* Fixed independently of the header so it floats above the drawer. */
     .hamburger {
       display: flex;
       position: fixed;
@@ -394,7 +363,6 @@ const currentPath = Astro.url.pathname;
     }
   }
 
-  /* Desktop: hide drawer entirely */
   @media (min-width: 768px) {
     .mobile-drawer,
     .drawer-backdrop { display: none !important; }
@@ -414,10 +382,9 @@ const currentPath = Astro.url.pathname;
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /**
-   * On the home page the wordmark fades in as the hero scrolls away. While it
-   * is invisible it must not be reachable by keyboard or exposed to screen
-   * readers - an invisible-but-focusable link fails SC 2.4.7 (Focus Visible),
-   * because the focus ring lands on nothing the user can see.
+   * While the wordmark is faded out it must leave the tab order: an
+   * invisible-but-focusable link fails SC 2.4.7, the focus ring landing on
+   * nothing the visitor can see.
    */
   const setWordmarkHidden = (hidden: boolean) => {
     if (!wordmark || !isHome) return;
@@ -430,7 +397,6 @@ const currentPath = Astro.url.pathname;
     }
   };
 
-  // --- Non-home pages: IntersectionObserver-based "scrolled" toggle ---
   if (header && !isHome) {
     const sentinel = document.createElement('div');
     sentinel.setAttribute('aria-hidden', 'true');
@@ -446,9 +412,8 @@ const currentPath = Astro.url.pathname;
     io.observe(sentinel);
   }
 
-  // --- Home page: hero title scrolls naturally; header wordmark appears
-  //     once hero exits viewport, with a scale-down entrance animation
-  //     that gives the impression of the hero title "becoming" the header. ---
+  // Home: the wordmark scales down into place as the hero exits, so the hero
+  // title reads as "becoming" the header.
   if (header && wordmark && headerBg && isHome) {
     const hero = document.querySelector<HTMLElement>('.hero');
 
@@ -463,8 +428,6 @@ const currentPath = Astro.url.pathname;
         );
         io.observe(hero);
       } else {
-        // Use ScrollTrigger to track hero exit progress.
-        // The header bg + wordmark appear as the hero scrolls out.
         ScrollTrigger.getById('header-morph')?.kill();
 
         ScrollTrigger.create({
@@ -476,11 +439,9 @@ const currentPath = Astro.url.pathname;
           onUpdate: (self) => {
             const p = self.progress;
 
-            // Header bg: fade in from 60% to 100% of hero scroll
             const bgFade = gsap.utils.clamp(0, 1, (p - 0.6) / 0.4);
             headerBg!.style.opacity = String(bgFade);
 
-            // Wordmark: appear from 50%, scale from 1.8 → 1
             const wordmarkProgress = gsap.utils.clamp(0, 1, (p - 0.5) / 0.5);
             const scale = gsap.utils.interpolate(1.8, 1, wordmarkProgress);
             const opacity = wordmarkProgress;
@@ -493,7 +454,6 @@ const currentPath = Astro.url.pathname;
             setWordmarkHidden(opacity < 0.5);
           },
           onLeave: () => {
-            // Fully scrolled past hero - clean final state
             wordmark!.style.opacity = '';
             wordmark!.style.transform = '';
             headerBg!.style.opacity = '';
@@ -501,11 +461,9 @@ const currentPath = Astro.url.pathname;
             setWordmarkHidden(false);
           },
           onEnterBack: () => {
-            // Re-entering hero zone - remove scrolled, script takes over
             header.classList.remove('scrolled');
           },
           onLeaveBack: () => {
-            // Back at top - wordmark hidden
             wordmark!.style.opacity = '0';
             wordmark!.style.transform = 'scale(1.8)';
             headerBg!.style.opacity = '0';
@@ -517,14 +475,12 @@ const currentPath = Astro.url.pathname;
     }
   }
 
-  // --- Mobile drawer ---
   const btn      = document.getElementById('mobile-menu-btn');
   const drawer   = document.getElementById('mobile-drawer');
   const backdrop = document.getElementById('drawer-backdrop');
 
   const isOpen = () => drawer?.getAttribute('data-open') === 'true';
 
-  /** Focusable descendants of the drawer, in DOM order. */
   const drawerFocusables = () =>
     Array.from(
       drawer?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? [],
@@ -537,8 +493,7 @@ const currentPath = Astro.url.pathname;
     btn?.setAttribute('aria-label', 'סגירת תפריט ניווט');
     backdrop?.classList.add('visible');
     document.body.style.overflow = 'hidden';
-    // Move focus into the dialog so keyboard and screen-reader users land
-    // inside it rather than continuing through the page behind (SC 2.4.3).
+    // Focus must enter the dialog, not continue through the page behind it.
     drawerFocusables()[0]?.focus();
   };
 
@@ -551,7 +506,7 @@ const currentPath = Astro.url.pathname;
     document.body.style.overflow = '';
   };
 
-  /** Close and return focus to the control that opened it. */
+  /** Closes and returns focus to the hamburger, unlike closeDrawer. */
   const dismissDrawer = () => {
     closeDrawer();
     btn?.focus();
@@ -568,8 +523,7 @@ const currentPath = Astro.url.pathname;
   });
 
   document.addEventListener('keydown', (e) => {
-    // Only act when the drawer is actually open. Previously every Escape
-    // anywhere on the site yanked focus to the hamburger button.
+    // Guard first, or Escape anywhere on the site yanks focus to the hamburger.
     if (!isOpen()) return;
 
     if (e.key === 'Escape') {
@@ -577,8 +531,8 @@ const currentPath = Astro.url.pathname;
       return;
     }
 
-    // aria-modal="true" promises focus stays inside the dialog; the hamburger
-    // (which closes it) counts as part of that group since it floats above.
+    // aria-modal="true" promises focus stays inside; the hamburger counts as
+    // part of the dialog since it floats above it and closes it.
     if (e.key === 'Tab') {
       const items = drawerFocusables();
       if (btn) items.push(btn);

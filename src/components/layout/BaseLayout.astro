@@ -1,19 +1,9 @@
 ---
 /**
- * BaseLayout - wraps every page with:
- * - <html lang="he" dir="rtl">
- * - Self-hosted Heebo (preloaded)
- * - Global styles
- * - Skip link
- * - BackgroundField (fixed watercolor layer)
- * - Lenis + GSAP scripts
- *
- * NOTE: View Transitions were intentionally removed. Astro's bundled module
- * scripts only execute once and don't re-run on view-transition swaps, which
- * caused Lenis/GSAP/ScrollTrigger to hold stale DOM references after Back
- * navigation (broken header glass, broken scroll restore, etc).
- * Standard full-page navigation gives the browser native scroll restoration
- * and re-runs every script on every page - reliable and simple.
+ * No View Transitions here, deliberately: Astro's bundled module scripts run
+ * once and are not re-run on a view-transition swap, so Lenis, GSAP and
+ * ScrollTrigger end up holding stale DOM references after a Back navigation.
+ * Full-page navigation re-runs every script and keeps native scroll restoration.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -21,37 +11,24 @@ import BackgroundField from './BackgroundField.astro';
 import { SITE_URL } from '../../lib/seo';
 
 /*
- * public/global.css, read at build time and inlined below rather than linked.
+ * global.css is inlined rather than linked. It is render-blocking, and
+ * everything in public/ is served `max-age=0, must-revalidate` because those
+ * URLs are author-named and mutable - so every navigation, cold or repeat,
+ * paid a round trip (~250ms for an empty 304) before first paint.
  *
- * It is still the same file in the same place, still hand-authored, still
- * served byte for byte - the bytes just arrive inside the document instead of
- * one request later. What that buys: the stylesheet is render-blocking, and
- * Vercel serves everything in public/ as `max-age=0, must-revalidate` because
- * those URLs are author-named and their contents can change. So every single
- * navigation, cold or repeat, paid a full round trip - a 304 with an empty
- * body, measured at ~250ms - before the browser could paint anything.
- *
- * Caching it harder is not the fix: with a stable URL, a long max-age means an
- * edit to this file would never reach anyone who had already visited, and
- * there would be no way to reach them from the server. That is what content
- * hashing solves, and hashing is exactly what public/ deliberately does not
- * do, because this file is the surface a non-developer edits by name.
- *
- * ~5 KB gzipped now rides along with each HTML response, which is itself
- * uncached, and the CSS is always in step with the markup it styles.
+ * Caching it harder is not the alternative: on a stable URL a long max-age
+ * means an edit never reaches anyone who has already visited. Content hashing
+ * solves that, and public/ deliberately does not hash - this is the file a
+ * non-developer edits by name.
  */
 const globalCss = readFileSync(resolve(process.cwd(), 'public/global.css'), 'utf-8');
 
 interface Props {
   title: string;
   description: string;
-  /** data-theme value for body - drives accent color */
   theme?: 'default' | 'psychotherapy' | 'shiatsu' | 'voice';
-  /** Canonical URL override */
   canonical?: string;
-  /** OG image URL */
   ogImage?: string;
-  /** Keep the page out of search results - used by the 404 page */
   noindex?: boolean;
 }
 
@@ -75,11 +52,9 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="language" content="Hebrew" />
 
-    <!-- Runs before first paint. Two jobs, both accessibility:
-         1. Drop .no-js so [data-reveal] content is animated rather than
-            revealed outright - without JS it stays visible (see global.css).
-         2. Restore the visitor's "stop animations" choice (SC 2.2.2) before
-            anything has a chance to animate. -->
+    <!-- Must run before first paint: hands [data-reveal] over to JS (without
+         JS, .no-js keeps it visible - see global.css), and restores the
+         visitor's "stop animations" choice before anything can animate. -->
     <script is:inline>
       (function () {
         var d = document.documentElement;
@@ -89,7 +64,7 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
             d.setAttribute('data-motion', 'off');
           }
         } catch (e) {
-          /* private mode / storage blocked - motion simply stays on */
+          /* storage blocked - motion stays on */
         }
       })();
     </script>
@@ -99,7 +74,6 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <link rel="canonical" href={canonicalUrl} />
     <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
 
-    <!-- Open Graph -->
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
@@ -107,21 +81,16 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <meta property="og:image" content={new URL(ogImage, SITE_URL).href} />
     <meta property="og:type" content="website" />
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(ogImage, SITE_URL).href} />
 
-    <!-- hreflang -->
     <link rel="alternate" hreflang="he" href={canonicalUrl} />
-
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Heebo, self-hosted - see the @font-face block in global.css. The
-         body face is the visitor's own system font and needs no download.
-         No preconnect: nothing is fetched from a third-party origin. -->
+    <!-- The only downloaded face; body text uses the visitor's system font.
+         No preconnect - nothing comes from a third-party origin. -->
     <link
       rel="preload"
       href="/fonts/heebo-hebrew.woff2"
@@ -130,36 +99,27 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
       crossorigin
     />
 
-    <!-- Global styles: tokens, themes, reset, typography, RTL, utilities.
-         Inlined verbatim - see the note in the frontmatter. `is:inline` keeps
-         Astro from bundling, scoping or minifying it, so what ships is what
-         was written; it stays ahead of the component styles Astro injects
-         below it, which is the source order the cascade in §4.1 assumes. -->
+    <!-- `is:inline` keeps Astro from bundling, scoping or minifying this, and
+         keeps it ahead of the component styles Astro injects below - the
+         source order the cascade in global.css assumes. -->
     <style is:inline set:html={globalCss}></style>
 
-    <!-- Slot for page-specific head additions -->
     <slot name="head" />
   </head>
 
   <body data-theme={theme}>
-    <!-- Skip to main content -->
     <a class="skip-link" href="#main">דלג לתוכן</a>
 
-    <!-- Fixed watercolor background -->
     <BackgroundField />
 
-    <!-- Page content -->
     <slot />
 
-    <!-- Lenis smooth scroll + GSAP -->
     <script>
       import '@/scripts/lenis-init';
     </script>
-    <!-- Scroll reveal via IntersectionObserver -->
     <script>
       import '@/scripts/scroll-reveal';
     </script>
-    <!-- Parallax layers -->
     <script>
       import '@/scripts/parallax';
     </script>

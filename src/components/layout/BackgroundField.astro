@@ -1,24 +1,15 @@
 ---
 /**
- * BackgroundField - the fixed watercolor layer present on every page.
- * Layer 1: background.jpg (fixed, parallax via JS translateY on oversized image)
- * Layer 2: SVG grain overlay (~4% opacity)
- * Layer 3: drifting radial gradient blobs (CSS keyframes)
- * Layer 4: page-specific accent tint overlay (reads --accent)
+ * The fixed watercolor layer on every page.
  *
- * Layer 1 is an <img>, not a CSS background, and that is deliberate. It is the
- * largest painted element on every page, so it is the LCP element - and as a
- * background it was invisible to the preload scanner (it could not even be
- * requested until global.css had parsed) and carried no priority hint.
- * Lighthouse measured mobile LCP at 3.9s +/- 1.3s against it. As markup the
- * scanner finds it in the first bytes of the document, fetchpriority="high"
- * puts it at the head of the queue, and AVIF takes the 401 KB JPEG down to
- * ~27 KB. The visual result is identical: object-fit cover over a 130%-tall
- * box reproduces exactly what background-size: cover over top/bottom: -15%
- * did.
+ * Layer 1 is an <img> rather than a CSS background because it is the LCP
+ * element sitewide: as a background it is invisible to the preload scanner
+ * (unrequestable until global.css parses) and takes no priority hint, which
+ * measured ~25 mobile Lighthouse points. object-fit: cover over a 130%-tall
+ * box paints identically to background-size: cover over top/bottom: -15%.
  *
- * No srcset here - see largestSources() for why a cover-fit full-bleed layer
- * needs the native width on every viewport.
+ * No srcset - see largestSources() for why a full-bleed cover layer needs the
+ * native width on every viewport.
  */
 import { imageSources, largestSources } from '../../lib/images';
 
@@ -28,7 +19,7 @@ const { avif, webp } = largestSources(BACKGROUND);
 ---
 
 <div class="bg-field" aria-hidden="true">
-  <!-- Layer 1: watercolor photograph - the LCP element, see header note -->
+  <!-- Layer 1: watercolor photograph - the LCP element -->
   <picture>
     {avif && <source type="image/avif" srcset={avif} />}
     {webp && <source type="image/webp" srcset={webp} />}
@@ -62,7 +53,7 @@ const { avif, webp } = largestSources(BACKGROUND);
     <div class="blob blob-3"></div>
   </div>
 
-  <!-- Layer 4: legibility veil - see note in the stylesheet below -->
+  <!-- Layer 4: legibility veil -->
   <div class="bg-layer bg-veil"></div>
 
   <!-- Layer 5: accent tint (driven by data-theme) -->
@@ -89,17 +80,12 @@ const { avif, webp } = largestSources(BACKGROUND);
   }
 
   /*
-   * Layer 1 - oversized by 30% vertically so parallax translateY
-   * never exposes bare background. Starts 15% above the viewport.
-   * JS scrolls it upward at ~0.18× speed.
-   *
-   * block-size is stated explicitly because an absolutely positioned replaced
-   * element resolves its own intrinsic height and ignores `bottom`, unlike the
-   * empty div this layer used to be. 130% + top: -15% reproduces the old box
-   * exactly, and object-fit: cover reproduces background-size: cover.
+   * Layer 1 - 30% overscan vertically so parallax translateY never exposes
+   * bare background. block-size is stated even though `bottom` is set: an
+   * absolutely positioned replaced element resolves its own intrinsic height
+   * and ignores `bottom`.
    */
   .bg-image {
-    /* overscan: 130% tall, offset upward so top edge is hidden */
     top: -15%;
     bottom: -15%;
     inset-inline: 0;
@@ -107,20 +93,16 @@ const { avif, webp } = largestSources(BACKGROUND);
     block-size: 130%;
     object-fit: cover;
     object-position: center;
-    /* will-change set only while animating (added/removed by JS) */
   }
 
-  /* Layer 2 - grain SVG tiled */
   .bg-grain {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     background-repeat: repeat;
     opacity: 0.6;
     pointer-events: none;
   }
-  /* hide inner svg */
   .bg-grain svg { display: none; }
 
-  /* Layer 3 - ambient blobs */
   .bg-blobs {
     pointer-events: none;
   }
@@ -161,19 +143,10 @@ const { avif, webp } = largestSources(BACKGROUND);
   }
 
   /*
-   * Layer 4 - legibility veil.
-   *
-   * The watercolour photograph swings from luminance 0.34 to 0.98. Measured
-   * against the raw image, --color-ink-soft (the site's body-text colour)
-   * dropped to 2.63:1 over the darker 6% of it, well under the 4.5:1 that
-   * WCAG 2.0 SC 1.4.3 requires and that ת"י 5568 חלק 1 makes binding here.
-   * Text sits directly on this backdrop across the site, so the failure was
-   * real rather than theoretical.
-   *
-   * A flat 30% paper wash lifts the darkest areas without flattening the
-   * watercolour: it raises the worst case to 4.54:1 for body text and 6.77:1
-   * for --color-ink. Placed above the blobs because they blend in multiply
-   * and would otherwise darken the page again after the veil.
+   * Layer 4 - legibility veil, not decoration. Text sits directly on this
+   * backdrop, and on the raw photograph --color-ink-soft falls to 2.63:1 over
+   * its darker 6%; the 30% paper wash lifts the worst case to 4.54:1. Must
+   * stay above the blobs, which multiply and would darken the page again.
    */
   .bg-veil {
     background: var(--color-paper);
@@ -181,7 +154,6 @@ const { avif, webp } = largestSources(BACKGROUND);
     pointer-events: none;
   }
 
-  /* Layer 5 - accent tint */
   .bg-accent-tint {
     background: var(--accent, transparent);
     mix-blend-mode: soft-light;
@@ -210,12 +182,9 @@ const { avif, webp } = largestSources(BACKGROUND);
 
 <script>
   /**
-   * Background parallax - translates the oversized bg-image layer
-   * based on SCROLL PROGRESS (0→1) within a bounded range.
-   * The image is 130% tall (top/bottom -15%) - it shifts up to 15% of
-   * viewport height as the user scrolls from 0% → 100% of the page.
-   * This guarantees the image never leaves the viewport.
-   * Disabled when prefers-reduced-motion: reduce.
+   * Parallax driven by whole-page progress rather than by scroll delta, so
+   * travel stays bounded to the 15% overscan and the image can never leave
+   * the viewport on a long page.
    */
   function initBgParallax() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -225,19 +194,16 @@ const { avif, webp } = largestSources(BACKGROUND);
 
     img.style.willChange = 'transform';
 
-    // Max travel: 15% of viewport height (matches the 15% overscan on each side)
+    // Matches the 15% overscan on each side.
     const maxTravelPx = () => window.innerHeight * 0.15;
 
     const update = (scrollY: number) => {
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0;
-      // Map progress 0→1 to translateY -maxTravel → +maxTravel
-      // (image moves from "shifted down" at top of page to "shifted up" at bottom)
       const y = (progress - 0.5) * 2 * maxTravelPx();
       img.style.transform = `translateY(${-y}px)`;
     };
 
-    // Prefer Lenis scroll events when available
     let nativeListener: (() => void) | null = null;
     const tryLenis = () => {
       const lenis = (window as unknown as Record<string, unknown>).__lenis as
@@ -254,7 +220,7 @@ const { avif, webp } = largestSources(BACKGROUND);
     if (!tryLenis()) {
       nativeListener = () => update(window.scrollY);
       window.addEventListener('scroll', nativeListener, { passive: true });
-      // Try to hook Lenis once it initialises
+      // Lenis may not have initialised yet; hand over once it has.
       setTimeout(() => {
         if (tryLenis() && nativeListener) {
           window.removeEventListener('scroll', nativeListener);

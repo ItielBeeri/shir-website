@@ -1,11 +1,6 @@
 ---
-/**
- * CTAButton - primary/secondary/tertiary contact CTA.
- * Variants:
- *   primary   - WhatsApp (filled, accent-tinted)
- *   secondary - phone (outlined/ghost)
- *   tertiary  - email (text + icon only)
- */
+/** Variants map to the channel priority: primary WhatsApp, secondary phone,
+ *  tertiary email or read-more. */
 import Icon from './Icon.astro';
 
 interface Props {
@@ -14,7 +9,6 @@ interface Props {
   /** Icon name from src/icons/ */
   icon?: string;
   variant?: 'primary' | 'secondary' | 'tertiary';
-  /** Opens in new tab */
   external?: boolean;
   class?: string;
 }

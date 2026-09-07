@@ -1,11 +1,6 @@
 ---
-/**
- * ScrollReveal - wraps children with reveal-on-scroll behavior.
- * Uses IntersectionObserver (no library). CSS handles the animation.
- * data-stagger prop cascades children.
- */
 interface Props {
-  /** Stagger delay in ms between children */
+  /** Delay in ms cascaded across nested [data-reveal] children. */
   stagger?: number;
   class?: string;
 }

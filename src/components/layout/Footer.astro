@@ -1,9 +1,4 @@
 ---
-/**
- * Footer - calm, generous (~50vh on desktop).
- * Three-column layout (RTL): Navigation | Contact | Social
- * Bottom bar: copyright + accessibility link + builder credit (EN, by design)
- */
 import { loadToml } from '../../lib/content';
 import { z } from 'zod';
 import Icon from '../ui/Icon.astro';
@@ -43,22 +38,17 @@ const siteSchema = z.object({
 });
 
 const site = loadToml('site.toml', siteSchema);
-// Same source as the header (nav.toml), so a renamed page is renamed in both.
+// Same source as the header, so a renamed page is renamed in both.
 const nav = loadToml('nav.toml', navSchema);
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-  <!-- BreathDivider wave is rendered by the page above the footer -->
-
   <!--
-    Large watermark wordmark. The brand name is handed to CSS as a custom
-    property and painted by ::before rather than being a text node, because
-    this is decoration - a 6%-opacity wash of the name behind the footer - and
-    WCAG 1.4.3 exempts pure decoration from the contrast minimum. Automated
-    checkers cannot see that exemption and read the 1.11:1 wash as failing body
-    text; content that is genuinely presentational belongs in the stylesheet.
-    The string itself still comes from site.toml, never from the CSS file.
+    The watermark is painted by ::before from a custom property rather than
+    being a text node: it is decoration, which WCAG 1.4.3 exempts from the
+    contrast minimum, but automated checkers cannot see the exemption and read
+    the 1.11:1 wash as failing body text. The string still comes from site.toml.
   -->
   <div
     class="footer-wordmark"
@@ -67,7 +57,6 @@ const year = new Date().getFullYear();
   ></div>
 
   <div class="container footer-body">
-    <!-- Column 1: Navigation -->
     <nav class="footer-col" aria-label="ניווט - כותרת תחתונה">
       <p class="footer-col-title">ניווט</p>
       <ul role="list">
@@ -77,11 +66,10 @@ const year = new Date().getFullYear();
       </ul>
     </nav>
 
-    <!-- Column 2: Contact - WhatsApp → Phone → Email (§5.4 order) -->
+    <!-- WhatsApp → phone → email: source order is the channel priority. -->
     <div class="footer-col" role="complementary" aria-label="פרטי יצירת קשר">
       <p class="footer-col-title">יצירת קשר</p>
       <ul role="list" class="contact-list">
-        <!-- 1. WhatsApp - primary -->
         <li>
           <a
             href={site.contact.whatsapp_url}
@@ -94,15 +82,12 @@ const year = new Date().getFullYear();
             {site.contact.whatsapp_label}
           </a>
         </li>
-        <!-- 2. Phone - secondary -->
         <li>
           <!--
-            The channel name is a visually hidden prefix rather than an
-            aria-label. An aria-label naming only the channel replaced the
-            number in the accessible name, so a speech-control user could not
-            say the number they can see - WCAG 2.5.3 Label in Name. As a prefix the
-            name reads "טלפון" then the number, so it still contains what is
-            on screen. The number itself stays in site.toml, as everywhere.
+            The channel name is a visually hidden prefix, not an aria-label: an
+            aria-label would replace the number in the accessible name, leaving
+            a speech-control user unable to say the number they can see
+            (WCAG 2.5.3 Label in Name).
           -->
           <a
             href={site.contact.phone_href}
@@ -113,7 +98,6 @@ const year = new Date().getFullYear();
             <span dir="ltr">{site.contact.phone_display}</span>
           </a>
         </li>
-        <!-- 3. Email - tertiary -->
         <li>
           <a
             href={site.contact.email_href}
@@ -128,7 +112,6 @@ const year = new Date().getFullYear();
       <p class="footer-location">{site.footer.location}</p>
     </div>
 
-    <!-- Column 3: Social / Elsewhere -->
     <div class="footer-col">
       <p class="footer-col-title">עוד</p>
       <ul role="list">
@@ -160,7 +143,6 @@ const year = new Date().getFullYear();
     </div>
   </div>
 
-  <!-- Bottom bar -->
   <div class="footer-bottom container" dir="rtl">
     <div class="footer-bottom-start">
       <span>
@@ -178,7 +160,7 @@ const year = new Date().getFullYear();
       <span class="footer-sep" aria-hidden="true">·</span>
       <MotionToggle />
     </div>
-    <!-- Builder credit - the one intentional English string on the site (§5.3.1) -->
+    <!-- The one intentional English string on the site. -->
     <span class="builder-credit" lang="en" dir="ltr">
       Built by <a
         href="https://www.linkedin.com/in/itiel"
@@ -203,7 +185,6 @@ const year = new Date().getFullYear();
     margin-block-start: var(--space-section);
   }
 
-  /* Large transparent wordmark */
   .footer-wordmark::before {
     content: var(--footer-wordmark, '');
   }
@@ -222,7 +203,6 @@ const year = new Date().getFullYear();
     margin-block-end: 3rem;
   }
 
-  /* Three-column layout */
   .footer-body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -256,7 +236,6 @@ const year = new Date().getFullYear();
   .footer-col a:hover,
   .footer-link:hover { color: var(--color-ink); }
 
-  /* Contact list */
   .contact-list { display: flex; flex-direction: column; gap: 0.75rem; }
 
   .contact-link {
@@ -274,12 +253,9 @@ const year = new Date().getFullYear();
     font-weight: 600;
   }
 
-  /*
-   * De-emphasised by colour rather than by opacity. opacity: 0.75 over
-   * --color-ink-soft resolved to #77847a on paper - 3.76:1, under the 4.5:1
-   * that WCAG 1.4.3 requires of this 14.7px text. --color-mist reads as the
-   * same step down in weight and measures 5.23:1.
-   */
+  /* De-emphasised by colour, not opacity: 0.75 over --color-ink-soft lands at
+     3.76:1 on paper, under the 4.5:1 this size needs. --color-mist reads as
+     the same step down and measures 5.23:1. */
   .contact-tertiary { color: var(--color-mist); }
 
   .footer-location {
@@ -288,7 +264,6 @@ const year = new Date().getFullYear();
     color: var(--color-mist);
   }
 
-  /* Bottom bar */
   .footer-bottom {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -324,7 +299,7 @@ const year = new Date().getFullYear();
   }
   .footer-bottom-link:hover { color: var(--color-ink-soft); }
 
-  /* Builder credit (§5.3.1) - aligned to inline-start (left), even when wrapped */
+  /* Physical `left`, not logical: the credit is an LTR island. */
   .builder-credit {
     display: block;
     font-size: 0.72rem;

@@ -1,7 +1,6 @@
 /**
- * scroll-reveal.ts - IntersectionObserver-based reveal for [data-reveal] elements.
- * On enter: adds .is-visible → CSS handles fade + translateY(0).
- * Supports data-stagger="80" to cascade direct children.
+ * Reveals [data-reveal] on enter by adding .is-visible; CSS does the transition.
+ * data-stagger="80" cascades nested [data-reveal] children.
  */
 
 function initReveal() {
@@ -13,7 +12,6 @@ function initReveal() {
         const el = entry.target as HTMLElement;
         el.classList.add('is-visible');
 
-        // Stagger direct children if requested
         const staggerMs = Number(el.dataset.stagger ?? 0);
         if (staggerMs > 0) {
           const children = el.querySelectorAll<HTMLElement>('[data-reveal]');
@@ -37,5 +35,4 @@ function initReveal() {
   });
 }
 
-// Run on initial load
 initReveal();

@@ -54,7 +54,6 @@ const blogPosts = sortBlogPosts(
   <Header />
 
   <main id="main">
-    <!-- A. Identity section - unified portrait + title + intro -->
     <IdentitySection
       title={home.hero.title}
       subtitle={home.hero.subtitle}
@@ -68,7 +67,6 @@ const blogPosts = sortBlogPosts(
       therapySlugs={therapies.map((t) => t.slug)}
     />
 
-    <!-- B. Therapy triptych -->
     {therapies.map((therapy, i) => (
       <>
         <BreathDivider />
@@ -82,7 +80,6 @@ const blogPosts = sortBlogPosts(
 
     <BreathDivider />
 
-    <!-- D. Blog teaser -->
     <BlogTeaser
       posts={blogPosts}
       label={home.teasers.blog.label}
@@ -90,13 +87,12 @@ const blogPosts = sortBlogPosts(
       ctaHref={home.teasers.blog.cta_href}
     />
 
-    <!-- E. Closing / contact -->
     {home.closing.enabled && (
       <section class="closing-section container" aria-labelledby="closing-heading">
         <ScrollReveal>
           <SectionHeading title="יצירת קשר" center id="closing-heading" />
+          <!-- WhatsApp → phone → email: source order is the channel priority. -->
           <div class="closing-cta">
-            <!-- WhatsApp → Phone → Email (§5.4) -->
             <CTAButton
               href={contact.whatsapp_url}
               label={contact.whatsapp_label}
@@ -132,8 +128,7 @@ const blogPosts = sortBlogPosts(
 </script>
 
 <style>
-  /* Tighten inter-section rhythm on the home page (applies to child sections too,
-     since --space-section/--space-block are inherited CSS custom properties). */
+  /* Reaches child sections too - these tokens are inherited properties. */
   main {
     --space-section: clamp(2rem, 4vh, 3rem);
     --space-block: clamp(1.25rem, 2.5vh, 2rem);
@@ -153,7 +148,6 @@ const blogPosts = sortBlogPosts(
     font-weight: 200;
     color: var(--color-ink);
     letter-spacing: -0.01em;
-    /* Generous breathing room before the contact block */
     margin-block-end: clamp(2rem, 5vh, 4rem);
   }
 

@@ -1,8 +1,4 @@
 ---
-/**
- * BlogTeaser - home page blog section.
- * Shows up to 3 latest posts in a horizontal grid.
- */
 import GlassCard from '../ui/GlassCard.astro';
 import SoftImage from '../ui/SoftImage.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
@@ -117,11 +113,8 @@ function formatDate(date: Date): string {
     margin-block-end: 0.5rem;
   }
 
-  /*
-   * Title and excerpt each hold two lines whether or not they fill them, and
-   * ellipsise past that. Every card then comes out the same height, and the
-   * dates, titles and tags line up across the row.
-   */
+  /* Title and excerpt each reserve two lines and clamp past them, so cards
+     come out the same height and their parts line up across the row. */
   .blog-tile__title {
     font-size: 1.2rem;
     font-weight: 400;
@@ -174,17 +167,15 @@ function formatDate(date: Date): string {
   @media (max-width: 1023px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 599px) {
     .blog-grid {
-      /* Switch to horizontal scroll-snap row on mobile */
       grid-template-columns: unset;
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
       gap: 1rem;
-      /* Allow overflow outside container padding */
+      /* Negative margin lets the strip bleed past the container padding. */
       padding-inline: clamp(1rem, 5vw, 4rem);
       margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
-      /* Hide scrollbar visually but keep functionality */
       scrollbar-width: none;
     }
     .blog-grid::-webkit-scrollbar { display: none; }

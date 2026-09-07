@@ -1,33 +1,15 @@
 /* ============================================================
-   FONTS - self-hosted Heebo (the only webfont)
+   FONTS - self-hosted Heebo, the only webfont
    ------------------------------------------------------------
-   Previously pulled from fonts.googleapis.com, which exposed every
-   visitor's IP address and user-agent to Google on each page view.
-   Serving the files from our own origin removes that third-party
-   request entirely, so the site makes no external calls at all.
+   Two files, not six weights: Heebo is a variable font, so one face per
+   subset over the full 100-900 axis is the whole family. Only hebrew and
+   latin ship - the other subsets have no glyph this site ever paints.
 
-   Google ships Heebo as a VARIABLE font: the six weight URLs their
-   CSS hands out are all byte-identical files. Two files is therefore
-   the whole family - one per subset - declared over the full
-   100-900 axis so any weight interpolates from it.
-
-   Only the hebrew and latin subsets are shipped. Heebo has no glyphs
-   for the arrows used in link text, and emoji always come from the
-   platform's own colour-emoji font, so the math, symbols and
-   latin-ext slices would never have painted anything.
-
-   THE SPACE BELONGS TO THE HEBREW FACE. U+0020 sits inside Google's
-   latin range, so every Hebrew heading - which is all of them - had a
-   character that only the latin file could paint. That file is not
-   preloaded and is fetched behind global.css, so when it finally
-   arrived the space advance changed and the page reflowed under the
-   reader: Lighthouse measured CLS 0.189 on /about, attributed to
-   "Web font loaded". The hebrew subset already carries a space glyph,
-   so moving U+0020 and U+00A0 to it - and carving them out of the
-   latin range, since the later rule would otherwise win the overlap -
-   makes Hebrew text depend on the preloaded file alone. The latin
-   file now only paints the e-mail address, the digits and the builder
-   credit, where a late swap moves nothing above it.
+   U+0020 AND U+00A0 BELONG TO THE HEBREW FACE, carved out of the latin
+   range so the later rule cannot win the overlap. Google puts them in the
+   latin range, which is not preloaded and is fetched behind global.css:
+   every Hebrew heading then waits on it, and the space advance changes when
+   it lands. That cost CLS 0.189 on /about. Do not tidy these ranges back.
    ============================================================ */
 @font-face {
   font-family: 'Heebo';
@@ -49,17 +31,15 @@
    DESIGN TOKENS
    ============================================================ */
 :root {
-  /* The site's two type families. Declared once so "only these two" is a
-     fact of the token file rather than a convention to remember. */
+  /* The site's only two families. Reference them through these tokens. */
   --font-sans:    'Segoe UI', 'Arial Hebrew', system-ui, sans-serif;
   --font-display: 'Heebo', 'Arial Hebrew', system-ui, sans-serif;
 
   --color-ink:          #22332a;
   --color-ink-soft:     #4a5c51;
   --color-mist:         #5e6d66;
-  /* Decorative rules and hairlines only - never text. WCAG 1.4.3 governs
-     text contrast and 1.4.11 exempts pure decoration, so these keep the
-     original soft grey and are not dragged along when text darkens. */
+  /* Hairlines only, never text: decoration is exempt from the contrast
+     minimum, so this stays put when the ink tokens darken. */
   --color-rule:         #7a8a82;
   --color-paper:        #fdfaf4;
   --color-cream:        #f5ecda;
@@ -560,15 +540,14 @@ blockquote {
 
 /* ============================================================
    ACCESSIBILITY - motion control & no-JS safety net
-   ת"י 5568 חלק 1 / WCAG 2.0 AA
+   ------------------------------------------------------------
+   MUST STAY LAST IN THE FILE: source order is how this block wins, instead
+   of !important on every rule it overrides.
    ============================================================ */
 
-/* SC 2.2.2 Pause, Stop, Hide - the watercolour drift, the breath waves and the
-   hero rules all loop for longer than five seconds alongside the page content.
-   prefers-reduced-motion covers visitors who set it at OS level; this class is
-   the in-page mechanism for everyone else, toggled by MotionToggle and
-   persisted in localStorage. Kept last in the file so it wins on specificity
-   without !important on individual rules. */
+/* SC 2.2.2. Several animations loop indefinitely alongside the content, so an
+   OS-level prefers-reduced-motion is not enough - MotionToggle sets this.
+   Any new indefinitely-looping animation must be covered here. */
 [data-motion="off"] *,
 [data-motion="off"] *::before,
 [data-motion="off"] *::after {
@@ -578,16 +557,16 @@ blockquote {
   scroll-behavior: auto !important;
 }
 
-/* The reveal-on-scroll transform is a motion effect, not a layout rule - with
-   motion off the content must simply be present. */
+/* The reveal transform is motion, not layout: with motion off, content is
+   simply present. */
 [data-motion="off"] [data-reveal] {
   opacity: 1 !important;
   transform: none !important;
 }
 
-/* SC 1.4.13 / general robustness: [data-reveal] starts at opacity:0 and is
-   revealed by IntersectionObserver. Without JS that content would never appear,
-   so the no-JS path opts out of the effect entirely. */
+/* [data-reveal] starts at opacity:0 and is revealed by IntersectionObserver,
+   so without JS it would never appear. Never ship reveal-gated content
+   without this path. */
 .no-js [data-reveal] {
   opacity: 1;
   transform: none;

@@ -1,34 +1,18 @@
 ---
 /**
- * RecommendationText - the transcription of a recommendation screenshot,
- * available as real, selectable, reflowable text.
+ * The screenshot's transcription as real text, since a screenshot is an image
+ * of text (SC 1.4.5) - and the screenshot itself stays, because it is what
+ * makes the recommendation verifiably real.
  *
- * Why it exists: the recommendations are screenshots, i.e. images of text.
- * WCAG 2.0 SC 1.4.5 (Images of Text, Level AA) - adopted in Israel through
- * ת"י 5568 חלק 1 - asks that text be used rather than a picture of text
- * wherever the presentation is not essential. Here the screenshot *is*
- * partly essential (it is what makes the recommendation verifiably real),
- * so the screenshot stays and the text is offered alongside it.
- *
- * A <details> disclosure rather than permanently visible text: it keeps the
- * gallery's visual rhythm, is keyboard-operable and screen-reader-operable
- * with no JavaScript at all, and reflows and zooms like any other text
- * (SC 1.4.4, SC 1.4.10).
- *
- * The trigger is icon-only. A gallery of screenshots repeats this control
- * once per card, and a repeated line of prose competed with the content it
- * was offering. The label moves to aria-label + title, so the control keeps
- * a proper accessible name and a hover tooltip while going visually quiet.
- *
- * That name is a noun phrase rather than "הצגת..." on purpose: <details>
- * exposes its own expanded/collapsed state to assistive technology, so a
- * name that reads correctly in both states avoids having to rewrite it with
- * JavaScript on toggle - and keeps this component script-free.
+ * <details> rather than always-visible text or a scripted disclosure: it is
+ * keyboard- and screen-reader-operable with no JavaScript at all. The
+ * accessible name is a noun phrase, not "הצגת...", because <details> already
+ * exposes its expanded state - so the name reads correctly either way and
+ * needs no rewriting on toggle.
  */
 import Icon from './Icon.astro';
 
 interface Props {
-  /** Full transcribed text of the recommendation. */
   text: string;
   class?: string;
 }
@@ -49,18 +33,15 @@ const LABEL = 'ההמלצה כטקסט';
 
 <style>
   .rec-text {
-    /* Fill the card whatever the card's layout is. The gallery card is a
-       centring flex column and the home card is a plain block; without this
-       the control floated to the middle in one place and sat at the
-       inline-start edge in the other. */
+    /* Pins the control to the same place in both card layouts - the gallery
+       card is a centring flex column, the home card a plain block. */
     inline-size: 100%;
     margin-block-start: 0.25rem;
     font-size: var(--fs-small);
   }
 
-  /* The summary keeps its default display. Overriding it - with flex in
-     particular - is a long-standing cross-browser hazard for <details>, so the
-     layout lives on an inner span instead. */
+  /* The layout lives on an inner span because overriding `display` on a
+     <summary>, flex especially, is a cross-browser hazard. */
   .rec-text__summary {
     color: var(--color-ink-soft);
     cursor: pointer;
@@ -72,7 +53,7 @@ const LABEL = 'ההמלצה כטקסט';
   .rec-text__summary::-webkit-details-marker { display: none; }
   .rec-text__summary::marker { content: ''; }
 
-  /* 44x44 hit target (AGENTS.md §10) around a deliberately small glyph. */
+  /* 44x44 hit target around a deliberately small glyph. */
   .rec-text__summary-inner {
     display: inline-flex;
     align-items: center;

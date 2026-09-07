@@ -1,10 +1,5 @@
 ---
-/**
- * BreathDivider - animated SVG sine wave between sections.
- * Oscillates on a 12s loop. Color driven by --accent.
- */
 interface Props {
-  /** Flip vertically */
   flip?: boolean;
   class?: string;
 }
@@ -12,9 +7,8 @@ interface Props {
 const { flip = false, class: className } = Astro.props;
 
 /**
- * SVG filter ids live in the global document id space, so several dividers on
- * one page collided on id="wave-shadow" - duplicate ids fail WCAG 2.0 SC 4.1.1
- * (Parsing, Level A), which ת"י 5568 חלק 1 adopts. One id per instance.
+ * Per-instance, not a constant: SVG filter ids share the document id space, and
+ * several dividers on one page would collide - duplicate ids fail SC 4.1.1.
  */
 const filterId = `wave-shadow-${crypto.randomUUID().slice(0, 8)}`;
 ---
@@ -30,7 +24,7 @@ const filterId = `wave-shadow-${crypto.randomUUID().slice(0, 8)}`;
     class="breath-wave"
   >
     <defs>
-      <!-- Dual-shadow filter: white highlight above, soft dark below -->
+      <!-- White highlight above, soft dark below -->
       <filter id={filterId} x="-2%" y="-50%" width="104%" height="200%">
         <feDropShadow dx="0" dy="-1" stdDeviation="0.5" flood-color="rgba(255,255,255,0.7)" flood-opacity="1" result="highlight"/>
         <feDropShadow dx="0" dy="1.5" stdDeviation="1" flood-color="rgba(30,50,40,0.18)" flood-opacity="1"/>
@@ -59,9 +53,8 @@ const filterId = `wave-shadow-${crypto.randomUUID().slice(0, 8)}`;
     inline-size: 100%;
     overflow: hidden;
     line-height: 0;
-    /* Compact: no extra block space above/below the wave */
+    /* Both fixed so a surrounding section's padding cannot grow the divider. */
     padding-block: 0;
-    /* Ensure it doesn't inherit section padding if nested in a section context */
     block-size: 80px;
     display: flex;
     align-items: center;

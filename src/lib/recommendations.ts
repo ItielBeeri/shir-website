@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export interface Recommendation {
   id: string;
-  /** Site-absolute path to the screenshot in public/, e.g. "/img/recommendations/recommendation-01.jpeg". */
+  /** Site-absolute path into public/, e.g. "/img/recommendations/recommendation-01.jpeg". */
   screenshot: string;
   alt: string;
   transcription: string;
@@ -27,15 +27,9 @@ const recommendationsSchema = z.object({
 });
 
 /**
- * Load active recommendations from recommendations.toml.
- *
- * Screenshots are deliberately not in the images.toml
- * manifest - they are the content of a recommendation rather than site imagery,
- * and splitting them across two files meant every addition touched both.
- *
- * Ordering guarantee: the returned array keeps the exact order in which
- * recommendations appear in the TOML file - never sorted by id, screenshot
- * file name, or any other key. Callers must not reorder it.
+ * Active recommendations, in file order - that is the display order, so callers
+ * must not re-sort. Screenshots stay out of images.toml on purpose: they are a
+ * recommendation's content, and splitting them made every addition touch two files.
  */
 export function loadRecommendations(): Recommendation[] {
   const data = loadToml('recommendations.toml', recommendationsSchema);

@@ -1,12 +1,4 @@
-/**
- * home-scroll.ts - GSAP scroll choreography for the home page.
- *
- * Behaviours:
- * 1. Therapy triptych: image scale 1.0 → 1.08 on scroll (scrub).
- * 2. Accent overlay: fades in/out as section enters viewport.
- *
- * Disabled when prefers-reduced-motion: reduce.
- */
+/** Scrubbed GSAP timelines for the home page therapy triptych. */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
