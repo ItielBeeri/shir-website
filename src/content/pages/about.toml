@@ -10,7 +10,7 @@ intro  = "ננסה לספר קצת."
 image_id = "SHIR 272"
 # PLACEHOLDER: TXT_ABOUT_OPENING
 opening  = """
-כאן יופיע הפסקה הפותחת על שיר — רקע, דרך, ניסיון.
+האם הטקסט יצליח לעלות לאתר?
 """
 
 [story]
