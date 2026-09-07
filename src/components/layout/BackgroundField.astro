@@ -5,12 +5,44 @@
  * Layer 2: SVG grain overlay (~4% opacity)
  * Layer 3: drifting radial gradient blobs (CSS keyframes)
  * Layer 4: page-specific accent tint overlay (reads --accent)
+ *
+ * Layer 1 is an <img>, not a CSS background, and that is deliberate. It is the
+ * largest painted element on every page, so it is the LCP element - and as a
+ * background it was invisible to the preload scanner (it could not even be
+ * requested until global.css had parsed) and carried no priority hint.
+ * Lighthouse measured mobile LCP at 3.9s +/- 1.3s against it. As markup the
+ * scanner finds it in the first bytes of the document, fetchpriority="high"
+ * puts it at the head of the queue, and AVIF takes the 401 KB JPEG down to
+ * ~27 KB. The visual result is identical: object-fit cover over a 130%-tall
+ * box reproduces exactly what background-size: cover over top/bottom: -15%
+ * did.
+ *
+ * No srcset here - see largestSources() for why a cover-fit full-bleed layer
+ * needs the native width on every viewport.
  */
+import { imageSources, largestSources } from '../../lib/images';
+
+const BACKGROUND = '/img/bg/background.jpg';
+const { width, height } = imageSources(BACKGROUND);
+const { avif, webp } = largestSources(BACKGROUND);
 ---
 
 <div class="bg-field" aria-hidden="true">
-  <!-- Layer 1: watercolor photograph -->
-  <div class="bg-layer bg-image" id="bg-parallax-image"></div>
+  <!-- Layer 1: watercolor photograph - the LCP element, see header note -->
+  <picture>
+    {avif && <source type="image/avif" srcset={avif} />}
+    {webp && <source type="image/webp" srcset={webp} />}
+    <img
+      id="bg-parallax-image"
+      class="bg-layer bg-image"
+      src={BACKGROUND}
+      alt=""
+      width={width}
+      height={height}
+      fetchpriority="high"
+      decoding="async"
+    />
+  </picture>
 
   <!-- Layer 2: grain/paper texture -->
   <div class="bg-layer bg-grain">
@@ -50,18 +82,31 @@
     inset: 0;
   }
 
+  /* <picture> is a wrapper for source selection only - it must not become a
+     box between .bg-field and the positioned image. */
+  .bg-field picture {
+    display: contents;
+  }
+
   /*
    * Layer 1 - oversized by 30% vertically so parallax translateY
    * never exposes bare background. Starts 15% above the viewport.
    * JS scrolls it upward at ~0.18× speed.
+   *
+   * block-size is stated explicitly because an absolutely positioned replaced
+   * element resolves its own intrinsic height and ignores `bottom`, unlike the
+   * empty div this layer used to be. 130% + top: -15% reproduces the old box
+   * exactly, and object-fit: cover reproduces background-size: cover.
    */
   .bg-image {
-    background-image: url('/img/bg/background.jpg');
-    background-size: cover;
-    background-position: center;
     /* overscan: 130% tall, offset upward so top edge is hidden */
     top: -15%;
     bottom: -15%;
+    inset-inline: 0;
+    inline-size: 100%;
+    block-size: 130%;
+    object-fit: cover;
+    object-position: center;
     /* will-change set only while animating (added/removed by JS) */
   }
 

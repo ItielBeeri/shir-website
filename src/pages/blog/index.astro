@@ -39,7 +39,11 @@ function formatDate(date: Date): string {
               <GlassCard hover>
                 {post.data.cover && (
                   <div class="post-thumb">
-                    <SoftImage id={post.data.cover} aspect="16/9" />
+                    <SoftImage
+                      id={post.data.cover}
+                      aspect="16/9"
+                      sizes="(max-width: 767px) 320px, (max-width: 1023px) 46vw, 370px"
+                    />
                   </div>
                 )}
                 <time class="text-small text-mist" datetime={post.data.date.toISOString()}>

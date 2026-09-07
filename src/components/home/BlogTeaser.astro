@@ -43,7 +43,12 @@ function formatDate(date: Date): string {
           <GlassCard hover>
             {post.data.cover && (
               <div class="blog-tile__cover">
-                <SoftImage id={post.data.cover} aspect="16/9" transitionName={`post-cover-${post.slug}`} />
+                <SoftImage
+                  id={post.data.cover}
+                  aspect="16/9"
+                  sizes="(max-width: 767px) 320px, (max-width: 1023px) 46vw, 370px"
+                  transitionName={`post-cover-${post.slug}`}
+                />
               </div>
             )}
             <div class="blog-tile__body">

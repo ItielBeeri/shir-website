@@ -1,0 +1,445 @@
+{
+  "/img/content/placeholder-portrait.jpg": {
+    "key": "content/placeholder-portrait",
+    "width": 1024,
+    "height": 1536,
+    "widths": [
+      400,
+      640,
+      900,
+      1024
+    ],
+    "digest": "d9725a2785c176c1"
+  },
+  "/img/content/placeholder-psychotherapy.jpg": {
+    "key": "content/placeholder-psychotherapy",
+    "width": 1200,
+    "height": 1200,
+    "widths": [
+      400,
+      640,
+      900,
+      1200
+    ],
+    "digest": "f2c9955b6524b133"
+  },
+  "/img/content/placeholder-shiatsu.jpg": {
+    "key": "content/placeholder-shiatsu",
+    "width": 1200,
+    "height": 1200,
+    "widths": [
+      400,
+      640,
+      900,
+      1200
+    ],
+    "digest": "257d1432957f585a"
+  },
+  "/img/content/placeholder-voice.jpg": {
+    "key": "content/placeholder-voice",
+    "width": 1024,
+    "height": 1024,
+    "widths": [
+      400,
+      640,
+      900,
+      1024
+    ],
+    "digest": "4ab4a45d9e62f986"
+  },
+  "/img/content/shiatsu-2.jpeg": {
+    "key": "content/shiatsu-2",
+    "width": 3382,
+    "height": 2258,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "1dddd17303364ecf"
+  },
+  "/img/content/portrait-1.jpeg": {
+    "key": "content/portrait-1",
+    "width": 945,
+    "height": 919,
+    "widths": [
+      400,
+      640,
+      900,
+      945
+    ],
+    "digest": "280ddf7172a6eb4e"
+  },
+  "/img/content/portrait-2.jpeg": {
+    "key": "content/portrait-2",
+    "width": 945,
+    "height": 708,
+    "widths": [
+      400,
+      640,
+      900,
+      945
+    ],
+    "digest": "5072ce63da448924"
+  },
+  "/img/content/portrait-3.jpeg": {
+    "key": "content/portrait-3",
+    "width": 1051,
+    "height": 1625,
+    "widths": [
+      400,
+      640,
+      900,
+      1051
+    ],
+    "digest": "994cda5cec55d762"
+  },
+  "/img/content/portrait-4.jpg": {
+    "key": "content/portrait-4",
+    "width": 1080,
+    "height": 1514,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "a3535b4587d3e187"
+  },
+  "/img/content/shiatsu-1.jpeg": {
+    "key": "content/shiatsu-1",
+    "width": 2045,
+    "height": 3064,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2045
+    ],
+    "digest": "3dbfbb5d2ec200c9"
+  },
+  "/img/content/shiatsu-3.jpeg": {
+    "key": "content/shiatsu-3",
+    "width": 2616,
+    "height": 2616,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "43160f7344c175e7"
+  },
+  "/img/content/shiatsu-4.jpeg": {
+    "key": "content/shiatsu-4",
+    "width": 4592,
+    "height": 3064,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "c0ddb847f55b46ff"
+  },
+  "/img/content/shiatsu-5.jpeg": {
+    "key": "content/shiatsu-5",
+    "width": 4039,
+    "height": 2696,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "8e4bee5cb402e74a"
+  },
+  "/img/content/voice-1.jpeg": {
+    "key": "content/voice-1",
+    "width": 3319,
+    "height": 2215,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "ad4adf6479699ff9"
+  },
+  "/img/content/voice-2.jpeg": {
+    "key": "content/voice-2",
+    "width": 3737,
+    "height": 2495,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "0b1862f5c77cc9d5"
+  },
+  "/img/bg/background.jpg": {
+    "key": "bg/background",
+    "width": 1920,
+    "height": 1071,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      1920
+    ],
+    "digest": "8665e85bb6152384"
+  },
+  "/img/content/heart-in-hands.jpg": {
+    "key": "content/heart-in-hands",
+    "width": 1377,
+    "height": 768,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1377
+    ],
+    "digest": "107c065455b6642b"
+  },
+  "/img/content/contact.jpg": {
+    "key": "content/contact",
+    "width": 1377,
+    "height": 768,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1377
+    ],
+    "digest": "8e14c0889557b9d0"
+  },
+  "/img/content/light-in-shadow.jpg": {
+    "key": "content/light-in-shadow",
+    "width": 1709,
+    "height": 1183,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      1709
+    ],
+    "digest": "82885b0564339e8c"
+  },
+  "/img/content/light-handed-over.jpg": {
+    "key": "content/light-handed-over",
+    "width": 2400,
+    "height": 1792,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "93cdf8c756f50954"
+  },
+  "/img/content/shir-balcony.jpeg": {
+    "key": "content/shir-balcony",
+    "width": 2048,
+    "height": 1536,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "3b1c0a515a6b7c46"
+  },
+  "/img/recommendations/recommendation-01.jpeg": {
+    "key": "recommendations/recommendation-01",
+    "width": 1080,
+    "height": 1066,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "56dacc74bf018535"
+  },
+  "/img/recommendations/recommendation-02.jpeg": {
+    "key": "recommendations/recommendation-02",
+    "width": 1080,
+    "height": 1037,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "643c5d6cf077552b"
+  },
+  "/img/recommendations/recommendation-03.jpeg": {
+    "key": "recommendations/recommendation-03",
+    "width": 1076,
+    "height": 430,
+    "widths": [
+      400,
+      640,
+      900,
+      1076
+    ],
+    "digest": "a3c273c484e4b10e"
+  },
+  "/img/recommendations/recommendation-04.jpeg": {
+    "key": "recommendations/recommendation-04",
+    "width": 1062,
+    "height": 866,
+    "widths": [
+      400,
+      640,
+      900,
+      1062
+    ],
+    "digest": "0842bb15f357be91"
+  },
+  "/img/recommendations/recommendation-05.jpeg": {
+    "key": "recommendations/recommendation-05",
+    "width": 1080,
+    "height": 556,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "e2c8b448ab16dbd6"
+  },
+  "/img/recommendations/recommendation-06.jpeg": {
+    "key": "recommendations/recommendation-06",
+    "width": 899,
+    "height": 940,
+    "widths": [
+      400,
+      640,
+      899
+    ],
+    "digest": "41d77b5dd21e54d2"
+  },
+  "/img/recommendations/recommendation-07.jpeg": {
+    "key": "recommendations/recommendation-07",
+    "width": 1080,
+    "height": 606,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "9f194fd51620653e"
+  },
+  "/img/recommendations/recommendation-08.jpeg": {
+    "key": "recommendations/recommendation-08",
+    "width": 1080,
+    "height": 480,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "fb6d480b98efccb7"
+  },
+  "/img/recommendations/recommendation-09.jpeg": {
+    "key": "recommendations/recommendation-09",
+    "width": 1080,
+    "height": 652,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "08bbd17737474ebe"
+  },
+  "/img/recommendations/recommendation-10.jpeg": {
+    "key": "recommendations/recommendation-10",
+    "width": 1073,
+    "height": 311,
+    "widths": [
+      400,
+      640,
+      900,
+      1073
+    ],
+    "digest": "c4cab415ce9ed7e8"
+  },
+  "/img/recommendations/recommendation-11.jpeg": {
+    "key": "recommendations/recommendation-11",
+    "width": 1076,
+    "height": 628,
+    "widths": [
+      400,
+      640,
+      900,
+      1076
+    ],
+    "digest": "585d63ca365b218e"
+  },
+  "/img/recommendations/recommendation-12.jpeg": {
+    "key": "recommendations/recommendation-12",
+    "width": 945,
+    "height": 1561,
+    "widths": [
+      400,
+      640,
+      900,
+      945
+    ],
+    "digest": "88eb5622c38cbf2a"
+  },
+  "/img/recommendations/recommendation-13.jpeg": {
+    "key": "recommendations/recommendation-13",
+    "width": 1071,
+    "height": 560,
+    "widths": [
+      400,
+      640,
+      900,
+      1071
+    ],
+    "digest": "7a91a9785371127e"
+  },
+  "/img/recommendations/recommendation-14.jpeg": {
+    "key": "recommendations/recommendation-14",
+    "width": 1080,
+    "height": 357,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "4b5b632d495b64a1"
+  }
+}

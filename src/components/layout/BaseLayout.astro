@@ -15,8 +15,32 @@
  * Standard full-page navigation gives the browser native scroll restoration
  * and re-runs every script on every page - reliable and simple.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import BackgroundField from './BackgroundField.astro';
 import { SITE_URL } from '../../lib/seo';
+
+/*
+ * public/global.css, read at build time and inlined below rather than linked.
+ *
+ * It is still the same file in the same place, still hand-authored, still
+ * served byte for byte - the bytes just arrive inside the document instead of
+ * one request later. What that buys: the stylesheet is render-blocking, and
+ * Vercel serves everything in public/ as `max-age=0, must-revalidate` because
+ * those URLs are author-named and their contents can change. So every single
+ * navigation, cold or repeat, paid a full round trip - a 304 with an empty
+ * body, measured at ~250ms - before the browser could paint anything.
+ *
+ * Caching it harder is not the fix: with a stable URL, a long max-age means an
+ * edit to this file would never reach anyone who had already visited, and
+ * there would be no way to reach them from the server. That is what content
+ * hashing solves, and hashing is exactly what public/ deliberately does not
+ * do, because this file is the surface a non-developer edits by name.
+ *
+ * ~5 KB gzipped now rides along with each HTML response, which is itself
+ * uncached, and the CSS is always in step with the markup it styles.
+ */
+const globalCss = readFileSync(resolve(process.cwd(), 'public/global.css'), 'utf-8');
 
 interface Props {
   title: string;
@@ -106,8 +130,12 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
       crossorigin
     />
 
-    <!-- Global styles: tokens, themes, reset, typography, RTL, utilities -->
-    <link rel="stylesheet" href="/global.css" />
+    <!-- Global styles: tokens, themes, reset, typography, RTL, utilities.
+         Inlined verbatim - see the note in the frontmatter. `is:inline` keeps
+         Astro from bundling, scoping or minifying it, so what ships is what
+         was written; it stays ahead of the component styles Astro injects
+         below it, which is the source order the cascade in §4.1 assumes. -->
+    <style is:inline set:html={globalCss}></style>
 
     <!-- Slot for page-specific head additions -->
     <slot name="head" />

@@ -7,6 +7,7 @@ import SoftImage from "../../components/ui/SoftImage.astro";
 import BreathDivider from "../../components/ui/BreathDivider.astro";
 import { getCollection, render } from "astro:content";
 import { blogPostingSchema, jsonLd } from "../../lib/seo";
+import { imageSet } from "../../lib/images";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", (p) => !p.data.draft);
@@ -28,6 +29,17 @@ function formatDate(date: Date): string {
 }
 
 const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
+
+/*
+ * The backdrop below reproduces the site's watercolour field as a CSS
+ * background, under a 78%-opaque paper wash. It deliberately asks for the same
+ * width BackgroundField's <img> already loaded rather than a smaller one it
+ * would strictly get away with: an exact URL match is a cache hit and no second
+ * request, where a 1280px variant would have been another 14 KB on the wire for
+ * a layer nobody can see through the wash. The set is built here rather than
+ * written into the stylesheet so derivative paths stay owned by lib/images.ts.
+ */
+const backdrop = imageSet("/img/bg/background.jpg", Number.POSITIVE_INFINITY);
 ---
 
 <BaseLayout
@@ -55,12 +67,18 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
       {
         post.data.cover && (
           <div class="post-cover">
-            <SoftImage id={post.data.cover} aspect="21/9" loading="eager" />
+            <SoftImage
+              id={post.data.cover}
+              aspect="21/9"
+              loading="eager"
+              fetchpriority="high"
+              sizes="(max-width: 767px) 100vw, 900px"
+            />
           </div>
         )
       }
 
-      <div class="post-content">
+      <div class="post-content" style={`--post-backdrop: ${backdrop}`}>
         <section class="post-hero" aria-labelledby="post-h1">
           <div class="container">
             <div class="post-header">
@@ -155,7 +173,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     z-index: -1;
     background:
       linear-gradient(rgba(253, 250, 244, 0.78), rgba(253, 250, 244, 0.78)),
-      url("/img/bg/background.jpg");
+      image-set(var(--post-backdrop));
     background-size: cover, cover;
     background-position: center, center;
     /* attachment: fixed pins the watercolor to the viewport like the

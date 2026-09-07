@@ -88,7 +88,15 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
           <p class="therapy-summary">{summary}</p>
         </div>
         <div class="therapy-intro__image" data-parallax data-speed="0.92">
-          <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${entry.slug}`} />
+          <SoftImage
+            id={hero_image}
+            aspect="4/3"
+            tint
+            loading="eager"
+            fetchpriority="high"
+            sizes="(max-width: 767px) 320px, 540px"
+            transitionName={`therapy-img-${entry.slug}`}
+          />
         </div>
       </div>
     </section>
@@ -149,7 +157,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
           {relatedTherapies.map((therapy) => (
             <a href={`/${therapy.slug}`} class="related-card">
               <div class="related-image">
-                <SoftImage id={therapy.data.hero_image} aspect="4/3" tint />
+                <SoftImage id={therapy.data.hero_image} aspect="4/3" tint sizes="(max-width: 767px) 92vw, 360px" />
               </div>
               <div class="related-content">
                 <p class="related-kicker">{therapy.data.kicker}</p>

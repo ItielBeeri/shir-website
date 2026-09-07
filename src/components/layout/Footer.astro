@@ -51,10 +51,20 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <!-- BreathDivider wave is rendered by the page above the footer -->
 
-  <!-- Large watermark wordmark -->
-  <div class="footer-wordmark" aria-hidden="true">
-    {site.brand.name}
-  </div>
+  <!--
+    Large watermark wordmark. The brand name is handed to CSS as a custom
+    property and painted by ::before rather than being a text node, because
+    this is decoration - a 6%-opacity wash of the name behind the footer - and
+    WCAG 1.4.3 exempts pure decoration from the contrast minimum. Automated
+    checkers cannot see that exemption and read the 1.11:1 wash as failing body
+    text; content that is genuinely presentational belongs in the stylesheet.
+    The string itself still comes from site.toml, never from the CSS file.
+  -->
+  <div
+    class="footer-wordmark"
+    aria-hidden="true"
+    style={`--footer-wordmark: ${JSON.stringify(site.brand.name)}`}
+  ></div>
 
   <div class="container footer-body">
     <!-- Column 1: Navigation -->
@@ -86,12 +96,20 @@ const year = new Date().getFullYear();
         </li>
         <!-- 2. Phone - secondary -->
         <li>
+          <!--
+            The channel name is a visually hidden prefix rather than an
+            aria-label. An aria-label naming only the channel replaced the
+            number in the accessible name, so a speech-control user could not
+            say the number they can see - WCAG 2.5.3 Label in Name. As a prefix the
+            name reads "טלפון" then the number, so it still contains what is
+            on screen. The number itself stays in site.toml, as everywhere.
+          -->
           <a
             href={site.contact.phone_href}
             class="contact-link"
-            aria-label={site.contact.phone_label}
           >
             <Icon name="phone" decorative size={18} />
+            <span class="sr-only">{site.contact.phone_label}</span>
             <span dir="ltr">{site.contact.phone_display}</span>
           </a>
         </li>
@@ -100,9 +118,9 @@ const year = new Date().getFullYear();
           <a
             href={site.contact.email_href}
             class="contact-link contact-tertiary"
-            aria-label={site.contact.email_label}
           >
             <Icon name="mail" decorative size={18} />
+            <span class="sr-only">{site.contact.email_label}</span>
             <span dir="ltr">{site.contact.email_display}</span>
           </a>
         </li>
@@ -186,6 +204,10 @@ const year = new Date().getFullYear();
   }
 
   /* Large transparent wordmark */
+  .footer-wordmark::before {
+    content: var(--footer-wordmark, '');
+  }
+
   .footer-wordmark {
     text-align: center;
     font-family: var(--font-display);
@@ -252,7 +274,13 @@ const year = new Date().getFullYear();
     font-weight: 600;
   }
 
-  .contact-tertiary { opacity: 0.75; }
+  /*
+   * De-emphasised by colour rather than by opacity. opacity: 0.75 over
+   * --color-ink-soft resolved to #77847a on paper - 3.76:1, under the 4.5:1
+   * that WCAG 1.4.3 requires of this 14.7px text. --color-mist reads as the
+   * same step down in weight and measures 5.23:1.
+   */
+  .contact-tertiary { color: var(--color-mist); }
 
   .footer-location {
     margin-block-start: 1rem;

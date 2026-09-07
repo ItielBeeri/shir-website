@@ -53,7 +53,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
           <p class="about-opening">{about.portrait.opening}</p>
         </div>
         <div class="about-portrait" data-parallax data-speed="0.92">
-          <SoftImage id={about.portrait.image_id} aspect="3/4" />
+          <SoftImage id={about.portrait.image_id} aspect="3/4" sizes="(max-width: 767px) 260px, 450px" />
         </div>
       </div>
     </section>
@@ -102,7 +102,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
           {therapies.map((therapy) => (
             <a href={`/${therapy.slug}`} class="therapy-cta-card">
               <div class="therapy-cta-image">
-                <SoftImage id={therapy.data.hero_image} aspect="4/3" tint />
+                <SoftImage id={therapy.data.hero_image} aspect="4/3" tint sizes="(max-width: 767px) 92vw, 360px" />
               </div>
               <div class="therapy-cta-content">
                 <p class="therapy-cta-kicker">{therapy.data.kicker}</p>
@@ -137,9 +137,18 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
     align-items: start;
   }
 
+  /*
+   * The aspect ratio is repeated here, and it has to be. SoftImage states it on
+   * its own <figure>, but the figure also carries height: 100% so it can fill
+   * fixed-height slots elsewhere, and a specified height beats aspect-ratio.
+   * On this auto-height wrapper that left the figure measuring 0 until the
+   * photograph loaded. Stating the ratio here gives the grid a definite row
+   * from the first layout pass. Keep the two in step with the `aspect` prop.
+   */
   .about-portrait {
     position: relative;
     max-inline-size: 40cqi;
+    aspect-ratio: 3 / 4;
     border-radius: var(--radius-card);
     overflow: hidden;
   }
@@ -323,8 +332,21 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
     .about-intro-grid {
       grid-template-columns: 1fr;
     }
+    /*
+     * inline-size, not max-inline-size. Auto inline margins on a grid item
+     * absorb the free space instead of stretching it, so the box fell back to
+     * shrink-to-fit - and "fit" here means the photograph's own width, which is
+     * nothing until it has loaded. The column reserved no space, the divider
+     * and everything under it sat 347px too high, and the page jumped when the
+     * image landed: CLS 0.19, the whole of this page's instability. A definite
+     * width resolves in the first layout pass and the auto margins still centre
+     * it. min() keeps it from overflowing a viewport narrower than 260px.
+     */
     .about-portrait {
-      max-inline-size: 260px;
+      inline-size: min(100%, 260px);
+      /* Drops the 40cqi cap from the base rule, which would otherwise still
+         win - max-inline-size clamps inline-size, not the other way round. */
+      max-inline-size: none;
       margin-inline: auto;
     }
     .about-intro-text {

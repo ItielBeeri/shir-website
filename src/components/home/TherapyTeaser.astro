@@ -29,7 +29,19 @@ const slug = entry.slug;
   <div class="teaser-inner container">
     <!-- Image -->
     <div class="teaser-image" data-parallax data-speed="0.92" data-reveal>
-      <SoftImage id={hero_image} aspect="4/3" tint transitionName={`therapy-img-${slug}`} />
+      <!--
+        The mobile slot is 260px, not the full column: .teaser-image is capped
+        at 20vh there, so the 4/3 figure is sized by its height and comes out
+        around 220px wide however wide the phone is. Describing it as 92vw
+        fetched a source two rungs too large for every teaser on the page.
+      -->
+      <SoftImage
+        id={hero_image}
+        aspect="4/3"
+        tint
+        sizes="(max-width: 767px) 260px, 540px"
+        transitionName={`therapy-img-${slug}`}
+      />
     </div>
 
     <!-- Text -->
@@ -39,7 +51,7 @@ const slug = entry.slug;
       <p class="teaser-summary">{summary}</p>
       {teaser_image && (
         <div class="teaser-secondary">
-          <SoftImage id={teaser_image} aspect="4/3" />
+          <SoftImage id={teaser_image} aspect="4/3" sizes="(max-width: 767px) 92vw, 540px" />
         </div>
       )}
       <span class="teaser-cta link-underline">

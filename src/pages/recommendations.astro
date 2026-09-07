@@ -11,6 +11,7 @@ import BreathDivider from '../components/ui/BreathDivider.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
 import { loadToml } from '../lib/content';
 import { loadRecommendations } from '../lib/recommendations';
+import { imageSources } from '../lib/images';
 import { z } from 'zod';
 import { personSchema, jsonLd } from '../lib/seo';
 
@@ -23,7 +24,13 @@ const siteSchema = z.object({
 });
 
 const { contact } = loadToml('site.toml', siteSchema);
-const recommendations = loadRecommendations();
+const recommendations = loadRecommendations().map((rec) => ({
+  ...rec,
+  sources: imageSources(rec.screenshot),
+}));
+
+/** Card width in the masonry: near-full-bleed on a phone, ~420px in the grid. */
+const REC_SIZES = '(max-width: 767px) 92vw, 420px';
 ---
 
 <BaseLayout
@@ -73,13 +80,21 @@ const recommendations = loadRecommendations();
           >
             <GlassCard>
               <div class="recs-card-inner">
-                <img
-                  src={rec.screenshot}
-                  alt={rec.alt}
-                  class="recs-screenshot-img"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  {rec.sources.avif && (
+                    <source type="image/avif" srcset={rec.sources.avif} sizes={REC_SIZES} />
+                  )}
+                  {rec.sources.webp && (
+                    <source type="image/webp" srcset={rec.sources.webp} sizes={REC_SIZES} />
+                  )}
+                  <img
+                    src={rec.screenshot}
+                    alt={rec.alt}
+                    class="recs-screenshot-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
                 <RecommendationText text={rec.transcription} />
               </div>
             </GlassCard>

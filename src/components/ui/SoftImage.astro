@@ -3,8 +3,15 @@
  * SoftImage - the only sanctioned image renderer.
  * Applies a watercolor feathered mask, supports tint overlay.
  * Takes an image id from images.toml.
+ *
+ * Renders <picture> with AVIF and WebP srcsets when
+ * scripts/optimize-images.mjs has produced derivatives for the source, and a
+ * bare <img> pointing at the original when it has not - so an image just
+ * dropped into public/img/ always paints, it simply paints unoptimised until
+ * the images workflow has rebuilt. See src/lib/images.ts.
  */
 import { loadToml } from '../../lib/content';
+import { imageSources } from '../../lib/images';
 import { z } from 'zod';
 
 interface Props {
@@ -17,6 +24,15 @@ interface Props {
   class?: string;
   /** loading strategy */
   loading?: 'lazy' | 'eager';
+  /**
+   * Layout width of the slot, for srcset selection. A floating image defaults
+   * to its own floatWidth, which is exact; everything else defaults to a
+   * full-width mobile / 800px desktop guess. Pass the real slot width wherever
+   * it is known - that is every call site outside MDX body copy.
+   */
+  sizes?: string;
+  /** Priority hint - set on the LCP image of a page, nowhere else. */
+  fetchpriority?: 'high' | 'auto';
   /** CSS view-transition-name for cross-page morph */
   transitionName?: string;
   /** Float position: "start" (right in RTL) or "end" (left in RTL) */
@@ -33,11 +49,57 @@ const imagesSchema = z.record(z.string(), z.object({
 
 const images = loadToml('images.toml', imagesSchema);
 
-const { id, tint = false, aspect = '4/3', class: className, loading = 'lazy', transitionName, float, floatWidth = '280' } = Astro.props;
+const {
+  id,
+  tint = false,
+  aspect = '4/3',
+  class: className,
+  loading = 'lazy',
+  sizes,
+  fetchpriority,
+  transitionName,
+  float,
+  floatWidth = '280',
+} = Astro.props;
 
 const image = images[id];
 const src = image?.file ?? '/img/content/placeholder.jpg';
 const alt = image?.alt ?? '';
+const { avif, webp, width, height } = imageSources(src);
+
+const authoredSizes =
+  sizes ?? (float ? `(max-width: 768px) 100vw, ${floatWidth}px` : '(max-width: 768px) 100vw, 800px');
+
+/*
+ * `sizes` describes the slot, but object-fit: cover paints the image wider
+ * than the slot whenever the photograph is wider than the box it sits in - a
+ * 945x708 portrait in a 3/4 frame renders 1.78x the slot width, with the
+ * overflow cropped. Left uncorrected the browser picks a source almost two
+ * rungs too small and upscales it, which on this site's soft watercolour
+ * imagery reads as a visible shift in colour rather than as ordinary blur.
+ *
+ * The correction is the cover factor, and it only ever scales the length at
+ * the end of each comma-separated entry - never a length inside a media
+ * condition, which describes the viewport and not the slot.
+ */
+const [aspectW, aspectH] = aspect.split('/').map((n) => Number(n.trim()));
+const boxRatio = aspectW / aspectH;
+const imageRatio = width && height ? width / height : boxRatio;
+const ratio = imageRatio / boxRatio;
+// An `aspect` that is not a w/h fraction leaves the slot width as authored
+// rather than propagating NaN into the sizes attribute.
+const coverFactor = Number.isFinite(ratio) ? Math.max(1, ratio) : 1;
+
+const resolvedSizes = authoredSizes
+  .split(',')
+  .map((entry) => {
+    const trimmed = entry.trim();
+    return trimmed.replace(
+      /(-?[\d.]+)(px|vw|vh|rem|em)$/,
+      (_, value, unit) => `${Math.round(Number(value) * coverFactor)}${unit}`,
+    );
+  })
+  .join(', ');
 ---
 
 <figure
@@ -54,13 +116,20 @@ const alt = image?.alt ?? '';
     ${transitionName ? `view-transition-name: ${transitionName};` : ''}
   `.replace(/\s+/g, ' ').trim()}
 >
-  <img
-    src={src}
-    alt={alt}
-    loading={loading}
-    decoding="async"
-    class="soft-image__img"
-  />
+  <picture>
+    {avif && <source type="image/avif" srcset={avif} sizes={resolvedSizes} />}
+    {webp && <source type="image/webp" srcset={webp} sizes={resolvedSizes} />}
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={loading}
+      fetchpriority={fetchpriority}
+      decoding="async"
+      class="soft-image__img"
+    />
+  </picture>
   {tint && <div class="soft-image__tint" aria-hidden="true"></div>}
 </figure>
 
@@ -74,6 +143,12 @@ const alt = image?.alt ?? '';
     margin-block-end: 1rem;
     margin-inline-start: auto;
     margin-inline-end: auto;
+  }
+
+  /* The <picture> carries no layout of its own - .soft-image__img keeps
+     sizing itself against .soft-image exactly as it did before. */
+  .soft-image picture {
+    display: contents;
   }
 
   .soft-image__img {

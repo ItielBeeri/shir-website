@@ -55,7 +55,12 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
 
     <!-- col: portrait (desktop left / mobile centre) -->
     <a href={ctaHref} class="identity-portrait-link" data-parallax data-speed="0.92">
-      <SoftImage id={portraitImageId} aspect="3/4" loading="eager" />
+      <SoftImage
+        id={portraitImageId}
+        aspect="3/4"
+        loading="eager"
+        sizes="(max-width: 767px) 240px, 380px"
+      />
     </a>
 
     <!-- col: title block (desktop right / mobile top) -->
@@ -77,21 +82,28 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
         </div>
       </a>
 
-      <div class="identity-modalities" role="list">
+      <!--
+        A real ul/li rather than role="list" with role="listitem" on the
+        anchors. role="listitem" overrode each anchor's own link role, so the
+        list read as three pieces of static text and the chips stopped being
+        announced as navigable at all.
+      -->
+      <ul class="identity-modalities">
         {modalities.map((m, i) => {
           const slug = therapySlugs[i];
           return (
-            <a
-              href={slug ? `#teaser-${slug}` : undefined}
-              class="identity-chip"
-              role="listitem"
-              aria-label={slug ? `גלול לחלק ${m}` : undefined}
-            >
-              {m}
-            </a>
+            <li>
+              <a
+                href={slug ? `#teaser-${slug}` : undefined}
+                class="identity-chip"
+                aria-label={slug ? `גלול לחלק ${m}` : undefined}
+              >
+                {m}
+              </a>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
 
     <!-- paragraph 1: aside the portrait on desktop; between title and portrait on mobile -->
@@ -223,6 +235,15 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
     flex-wrap: wrap;
     gap: 0.65rem;
     margin-block-end: 0.5rem;
+    /* There is no global list reset - see global.css. */
+    list-style: none;
+    padding-inline-start: 0;
+    margin-block-start: 0;
+  }
+
+  /* The li is a pass-through wrapper; the chip keeps every visual property. */
+  .identity-modalities li {
+    display: flex;
   }
 
   .identity-chip {

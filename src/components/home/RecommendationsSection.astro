@@ -24,6 +24,7 @@ import GlassCard from '../ui/GlassCard.astro';
 import RecommendationText from '../ui/RecommendationText.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
 import { screenshotMetrics } from '../../lib/screenshots';
+import { imageSources } from '../../lib/images';
 
 interface Recommendation {
   id: string;
@@ -75,10 +76,13 @@ const total = recommendations.length;
  * what this component used to do - forces text-dense captures to shrink under
  * the page's own body size to make the number come out right.
  */
+/** Card width in the wall: near-full-bleed on a phone, ~420px in the grid. */
+const REC_SIZES = '(max-width: 767px) 92vw, 420px';
+
 const items = await Promise.all(
   recommendations.slice(0, limit).map(async (rec) => {
     const { width, height, typeUnits } = await screenshotMetrics(rec.screenshot);
-    return { ...rec, width, height, typeUnits };
+    return { ...rec, width, height, typeUnits, sources: imageSources(rec.screenshot) };
   }),
 );
 ---
@@ -103,15 +107,23 @@ const items = await Promise.all(
       {items.map((rec) => (
         <article class="rec-tile" data-reveal style={`--rec-units: ${rec.typeUnits.toFixed(3)};`}>
           <GlassCard>
-            <img
-              class="rec-tile__img"
-              src={rec.screenshot}
-              alt={rec.alt}
-              width={rec.width}
-              height={rec.height}
-              loading="lazy"
-              decoding="async"
-            />
+            <picture>
+              {rec.sources.avif && (
+                <source type="image/avif" srcset={rec.sources.avif} sizes={REC_SIZES} />
+              )}
+              {rec.sources.webp && (
+                <source type="image/webp" srcset={rec.sources.webp} sizes={REC_SIZES} />
+              )}
+              <img
+                class="rec-tile__img"
+                src={rec.screenshot}
+                alt={rec.alt}
+                width={rec.width}
+                height={rec.height}
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
             <RecommendationText text={rec.transcription} />
           </GlassCard>
         </article>
