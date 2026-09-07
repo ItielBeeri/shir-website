@@ -1,0 +1,256 @@
+---
+/**
+ * The consent request for Google Analytics, and the only thing standing
+ * between a visitor and a third-party request (see scripts/consent.ts).
+ *
+ * The two buttons share one class on purpose. Consent has to be freely given
+ * to be consent at all, so a weakened refusal would not merely be unkind - it
+ * would invalidate the acceptances too, leaving data with no lawful basis.
+ * Style them together or not at all.
+ *
+ * Rendered hidden and revealed from JS. That single decision covers three
+ * requirements at once: it keeps a large element out of LCP candidacy on a
+ * page whose LCP budget is already spoken for (AGENTS.md §10), it keeps the
+ * banner away from anyone who has already answered, and it means a visitor
+ * without JS - who can never load GA, and so has nothing to consent to - is
+ * never asked.
+ */
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
+
+const consentSchema = z.object({
+  banner: z.object({
+    aria_label:    z.string(),
+    title:         z.string(),
+    body:          z.string(),
+    accept:        z.string(),
+    decline:       z.string(),
+    policy_prefix: z.string(),
+    policy_label:  z.string(),
+    policy_href:   z.string(),
+  }),
+});
+
+const { banner } = loadToml('pages/consent.toml', consentSchema);
+---
+
+<section
+  class="consent"
+  id="consent-banner"
+  role="region"
+  aria-label={banner.aria_label}
+  hidden
+>
+  <div class="consent-inner">
+    <div class="consent-copy">
+      <p class="consent-title">{banner.title}</p>
+      <p class="consent-body">{banner.body.trim()}</p>
+
+      <p class="consent-policy-line">
+        {banner.policy_prefix}{' '}
+        <a href={banner.policy_href} class="consent-policy">{banner.policy_label}</a>
+      </p>
+    </div>
+
+    <div class="consent-actions">
+      <button type="button" class="consent-btn" data-consent-action="granted">
+        {banner.accept}
+      </button>
+      <button type="button" class="consent-btn" data-consent-action="denied">
+        {banner.decline}
+      </button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .consent {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    /* Above the contact pill, which sits at 150. */
+    z-index: 200;
+    padding: 1.25rem;
+    background: rgba(253, 250, 244, 0.92);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    border-block-start: 2px solid var(--color-teal);
+    box-shadow: 0 -12px 40px rgba(92, 110, 101, 0.12);
+
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(100%);
+    transition:
+      opacity var(--dur-fast) var(--ease-soft),
+      transform var(--dur-base) var(--ease-soft),
+      visibility var(--dur-base);
+  }
+
+  .consent.is-open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .consent-inner {
+    max-inline-size: 1100px;
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .consent-copy { max-inline-size: 68ch; }
+
+  .consent-title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block-end: 0.35rem;
+  }
+
+  .consent-body {
+    /* TOML keeps its line breaks; the copy is shaped, not wrapped. */
+    white-space: pre-line;
+    font-size: var(--fs-small);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+  }
+
+  .consent-policy-line {
+    margin-block-start: 0.5rem;
+    font-size: var(--fs-small);
+    line-height: var(--lh-body);
+    color: var(--color-ink-soft);
+  }
+
+  /*
+   * A standing underline, not the site's .link-underline utility - that one
+   * grows from zero on hover, which leaves the link identified by colour
+   * alone at rest, and here by nothing at all, since it sits in a paragraph
+   * of the same colour (WCAG 1.4.1). Inside a sentence it is also exempt from
+   * the 44px target minimum, so it stays inline rather than becoming a block.
+   */
+  .consent-policy {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .consent-policy:hover { text-decoration-thickness: 2px; }
+  .consent-policy:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .consent-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  /*
+   * One rule for both choices. Nothing here may be forked per button.
+   */
+  .consent-btn {
+    min-block-size: 48px;
+    min-inline-size: 132px;
+    padding: 0.75rem 1.5rem;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    color: var(--color-ink);
+    background: var(--color-glass);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease-soft),
+      border-color var(--dur-fast) var(--ease-soft);
+  }
+  .consent-btn:hover {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: var(--color-ink-soft);
+  }
+  .consent-btn:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 767px) {
+    .consent-inner {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    /*
+     * Share one row rather than wrapping. Two full-width buttons pushed the
+     * banner to 57% of a 320px viewport, and a banner that swallows the page
+     * reads as a wall rather than a question - which is the characterisation
+     * that would put the consent itself in doubt.
+     */
+    .consent-btn {
+      flex: 1 1 0;
+      min-inline-size: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .consent { padding: 1rem 0.9rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .consent {
+      transition: opacity var(--dur-fast) linear, visibility var(--dur-fast);
+      transform: none;
+    }
+    .consent.is-open { transform: none; }
+  }
+</style>
+
+<script>
+  import {
+    readConsent,
+    writeConsent,
+    loadGA,
+    revokeGA,
+    analyticsAvailable,
+  } from '@/scripts/consent';
+  import { track } from '@/scripts/analytics';
+
+  const banner = document.getElementById('consent-banner');
+
+  if (banner && analyticsAvailable()) {
+    const open = () => {
+      banner.hidden = false;
+      /* One frame of layout at the closed position, so the entrance animates. */
+      requestAnimationFrame(() => banner.classList.add('is-open'));
+    };
+
+    if (readConsent() === null) {
+      /*
+       * Late enough to stay clear of the largest paint, early enough that the
+       * question is answered before the visitor is deep in the page.
+       */
+      setTimeout(open, 500);
+    }
+
+    for (const btn of banner.querySelectorAll<HTMLElement>('[data-consent-action]')) {
+      btn.addEventListener('click', () => {
+        const state = btn.dataset.consentAction === 'granted' ? 'granted' : 'denied';
+
+        writeConsent(state);
+        if (state === 'granted') loadGA();
+        else revokeGA();
+
+        /* After loadGA, so an acceptance is itself the first event recorded. */
+        track('consent_update', { state });
+
+        banner.classList.remove('is-open');
+      });
+    }
+
+    document.getElementById('privacy-settings')?.addEventListener('click', open);
+  }
+</script>

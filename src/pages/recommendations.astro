@@ -147,18 +147,21 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
             icon="whatsapp"
             variant="primary"
             external
+            analytics={{ event: 'contact_click', channel: 'whatsapp', placement: 'recs_cta' }}
           />
           <CTAButton
             href={contact.phone_href}
             label={`${contact.phone_label} · ${contact.phone_display}`}
             icon="phone"
             variant="secondary"
+            analytics={{ event: 'contact_click', channel: 'phone', placement: 'recs_cta' }}
           />
           <CTAButton
             href={contact.email_href}
             label={contact.email_label}
             icon="mail"
             variant="tertiary"
+            analytics={{ event: 'contact_click', channel: 'email', placement: 'recs_cta' }}
           />
         </div>
       </ScrollReveal>

@@ -65,10 +65,10 @@ const hasToc = parts.length > 0 || sections.length > 3;
       <h2 class="legal-toc-title">תוכן העניינים</h2>
       <ul>
         {parts.map((part, i) => (
-          <li><a href={`#${partIds[i]}`} class="link-underline">{part.heading}</a></li>
+          <li><a href={`#${partIds[i]}`} class="link-underline" data-an-event="toc_click" data-an-cta-label={part.heading}>{part.heading}</a></li>
         ))}
         {sections.map((section, i) => (
-          <li><a href={`#${flatIds[i]}`} class="link-underline">{section.title}</a></li>
+          <li><a href={`#${flatIds[i]}`} class="link-underline" data-an-event="toc_click" data-an-cta-label={section.title}>{section.title}</a></li>
         ))}
       </ul>
     </nav>

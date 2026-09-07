@@ -8,6 +8,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import BackgroundField from './BackgroundField.astro';
+import ConsentBanner from './ConsentBanner.astro';
+import { loadToml } from '../../lib/content';
+import { z } from 'zod';
 import { SITE_URL } from '../../lib/seo';
 
 /*
@@ -22,6 +25,22 @@ import { SITE_URL } from '../../lib/seo';
  * non-developer edits by name.
  */
 const globalCss = readFileSync(resolve(process.cwd(), 'public/global.css'), 'utf-8');
+
+const analyticsSchema = z.object({
+  analytics: z.object({
+    enabled:        z.boolean(),
+    measurement_id: z.string(),
+  }),
+});
+
+/*
+ * The measurement id reaches the client as a body attribute rather than an
+ * inlined script, so the consent gate stays an ordinary bundled module. It is
+ * not a secret - it is readable in any page's source by design - and its
+ * absence is what tells the gate there is nothing to load.
+ */
+const { analytics } = loadToml('site.toml', analyticsSchema);
+const gaId = analytics.enabled ? analytics.measurement_id : undefined;
 
 interface Props {
   title: string;
@@ -107,8 +126,11 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     <slot name="head" />
   </head>
 
-  <body data-theme={theme}>
+  <body data-theme={theme} data-ga={gaId}>
     <a class="skip-link" href="#main">דלג לתוכן</a>
+
+    {/* Second in tab order, so the question is reachable before the page. */}
+    {gaId && <ConsentBanner />}
 
     <BackgroundField />
 
@@ -119,6 +141,19 @@ const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שי
     </script>
     <script>
       import '@/scripts/scroll-reveal';
+    </script>
+    <!--
+      Page counting, ungated. It sets no persistent identifier and introduces
+      no new recipient - the host already sees every request - so it does not
+      rest on consent, and it therefore counts everyone rather than only the
+      visitors who accept GA. `is:inline` because the path is served by the
+      platform and does not exist at build time; it 404s under `pnpm preview`,
+      which is expected.
+    -->
+    <script is:inline defer src="/_vercel/insights/script.js"></script>
+
+    <script>
+      import '@/scripts/analytics';
     </script>
     <script>
       import '@/scripts/parallax';

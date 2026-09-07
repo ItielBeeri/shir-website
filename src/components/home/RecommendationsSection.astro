@@ -70,7 +70,13 @@ const items = await Promise.all(
         </span>
       </div>
       {showAllLink && (
-        <a href={allLinkHref} class="link-underline recommendations-see-all">
+        <a
+          href={allLinkHref}
+          class="link-underline recommendations-see-all"
+          data-an-event="nav_click"
+          data-an-cta-label="recommendations_see_all"
+          data-an-placement="recommendations_section"
+        >
           {allLinkText} ←
         </a>
       )}

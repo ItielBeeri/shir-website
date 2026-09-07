@@ -11,6 +11,16 @@ interface Props {
   variant?: 'primary' | 'secondary' | 'tertiary';
   external?: boolean;
   class?: string;
+  /**
+   * Emitted as data-an-*, and read by the delegated listener in
+   * scripts/analytics.ts. Needs an `event` key; every other key becomes an
+   * event parameter. Omit it entirely to leave a button uncounted.
+   *
+   * Callers name their own placement rather than it being derived from href,
+   * because the same three contact links appear in eight places and which one
+   * was clicked is the whole reason for measuring them.
+   */
+  analytics?: { event: string } & Record<string, string>;
 }
 
 const {
@@ -20,7 +30,12 @@ const {
   variant = 'primary',
   external = false,
   class: className,
+  analytics,
 } = Astro.props;
+
+const analyticsAttrs = Object.fromEntries(
+  Object.entries(analytics ?? {}).map(([key, value]) => [`data-an-${key}`, value]),
+);
 ---
 
 <a
@@ -29,6 +44,7 @@ const {
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener' : undefined}
   aria-label={external ? `${label} - נפתח בטאב חדש` : undefined}
+  {...analyticsAttrs}
 >
   {icon && <Icon name={icon} decorative size={variant === 'primary' ? 22 : 18} />}
   <span>{label}</span>

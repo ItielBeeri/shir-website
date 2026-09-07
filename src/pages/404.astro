@@ -36,8 +36,18 @@ const { page } = loadToml('pages/404.toml', pageSchema);
         <h1 class="not-found-title">{page.title}</h1>
         <p class="not-found-poetic">{page.poetic}</p>
         <div class="not-found-links">
-          <CTAButton href={page.home_href} label={page.home_label} variant="primary" />
-          <CTAButton href={page.contact_href} label={page.contact_label} variant="secondary" />
+          <CTAButton
+            href={page.home_href}
+            label={page.home_label}
+            variant="primary"
+            analytics={{ event: 'nav_click', 'cta-label': 'home', placement: '404' }}
+          />
+          <CTAButton
+            href={page.contact_href}
+            label={page.contact_label}
+            variant="secondary"
+            analytics={{ event: 'nav_click', 'cta-label': 'contact', placement: '404' }}
+          />
         </div>
       </GlassCard>
     </div>

@@ -76,6 +76,9 @@ const modalities = modalityTagline.split('·').map((s) => s.trim());
                 href={slug ? `#teaser-${slug}` : undefined}
                 class="identity-chip"
                 aria-label={slug ? `גלול לחלק ${m}` : undefined}
+                data-an-event="identity_cta"
+                data-an-placement="chip"
+                data-an-item={slug}
               >
                 {m}
               </a>

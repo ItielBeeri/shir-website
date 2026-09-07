@@ -25,7 +25,13 @@ function formatDate(date: Date): string {
       title="מהבלוג"
       id="blog-teaser-heading"
     />
-    <a href={ctaHref} class="link-underline blog-see-all">
+    <a
+      href={ctaHref}
+      class="link-underline blog-see-all"
+      data-an-event="nav_click"
+      data-an-cta-label="blog_see_all"
+      data-an-placement="home_blog"
+    >
       {ctaLabel} ←
     </a>
   </div>
@@ -35,7 +41,15 @@ function formatDate(date: Date): string {
   ) : (
     <div class="blog-grid" data-reveal data-stagger="80">
       {posts.map((post) => (
-        <a href={`/blog/${post.slug}`} class="blog-tile" data-reveal>
+        <a
+          href={`/blog/${post.slug}`}
+          class="blog-tile"
+          data-reveal
+          data-an-event="content_open"
+          data-an-content-type="blog"
+          data-an-item={post.slug}
+          data-an-placement="home_blog"
+        >
           <GlassCard hover>
             {post.data.cover && (
               <div class="blog-tile__cover">

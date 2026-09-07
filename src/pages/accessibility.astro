@@ -63,18 +63,21 @@ const site = loadToml('site.toml', siteSchema);
             icon="whatsapp"
             variant="primary"
             external
+            analytics={{ event: 'contact_click', channel: 'whatsapp', placement: 'a11y_contact' }}
           />
           <CTAButton
             href={site.contact.phone_href}
             label={site.contact.phone_display}
             icon="phone"
             variant="secondary"
+            analytics={{ event: 'contact_click', channel: 'phone', placement: 'a11y_contact' }}
           />
           <CTAButton
             href={site.contact.email_href}
             label={site.contact.email_display}
             icon="mail"
             variant="tertiary"
+            analytics={{ event: 'contact_click', channel: 'email', placement: 'a11y_contact' }}
           />
         </div>
       </section>

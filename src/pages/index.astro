@@ -99,18 +99,21 @@ const blogPosts = sortBlogPosts(
               icon="whatsapp"
               variant="primary"
               external
+              analytics={{ event: 'contact_click', channel: 'whatsapp', placement: 'home_closing' }}
             />
             <CTAButton
               href={contact.phone_href}
               label={`${contact.phone_label} · ${contact.phone_display}`}
               icon="phone"
               variant="secondary"
+              analytics={{ event: 'contact_click', channel: 'phone', placement: 'home_closing' }}
             />
             <CTAButton
               href={contact.email_href}
               label={contact.email_label}
               icon="mail"
               variant="tertiary"
+              analytics={{ event: 'contact_click', channel: 'email', placement: 'home_closing' }}
             />
           </div>
         </ScrollReveal>

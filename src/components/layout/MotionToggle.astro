@@ -59,6 +59,8 @@
 </style>
 
 <script>
+  import { track } from '@/scripts/analytics';
+
   const KEY = 'shir:motion';
   const root = document.documentElement;
   const btn = document.getElementById('motion-toggle');
@@ -88,6 +90,9 @@
       /* storage blocked - the choice still holds for this page view */
     }
     sync();
+    /* Tracked here rather than via data-an-*, because the value worth
+       recording is the state being moved to, which only this scope knows. */
+    track('motion_toggle', { state: off ? 'on' : 'off' });
   });
 
   sync();

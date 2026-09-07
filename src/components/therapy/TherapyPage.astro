@@ -124,18 +124,21 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
             icon="whatsapp"
             variant="primary"
             external
+            analytics={{ event: 'contact_click', channel: 'whatsapp', placement: 'therapy_cta' }}
           />
           <CTAButton
             href={contact.phone_href}
             label={`${contact.phone_label} · ${contact.phone_display}`}
             icon="phone"
             variant="secondary"
+            analytics={{ event: 'contact_click', channel: 'phone', placement: 'therapy_cta' }}
           />
           <CTAButton
             href={contact.email_href}
             label={contact.email_label}
             icon="mail"
             variant="tertiary"
+            analytics={{ event: 'contact_click', channel: 'email', placement: 'therapy_cta' }}
           />
         </div>
       </ScrollReveal>
@@ -146,7 +149,14 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
         <SectionHeading title="מסלולים אחרים" center id="related-heading" />
         <div class="related-grid">
           {relatedTherapies.map((therapy) => (
-            <a href={`/${therapy.slug}`} class="related-card">
+            <a
+              href={`/${therapy.slug}`}
+              class="related-card"
+              data-an-event="content_open"
+              data-an-content-type="therapy"
+              data-an-item={therapy.slug}
+              data-an-placement="therapy_related"
+            >
               <div class="related-image">
                 <SoftImage id={therapy.data.hero_image} aspect="4/3" tint sizes="(max-width: 767px) 92vw, 360px" />
               </div>

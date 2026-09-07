@@ -35,11 +35,17 @@ const siteSchema = z.object({
     terms_href:         z.string(),
     location:           z.string(),
   }),
+  analytics: z.object({ enabled: z.boolean() }),
+});
+
+const consentSchema = z.object({
+  banner: z.object({ settings_label: z.string() }),
 });
 
 const site = loadToml('site.toml', siteSchema);
-// Same source as the header, so a renamed page is renamed in both.
+// Same source as the header (nav.toml), so a renamed page is renamed in both.
 const nav = loadToml('nav.toml', navSchema);
+const consent = loadToml('pages/consent.toml', consentSchema);
 const year = new Date().getFullYear();
 ---
 
@@ -61,7 +67,14 @@ const year = new Date().getFullYear();
       <p class="footer-col-title">ניווט</p>
       <ul role="list">
         {nav.items.map((item) => (
-          <li><a href={item.href}>{item.label}</a></li>
+          <li>
+            <a
+              href={item.href}
+              data-an-event="nav_click"
+              data-an-cta-label={item.label}
+              data-an-placement="footer"
+            >{item.label}</a>
+          </li>
         ))}
       </ul>
     </nav>
@@ -77,6 +90,9 @@ const year = new Date().getFullYear();
             rel="noopener"
             class="contact-link contact-primary"
             aria-label={`${site.contact.whatsapp_label} - נפתח בטאב חדש`}
+            data-an-event="contact_click"
+            data-an-channel="whatsapp"
+            data-an-placement="footer"
           >
             <Icon name="whatsapp" decorative size={18} />
             {site.contact.whatsapp_label}
@@ -92,6 +108,9 @@ const year = new Date().getFullYear();
           <a
             href={site.contact.phone_href}
             class="contact-link"
+            data-an-event="contact_click"
+            data-an-channel="phone"
+            data-an-placement="footer"
           >
             <Icon name="phone" decorative size={18} />
             <span class="sr-only">{site.contact.phone_label}</span>
@@ -102,6 +121,9 @@ const year = new Date().getFullYear();
           <a
             href={site.contact.email_href}
             class="contact-link contact-tertiary"
+            data-an-event="contact_click"
+            data-an-channel="email"
+            data-an-placement="footer"
           >
             <Icon name="mail" decorative size={18} />
             <span class="sr-only">{site.contact.email_label}</span>
@@ -122,6 +144,9 @@ const year = new Date().getFullYear();
             rel="noopener"
             aria-label={`${site.social.facebook_label} - נפתח בטאב חדש`}
             class="footer-link"
+            data-an-event="outbound_click"
+            data-an-cta-label="facebook"
+            data-an-placement="footer"
           >
             <Icon name="facebook" decorative size={16} />
             {site.social.facebook_label}
@@ -134,6 +159,9 @@ const year = new Date().getFullYear();
             rel="noopener"
             aria-label={`${site.social.biosynthesis_label} - נפתח בטאב חדש`}
             class="footer-link"
+            data-an-event="outbound_click"
+            data-an-cta-label="biosynthesis"
+            data-an-placement="footer"
           >
             <Icon name="external" decorative size={16} />
             {site.social.biosynthesis_label}
@@ -159,6 +187,14 @@ const year = new Date().getFullYear();
       </a>
       <span class="footer-sep" aria-hidden="true">·</span>
       <MotionToggle />
+      {site.analytics.enabled && (
+        <>
+          <span class="footer-sep" aria-hidden="true">·</span>
+          <button type="button" id="privacy-settings" class="privacy-settings">
+            {consent.banner.settings_label}
+          </button>
+        </>
+      )}
     </div>
     <!-- The one intentional English string on the site. -->
     <span class="builder-credit" lang="en" dir="ltr">
@@ -298,6 +334,26 @@ const year = new Date().getFullYear();
     transition: color var(--dur-fast);
   }
   .footer-bottom-link:hover { color: var(--color-ink-soft); }
+
+  /* Reopens the consent banner. Withdrawing has to be as easy as agreeing,
+     so this sits in the same bar, at the same weight, on every page. */
+  .privacy-settings {
+    background: none;
+    border: none;
+    padding: 0.5rem 0;
+    min-block-size: 44px;
+    font-family: inherit;
+    font-size: var(--fs-small);
+    color: var(--color-mist);
+    cursor: pointer;
+    transition: color var(--dur-fast);
+  }
+  .privacy-settings:hover { color: var(--color-ink-soft); }
+  .privacy-settings:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
 
   /* Physical `left`, not logical: the credit is an LTR island. */
   .builder-credit {

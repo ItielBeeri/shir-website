@@ -35,7 +35,15 @@ function formatDate(date: Date): string {
       <section class="blog-grid-section container" aria-label="כל הפוסטים">
         <div class="posts-grid" data-reveal data-stagger="60">
           {allPosts.map((post) => (
-            <a href={`/blog/${post.slug}`} class="post-tile" data-reveal>
+            <a
+              href={`/blog/${post.slug}`}
+              class="post-tile"
+              data-reveal
+              data-an-event="content_open"
+              data-an-content-type="blog"
+              data-an-item={post.slug}
+              data-an-placement="blog_index"
+            >
               <GlassCard hover>
                 {post.data.cover && (
                   <div class="post-thumb">

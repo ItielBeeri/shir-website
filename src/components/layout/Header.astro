@@ -44,6 +44,9 @@ const currentPath = Astro.url.pathname;
               href={item.href}
               class="nav-link"
               aria-current={currentPath === item.href || currentPath.startsWith(item.href + '/') ? 'page' : undefined}
+              data-an-event="nav_click"
+              data-an-cta-label={item.label}
+              data-an-placement="header"
             >
               {item.label}
             </a>
@@ -62,6 +65,7 @@ const currentPath = Astro.url.pathname;
   aria-label="פתיחת תפריט ניווט"
   aria-expanded="false"
   aria-controls="mobile-drawer"
+  data-an-event="drawer_open"
 >
   <span class="hamburger-icon" aria-hidden="true">
     <span class="bar bar-top"></span>
@@ -98,6 +102,9 @@ const currentPath = Astro.url.pathname;
             class="drawer-link"
             aria-current={currentPath === item.href || currentPath.startsWith(item.href + '/') ? 'page' : undefined}
             data-reveal
+            data-an-event="nav_click"
+            data-an-cta-label={item.label}
+            data-an-placement="drawer"
           >
             {item.label}
           </a>

@@ -95,7 +95,14 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
         <SectionHeading title="המסלולים שלי" center id="therapies-cta-heading" />
         <div class="therapies-cta-grid">
           {therapies.map((therapy) => (
-            <a href={`/${therapy.slug}`} class="therapy-cta-card">
+            <a
+              href={`/${therapy.slug}`}
+              class="therapy-cta-card"
+              data-an-event="content_open"
+              data-an-content-type="therapy"
+              data-an-item={therapy.slug}
+              data-an-placement="about_cards"
+            >
               <div class="therapy-cta-image">
                 <SoftImage id={therapy.data.hero_image} aspect="4/3" tint sizes="(max-width: 767px) 92vw, 360px" />
               </div>

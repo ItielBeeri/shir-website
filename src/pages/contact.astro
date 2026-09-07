@@ -53,27 +53,46 @@ const { contact, social } = loadToml('site.toml', siteSchema);
               icon="whatsapp"
               variant="primary"
               external
+              analytics={{ event: 'contact_click', channel: 'whatsapp', placement: 'contact_page' }}
             />
             <CTAButton
               href={contact.phone_href}
               label={`${contact.phone_label} · ${contact.phone_display}`}
               icon="phone"
               variant="secondary"
+              analytics={{ event: 'contact_click', channel: 'phone', placement: 'contact_page' }}
             />
             <CTAButton
               href={contact.email_href}
               label={contact.email_display}
               icon="mail"
               variant="tertiary"
+              analytics={{ event: 'contact_click', channel: 'email', placement: 'contact_page' }}
             />
           </div>
 
           <div class="contact-social">
-            <a href={social.facebook_url} target="_blank" rel="noopener" class="link-underline social-link">
+            <a
+              href={social.facebook_url}
+              target="_blank"
+              rel="noopener"
+              class="link-underline social-link"
+              data-an-event="outbound_click"
+              data-an-cta-label="facebook"
+              data-an-placement="contact_page"
+            >
               {social.facebook_label}
             </a>
             <span aria-hidden="true"> · </span>
-            <a href={social.biosynthesis_url} target="_blank" rel="noopener" class="link-underline social-link">
+            <a
+              href={social.biosynthesis_url}
+              target="_blank"
+              rel="noopener"
+              class="link-underline social-link"
+              data-an-event="outbound_click"
+              data-an-cta-label="biosynthesis"
+              data-an-placement="contact_page"
+            >
               {social.biosynthesis_label}
             </a>
           </div>

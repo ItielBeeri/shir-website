@@ -23,7 +23,15 @@ const LABEL = 'ההמלצה כטקסט';
 ---
 
 <details class:list={['rec-text', className]}>
-  <summary class="rec-text__summary" aria-label={LABEL} title={LABEL}>
+  <!-- data-an-* rather than a toggle listener, so this component stays
+       script-free as designed. It therefore counts opens and closes alike,
+       which the event name admits to. -->
+  <summary
+    class="rec-text__summary"
+    aria-label={LABEL}
+    title={LABEL}
+    data-an-event="recommendation_toggle"
+  >
     <span class="rec-text__summary-inner">
       <Icon name="quote" decorative size={16} />
     </span>
