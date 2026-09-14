@@ -85,18 +85,6 @@
     ],
     "digest": "5072ce63da448924"
   },
-  "/img/content/portrait-3.jpeg": {
-    "key": "content/portrait-3",
-    "width": 1051,
-    "height": 1625,
-    "widths": [
-      400,
-      640,
-      900,
-      1051
-    ],
-    "digest": "994cda5cec55d762"
-  },
   "/img/content/portrait-4.jpg": {
     "key": "content/portrait-4",
     "width": 1080,
