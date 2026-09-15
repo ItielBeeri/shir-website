@@ -993,7 +993,7 @@ alt = "אישה מביטה בצל של עצמה"</pre>
     <span class="num">6</span>
     <div>
       <h2>עמודי האתר</h2>
-      <div class="sub">הטקסטים של דף הבית, אודות, יצירת קשר ודף השגיאה - בתיקייה <span class="f">src › content › pages</span>.</div>
+      <div class="sub">הטקסטים של דף הבית, יצירת קשר ודף השגיאה - בתיקייה <span class="f">src › content › pages</span>. עמוד אודות נמצא בנפרד, ב-<span class="f">src › content › about</span>.</div>
     </div>
   </div>
 
@@ -1021,19 +1021,14 @@ alt = "אישה מביטה בצל של עצמה"</pre>
   <article class="qa" id="q6-2">
     <h3><span class="qn">6.2</span>איך עורכים את עמוד אודות?</h3>
     <div class="ans">
-      <p>פותחים <span class="f">about.toml</span>.</p>
-      <figure class="shot">
-        <img src="19-about-toml.png" alt="קובץ about.toml של עמוד אודות">
-        <figcaption>עמוד אודות. שימי לב לשורות ה-<b>PLACEHOLDER</b> - הן מסמנות טקסט זמני שממתין לתוכן.</figcaption>
-      </figure>
+      <p>פותחים <span class="f">src › content › about › about.mdx</span>. המבנה זהה לעמודי הטיפולים (<a class="qref" href="#q5-1">5.1</a>): בלוק פרטים למעלה, וגוף טקסט חופשי מתחתיו.</p>
       <table class="fields">
-        <tr><th>אזור</th><th>מה יש בו</th></tr>
-        <tr><td><span class="f">[hero]</span></td><td><span class="key">kicker</span>, <span class="key">title</span> ו-<span class="key">intro</span> - שלוש שורות הפתיחה.</td></tr>
-        <tr><td><span class="f">[portrait]</span></td><td><span class="key">image_id</span> התמונה, <span class="key">opening</span> הפסקה שלצידה.</td></tr>
-        <tr><td><span class="f">[story]</span></td><td><span class="key">blocks</span> - רשימת פסקאות הסיפור האישי. הוספה והורדה לפי <a class="qref" href="#q2-3">רשימות (2.3)</a>.</td></tr>
-        <tr><td><span class="f">[training]</span></td><td><span class="key">items</span> - רשימת ההכשרות.</td></tr>
-        <tr><td><span class="f">[philosophy]</span></td><td><span class="key">quote</span> - הציטוט על הגישה הטיפולית.</td></tr>
+        <tr><th>שורה</th><th>מה כותבים</th></tr>
+        <tr><td><span class="key">title</span></td><td>הכותרת הראשית בראש העמוד.</td></tr>
+        <tr><td><span class="key">intro</span></td><td>שורת הפתיחה שמופיעה מתחת לכותרת.</td></tr>
+        <tr><td><span class="key">portrait_image</span></td><td>תמונת הפורטרט שליד הכותרת - מזהה מ<a class="qref" href="#q3-2">רשימת התמונות (3.2)</a>.</td></tr>
       </table>
+      <p>תמונת הפורטרט צפה לצד הכותרת וההתחלה של הטקסט, בדיוק כמו תמונה צפה בגוף פוסט או עמוד טיפול - ראי <a class="qref" href="#q5-4">שילוב תמונה (5.4)</a>. שאר גוף הטקסט מתחת לשורת ה-<span class="f">---</span> התחתונה נכתב בדיוק כמו בעמודי הטיפולים - ראי <a class="qref" href="#q5-3">כותרות ביניים (5.3)</a>. שורות <span class="f">PLACEHOLDER</span> מסמנות טקסט שממתין לתוכן סופי.</p>
     </div>
   </article>
 
@@ -1331,7 +1326,7 @@ tagline = "פסיכותרפיה · טיפול במגע · פתיחת קול"</pr
         <tr><td>פוסט בבלוג</td><td><span class="f">src › content › blog</span></td></tr>
         <tr><td>עמוד טיפול</td><td><span class="f">src › content › therapies</span></td></tr>
         <tr><td>דף הבית</td><td><span class="f">src › content › pages › home.toml</span></td></tr>
-        <tr><td>עמוד אודות</td><td><span class="f">src › content › pages › about.toml</span></td></tr>
+        <tr><td>עמוד אודות</td><td><span class="f">src › content › about › about.mdx</span></td></tr>
         <tr><td>עמוד יצירת קשר</td><td><span class="f">src › content › pages › contact.toml</span></td></tr>
         <tr><td>דף "לא נמצא"</td><td><span class="f">src › content › pages › 404.toml</span></td></tr>
         <tr><td>טלפון, אימייל, פייסבוק, כותרת תחתונה</td><td><span class="f">src › content › site.toml</span></td></tr>

@@ -3,92 +3,48 @@ import BaseLayout from '../components/layout/BaseLayout.astro';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import ContactPill from '../components/layout/ContactPill.astro';
-import GlassCard from '../components/ui/GlassCard.astro';
 import SoftImage from '../components/ui/SoftImage.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
-import { loadToml } from '../lib/content';
-import { getCollection } from 'astro:content';
-import { z } from 'zod';
+import { getCollection, render } from 'astro:content';
 
-const aboutSchema = z.object({
-  hero:      z.object({ kicker: z.string(), title: z.string(), intro: z.string() }),
-  portrait:  z.object({ image_id: z.string(), opening: z.string() }),
-  story:     z.object({ blocks: z.array(z.string()) }),
-  training:  z.object({ title: z.string(), items: z.array(z.string()) }),
-  philosophy: z.object({ title: z.string(), quote: z.string() }),
-});
+const [aboutEntry] = await getCollection('about');
+const { title, intro, portrait_image } = aboutEntry.data;
+const { Content } = await render(aboutEntry);
 
-const about = loadToml('pages/about.toml', aboutSchema);
 const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 ---
 
 <BaseLayout
   title="אודות | שיר אמיתי"
-  description={about.hero.intro}
+  description={intro}
 >
   <Header />
 
   <main id="main">
     <section class="about-intro container" aria-labelledby="about-h1">
-      <div class="about-intro-grid">
-        <div class="about-intro-text">
-          <p class="text-kicker">{about.hero.kicker}</p>
-          <h1 id="about-h1" class="about-title">{about.hero.title}</h1>
-          <div class="about-rule" aria-hidden="true">
-            <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="hero-rule-svg">
-              <path
-                class="rule-path"
-                d="M0,6 Q80,0 160,6 Q240,12 320,6"
-                fill="none"
-                stroke="var(--color-rule)"
-                stroke-width="1"
-                stroke-linecap="round"
-              />
-            </svg>
-          </div>
-          <p class="about-intro-paragraph">{about.hero.intro}</p>
-          <p class="about-opening">{about.portrait.opening}</p>
+      <div class="prose">
+        <SoftImage id={portrait_image} aspect="3/4" float="end" floatWidth="420" />
+        <h1 id="about-h1" class="about-title">{title}</h1>
+        <div class="about-rule" aria-hidden="true">
+          <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="hero-rule-svg">
+            <path
+              class="rule-path"
+              d="M0,6 Q80,0 160,6 Q240,12 320,6"
+              fill="none"
+              stroke="var(--color-rule)"
+              stroke-width="1"
+              stroke-linecap="round"
+            />
+          </svg>
         </div>
-        <div class="about-portrait" data-parallax data-speed="0.92">
-          <SoftImage id={about.portrait.image_id} aspect="3/4" sizes="(max-width: 767px) 260px, 450px" />
-        </div>
+        <p class="about-intro-paragraph">{intro}</p>
+        <Content components={{ SoftImage }} />
       </div>
     </section>
 
     <BreathDivider />
-    <section class="about-story container" aria-labelledby="story-heading">
-      <SectionHeading kicker="הסיפור שלי" title="המסע" id="story-heading" />
-      <div class="story-blocks">
-        {about.story.blocks.map((block) => (
-          <ScrollReveal>
-            <GlassCard>
-              <p>{block}</p>
-            </GlassCard>
-          </ScrollReveal>
-        ))}
-      </div>
-    </section>
-
-    <section class="about-training container" aria-labelledby="training-heading">
-      <SectionHeading kicker="רקע מקצועי" title={about.training.title} id="training-heading" />
-      <GlassCard>
-        <ul class="training-list">
-          {about.training.items.map((item) => (
-            <li>{item}</li>
-          ))}
-        </ul>
-      </GlassCard>
-    </section>
-
-    <section class="about-philosophy container" aria-labelledby="philosophy-heading">
-      <ScrollReveal>
-        <blockquote class="philosophy-quote">
-          {about.philosophy.quote}
-        </blockquote>
-      </ScrollReveal>
-    </section>
 
     <section class="about-therapies-cta container" aria-labelledby="therapies-cta-heading">
       <ScrollReveal>
@@ -131,37 +87,9 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
     padding-block-end: var(--space-section);
   }
 
-  .about-intro-grid {
-    display: grid;
-    container-type: inline-size;
-    grid-template-columns: minmax(260px, auto) 1fr;
-    gap: clamp(2rem, 5vw, 4rem);
-    align-items: start;
-  }
-
-  /*
-   * The ratio is duplicated from the `aspect` prop, and has to be: SoftImage's
-   * figure also carries height: 100%, which beats its own aspect-ratio, so on
-   * this auto-height wrapper it measures 0 until the photo loads. Keep the two
-   * in step.
-   */
-  .about-portrait {
-    position: relative;
-    max-inline-size: 40cqi;
-    aspect-ratio: 3 / 4;
-    border-radius: var(--radius-card);
-    overflow: hidden;
-  }
-
-  .about-intro-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-
   .about-title {
     font-family: var(--font-display);
-    font-size: var(--fs-display);
+    font-size: var(--fs-h1);
     font-weight: 300;
     letter-spacing: -0.01em;
     line-height: var(--lh-display);
@@ -192,61 +120,75 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   .about-intro-paragraph {
     font-size: var(--fs-h3);
     font-weight: 300;
-    color: var(--color-ink-soft);
-    margin-block-end: 0.75rem;
-  }
-
-  .about-opening {
-    font-size: var(--fs-body);
     line-height: var(--lh-body);
     color: var(--color-ink-soft);
     white-space: pre-line;
+    margin-block-end: 1.25rem;
   }
 
-  .about-story { padding-block: var(--space-section); }
-  .story-blocks { display: flex; flex-direction: column; gap: 1.5rem; margin-block-start: var(--space-block); }
-
-  .about-training { padding-block: var(--space-section); }
-
-  .training-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 0;
-  }
-
-  .training-list li {
-    padding-inline-start: 1.25rem;
-    position: relative;
+  .prose {
     font-size: var(--fs-body);
+    line-height: var(--lh-body);
     color: var(--color-ink-soft);
+    display: flow-root;
   }
 
-  .training-list li::before {
-    content: '·';
-    position: absolute;
-    inset-inline-start: 0;
-    color: var(--accent, var(--color-teal));
-    font-weight: 700;
-  }
-
-  .about-philosophy {
-    padding-block: var(--space-section);
-    display: flex;
-    justify-content: center;
-  }
-
-  .philosophy-quote {
+  .prose :global(h2) {
     font-family: var(--font-sans);
-    font-size: var(--fs-h1);
+    font-size: var(--fs-h2);
+    font-weight: 300;
+    color: var(--color-ink);
+    margin-block: 2.5rem 1rem;
+  }
+
+  .prose :global(h3) {
+    font-family: var(--font-sans);
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--color-ink);
+    margin-block: 1.5rem 0.75rem;
+  }
+
+  .prose :global(p) {
+    margin-block-end: 1.25rem;
+  }
+
+  .prose :global(blockquote) {
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
     font-weight: 300;
     line-height: 1.55;
-    color: var(--color-ink-soft);
-    max-inline-size: 60ch;
-    padding-inline-start: 2rem;
     border-inline-start: 3px solid var(--accent, var(--color-teal));
-    white-space: pre-line;
+    padding-inline-start: 1.25rem;
+    color: var(--color-ink-soft);
+    margin-block: 2rem;
+  }
+
+  .prose :global(ol),
+  .prose :global(ul) {
+    padding-inline-start: 1.5rem;
+    margin-block-end: 1.25rem;
+  }
+
+  .prose :global(li) {
+    margin-block-end: 0.5rem;
+  }
+
+  .prose :global(img) {
+    margin-block: 2rem;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .prose :global(figure:not(.soft-image)) {
+    margin-block: 2rem;
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  /* A floated body image must not run past its own section. */
+  .prose :global(h2) {
+    clear: both;
   }
 
   .about-therapies-cta {
@@ -329,32 +271,6 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   }
 
   @media (max-width: 767px) {
-    .about-intro-grid {
-      grid-template-columns: 1fr;
-    }
-    /*
-     * inline-size, not max-inline-size: the auto margins below absorb the free
-     * space rather than stretching the box, so a max leaves it shrink-to-fit -
-     * i.e. zero until the photo loads, which cost CLS 0.19 here. A definite
-     * width resolves in the first layout pass and still centres.
-     */
-    .about-portrait {
-      inline-size: min(100%, 260px);
-      /* The base rule's 40cqi cap would still win: max clamps inline-size,
-         not the other way round. */
-      max-inline-size: none;
-      margin-inline: auto;
-    }
-    .about-intro-text {
-      text-align: center;
-      align-items: center;
-    }
-    .about-rule {
-      margin-inline: auto;
-    }
-    .about-opening {
-      text-align: center;
-    }
     .therapies-cta-grid { grid-template-columns: 1fr; }
   }
 

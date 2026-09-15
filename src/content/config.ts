@@ -28,4 +28,13 @@ const blog = defineCollection({
   }),
 });
 
-export const collections = { therapies, blog };
+const about = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title:          z.string(),
+    intro:          z.string(),
+    portrait_image: z.string(),
+  }),
+});
+
+export const collections = { therapies, blog, about };
