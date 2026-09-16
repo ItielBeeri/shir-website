@@ -165,13 +165,21 @@ const resolvedSizes = authoredSizes
     shape-outside: margin-box;
   }
 
+  /*
+   * Physical value first, logical second: `float: inline-*` is Chrome 118+,
+   * and an engine older than that drops the declaration and leaves the image
+   * stacked above the text rather than beside it. dir="rtl" is sitewide, so
+   * the two can never disagree.
+   */
   .soft-image--float-start {
+    float: right;
     float: inline-start;
     margin-inline-end: 1.5rem;
     width: var(--float-width, 280px);
   }
 
   .soft-image--float-end {
+    float: left;
     float: inline-end;
     margin-inline-start: 1.5rem;
     width: var(--float-width, 280px);
