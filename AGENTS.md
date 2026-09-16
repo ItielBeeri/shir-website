@@ -95,7 +95,7 @@ Modality accents are registered in the themes block as `[data-theme="…"]` and 
 
 Two roles, one webfont. `--font-display` is **Heebo**, the only downloaded face, self-hosted as a variable font in `public/fonts/`; it carries wordmarks, titles, kickers and blockquotes. `--font-sans` is the visitor's own system UI font and carries body and UI text - deliberately not a webfont. Do not introduce Google Fonts or any other external origin. Always reference a family through its token.
 
-**No italic Hebrew** - emphasis comes from weight, font switch, size and letter-spacing. Sizes via `clamp()` from the token scale. Western digits only. **U+0020 belongs to the hebrew `@font-face`**, carved out of the latin `unicode-range` so the later rule cannot win the overlap - otherwise every Hebrew heading waits on the latin file, which cost CLS 0.189 on `/about`. `global.css` has the account; don't tidy those ranges back.
+**Hebrew emphasis is weight, not slant** - `*text*` and any bare `<em>` render at 600; only `_text_` opts into real italic, tagged by `scripts/remark-underscore-italic.mjs` and slanted synthetically (Heebo ships no italic face). Sizes via `clamp()` from the token scale. Western digits only. **U+0020 belongs to the hebrew `@font-face`**, carved out of the latin `unicode-range` so the later rule cannot win the overlap - otherwise every Hebrew heading waits on the latin file, which cost CLS 0.189 on `/about`. `global.css` has the account; don't tidy those ranges back.
 
 ### 4.4 RTL - RTL-native, not RTL-patched
 

@@ -198,6 +198,8 @@ section { padding-block: var(--space-section); }
 .text-ink-soft { color: var(--color-ink-soft); }
 
 em, i { font-style: normal; font-weight: 600; }
+/* `_text_` asks for italic outright; `*text*` keeps emphasis-by-weight. */
+em.italic, i.italic { font-style: italic; font-weight: inherit; }
 
 blockquote {
   font-family: var(--font-display);

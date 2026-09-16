@@ -42,6 +42,12 @@ const siteSchema = z.object({
 });
 
 const { contact } = loadToml('site.toml', siteSchema);
+/*
+ * Below three cards the wall reads as a gap rather than a section - a lone
+ * screenshot beside empty space looks like something failed to load - so the
+ * section is dropped entirely instead.
+ */
+const MIN_RECOMMENDATIONS = 3;
 const therapyRecommendations = loadRecommendations().filter((item) =>
   item.relatedTherapies.includes(entry.slug),
 );
@@ -101,7 +107,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
       </div>
     </section>
 
-    {therapyRecommendations.length > 0 && (
+    {therapyRecommendations.length >= MIN_RECOMMENDATIONS && (
       <>
         <BreathDivider />
         <RecommendationsSection
@@ -256,8 +262,14 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     white-space: pre-line;
   }
 
+  /*
+   * A reading measure, not the full container: body copy at 1240px runs past
+   * comfortable line length. Sized to land near the blog post's 72ch once the
+   * container's own padding is taken off.
+   */
   .therapy-body {
     padding-block: var(--space-section);
+    max-inline-size: 96ch;
   }
 
   .prose {
