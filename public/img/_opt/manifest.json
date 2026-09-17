@@ -291,6 +291,20 @@
     ],
     "digest": "2d976d0bb06eca6c"
   },
+  "/img/content/shiatsu-front.JPG": {
+    "key": "content/shiatsu-front",
+    "width": 4592,
+    "height": 3064,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "b4679edeba43160a"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
