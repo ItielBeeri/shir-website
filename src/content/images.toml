@@ -92,3 +92,8 @@ alt = "שיר במרפסת ביתה"
 [shir-272]
 file = "/img/content/shir-272.jpg"
 alt = "שיר עם גיטרה"
+
+[shiatsu-front]
+file = "/img/content/shiatsu-front.JPG"
+alt = "מתיחה לידיים בשיאצו "
+
