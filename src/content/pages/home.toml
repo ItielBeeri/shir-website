@@ -31,6 +31,6 @@ cta_label = "לכל הפוסטים"
 cta_href  = "/blog"
 
 [closing]
-enabled = true
+enabled = false
 # PLACEHOLDER: TXT_HOME_CLOSING
 line    = "נשימה אחת. כאן. עכשיו."
