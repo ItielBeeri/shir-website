@@ -39,13 +39,13 @@ href  = "/ceremonies"
 theme = "ceremonies"
 
 [[items]]
+label = "בלוג"
+href  = "/blog"
+
+[[items]]
 label  = "המלצות"
 href   = "/recommendations"
 header = false
-
-[[items]]
-label = "בלוג"
-href  = "/blog"
 
 [[items]]
 label = "יצירת קשר"
