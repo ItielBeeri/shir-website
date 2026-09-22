@@ -227,16 +227,17 @@ export class GitHubTransport implements GitTransport {
       );
       if (!deployments?.length) return { state: 'unknown' };
 
-      // Newest first; production is what "did it go up?" means.
-      const production =
-        deployments.find((d) => /prod/i.test(d.environment)) ?? deployments[0];
+      // Newest first. The draft branch only ever has a preview deployment and
+      // master only a production one, so the most recent is always the right one.
+      const deployment = deployments[0];
 
       const statuses = await this.call<Array<{
         state: string;
         environment_url?: string;
-      }> | null>(`/deployments/${production.id}/statuses?per_page=1`);
+      }> | null>(`/deployments/${deployment.id}/statuses?per_page=1`);
 
       const latest = statuses?.[0];
+      // A deployment with no status yet has been created but not started.
       if (!latest) return { state: 'building' };
       return { state: mapDeployState(latest.state), url: latest.environment_url };
     } catch {

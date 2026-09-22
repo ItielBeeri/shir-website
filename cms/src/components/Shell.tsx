@@ -28,8 +28,6 @@ interface Props {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
   children: ReactNode;
-  onPublish: () => void;
-  publishing: boolean;
 }
 
 export function Shell({
@@ -41,8 +39,6 @@ export function Shell({
   drawerOpen,
   setDrawerOpen,
   children,
-  onPublish,
-  publishing,
 }: Props): JSX.Element {
   const store = useStore();
   const drawer = useRef<HTMLDivElement>(null);
@@ -164,15 +160,11 @@ export function Shell({
                 ? 'שינוי אחד ממתין לפרסום'
                 : `${store.pending.length} שינויים ממתינים לפרסום`}
             </span>
-            <button
-              className="ghost"
-              onClick={() => onGo({ kind: 'pending' })}
-              aria-label="מה שונה"
-            >
+            <button className="ghost" onClick={() => onGo({ kind: 'pending' })}>
               מה שונה?
             </button>
-            <button className="primary" onClick={onPublish} disabled={publishing}>
-              {publishing ? 'מפרסם…' : 'פרסמי לאתר'}
+            <button className="primary" onClick={() => onGo({ kind: 'preview' })}>
+              צפייה ופרסום
             </button>
           </div>
         </div>

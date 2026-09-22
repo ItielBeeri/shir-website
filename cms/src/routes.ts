@@ -13,7 +13,8 @@ export type Route =
   /** A new entry in a collection. */
   | { kind: 'new'; id: string }
   | { kind: 'history' }
-  | { kind: 'pending' };
+  | { kind: 'pending' }
+  | { kind: 'preview' };
 
 export function routeTitle(route: Route): string {
   switch (route.kind) {
@@ -23,6 +24,8 @@ export function routeTitle(route: Route): string {
       return 'היסטוריה ושחזור';
     case 'pending':
       return 'שינויים שטרם פורסמו';
+    case 'preview':
+      return 'צפייה לפני פרסום';
     case 'new':
       return screens.find((s) => s.id === route.id)?.title ?? 'חדש';
     case 'screen':

@@ -99,6 +99,8 @@ export const api = {
   list: (dir: string) =>
     call<{ files: string[] }>('list', undefined, `?dir=${encodeURIComponent(dir)}`),
 
+  refs: () => call<{ draft: string | null; target: string | null }>('refs', undefined, ''),
+
   status: (sha?: string) =>
     call<{ state: 'building' | 'ready' | 'failed' | 'unknown'; url?: string }>(
       'status',

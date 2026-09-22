@@ -351,3 +351,51 @@
 .group.is-locked { border-inline-start: 3px solid var(--mist); }
 .center-actions { display: flex; gap: 12px; justify-content: center; margin-block-start: 20px; }
 .tray { z-index: 30; }
+
+/* --- preview --------------------------------------------------------------- */
+
+.change-list { margin: 0; padding-inline-start: 1.2rem; }
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-block-end: 10px;
+}
+.preview-switch { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.preview-switch .chip { text-decoration: none; color: inherit; }
+
+.frames { display: grid; gap: 14px; }
+.frames.is-both { grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  .frames.is-both { grid-template-columns: 390px 1fr; }
+}
+
+.frame { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.frame iframe {
+  inline-size: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.frame.is-phone iframe { block-size: 70vh; max-inline-size: 390px; }
+.frame.is-desktop iframe { block-size: 70vh; }
+
+.publish-row { margin-block: 16px 0; }
+
+.spinner {
+  display: inline-block;
+  inline-size: 12px;
+  block-size: 12px;
+  margin-inline-end: 8px;
+  border: 2px solid var(--line);
+  border-block-start-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  vertical-align: -1px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}

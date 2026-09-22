@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, FriendlyError } from '../api';
 import { findSlot, setValues } from '../content/toml-edit';
+import { useStore } from '../store';
 import type { TomlScalar } from '../content/toml-edit';
 import type { Field, Screen } from '../model/types';
 import { FieldInput } from '../components/Fields';
@@ -32,6 +33,7 @@ const readValue = (source: string, field: Field): TomlScalar | undefined => {
 };
 
 export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
+  const store = useStore();
   const [source, setSource] = useState<string | null>(null);
   const [values, setValues_] = useState<Values>({});
   const [initial, setInitial] = useState<Values>({});
@@ -79,6 +81,7 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
       await api.save(`עדכון ${screen.title}`, [{ path: screen.file!, content: next }]);
       setSource(next);
       setInitial(values);
+      store.saved();
       onSaved();
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'משהו השתבש. אפשר לנסות שוב.');

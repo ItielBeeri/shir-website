@@ -21,6 +21,7 @@ import { SiteDetails } from './screens/SiteDetails';
 import { Legal } from './screens/Legal';
 import { NewPost } from './screens/NewPost';
 import { History, NavEditor, Pending } from './screens/Misc';
+import { Preview } from './screens/Preview';
 
 const GLYPHS: Record<string, string> = {
   pencil: '✍', book: '📚', quote: '💬', image: '🖼', home: '🏠', person: '🙋',
@@ -117,12 +118,10 @@ export default function App(): JSX.Element {
 }
 
 function Workspace(): JSX.Element {
-  const store = useStore();
   const [stack, setStack] = useState<Route[]>([{ kind: 'home' }]);
   const [drawer, setDrawer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [publishing, setPublishing] = useState(false);
 
   const route = stack[stack.length - 1];
   const go = useCallback((next: Route) => {
@@ -133,20 +132,6 @@ function Workspace(): JSX.Element {
   const back = useCallback(() => setStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev)), []);
   const home = useCallback(() => setStack([{ kind: 'home' }]), []);
   const replace = useCallback((next: Route) => setStack((prev) => [...prev.slice(0, -1), next]), []);
-
-  async function publish(): Promise<void> {
-    setPublishing(true);
-    setError(null);
-    try {
-      await api.publish('פרסום שינויים מהמערכת');
-      await store.refreshPending();
-      setNotice('פורסם. השינוי יופיע באתר בתוך כדקה או שתיים.');
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לפרסם.');
-    } finally {
-      setPublishing(false);
-    }
-  }
 
   const saved = (): void => setNotice('נשמר. עוד לא פורסם לאתר.');
 
@@ -159,12 +144,20 @@ function Workspace(): JSX.Element {
       onGo={go}
       drawerOpen={drawer}
       setDrawerOpen={setDrawer}
-      onPublish={publish}
-      publishing={publishing}
     >
       {notice && <p className="banner">{notice}</p>}
       {error && <p className="banner error">{error}</p>}
-      <Screen route={route} go={go} replace={replace} back={back} saved={saved} />
+      <Screen
+        route={route}
+        go={go}
+        replace={replace}
+        back={back}
+        saved={saved}
+        published={() => {
+          setStack([{ kind: 'home' }]);
+          setNotice('פורסם. השינוי יופיע באתר בתוך כדקה או שתיים.');
+        }}
+      />
     </Shell>
   );
 }
@@ -175,12 +168,14 @@ function Screen({
   replace,
   back,
   saved,
+  published,
 }: {
   route: Route;
   go: (route: Route) => void;
   replace: (route: Route) => void;
   back: () => void;
   saved: () => void;
+  published: () => void;
 }): JSX.Element {
   const store = useStore();
 
@@ -201,6 +196,7 @@ function Screen({
   }
 
   if (route.kind === 'pending') return <Pending onDone={back} />;
+  if (route.kind === 'preview') return <Preview onPublished={published} />;
   if (route.kind === 'history') return <History />;
 
   if (route.kind === 'new') {
