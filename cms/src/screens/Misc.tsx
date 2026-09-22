@@ -1,8 +1,8 @@
 /**
- * The menu, the pending tray's detail view, and history.
+ * The menu and the history list.
  *
- * They share a file because each is a list with one verb, and none of them
- * needs a concept the others do not.
+ * `describePath` lives here too: it is how a repository path becomes something
+ * the owner recognises, and both this file and the preview screen need it.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { api, FriendlyError } from '../api';
@@ -146,64 +146,6 @@ export function describePath(path: string): string {
   if (path === 'src/content/pages/terms.toml') return 'תנאי שימוש ופרטיות';
   if (path === 'src/content/pages/consent.toml') return 'באנר ההסכמה';
   return path;
-}
-
-const STATUS_WORD: Record<string, string> = {
-  added: 'נוסף',
-  modified: 'שונה',
-  removed: 'נמחק',
-};
-
-export function Pending({ onDone }: { onDone: () => void }): JSX.Element {
-  const store = useStore();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function discard(path: string): Promise<void> {
-    setBusy(path);
-    setError(null);
-    try {
-      await api.discard(path, `ביטול שינוי ב${describePath(path)}`);
-      await store.refreshPending();
-      await store.refreshGallery().catch(() => undefined);
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לבטל.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  if (store.pending.length === 0) {
-    return (
-      <>
-        <p className="banner">אין שינויים שממתינים לפרסום.</p>
-        <button className="ghost" onClick={onDone}>חזרה</button>
-      </>
-    );
-  }
-
-  return (
-    <>
-      {error && <p className="banner error">{error}</p>}
-      <p className="help">אלה השינויים ששמרת ועדיין לא פורסמו לאתר.</p>
-      <ul className="pending-list">
-        {store.pending.map((change) => (
-          <li key={change.path} className="group">
-            <span>
-              <b>{describePath(change.path)}</b> · {STATUS_WORD[change.status] ?? change.status}
-            </span>
-            <button
-              className="ghost danger"
-              onClick={() => discard(change.path)}
-              disabled={busy === change.path}
-            >
-              ביטול השינוי
-            </button>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
 }
 
 /* --------------------------------- history ---------------------------------- */

@@ -48,6 +48,13 @@ describe('navigation', () => {
     expect(current(stack)).toEqual({ kind: 'home' });
   });
 
+  it('the changes, the preview and publishing are one destination', () => {
+    // There is no separate pending screen to step through.
+    const stack = push(initialStack(), { kind: 'preview' });
+    expect(current(stack)).toEqual({ kind: 'preview' });
+    expect(current(back(stack))).toEqual({ kind: 'home' });
+  });
+
   it('preview returns to the screen it was opened from', () => {
     let stack = push(initialStack(), screen('home'));
     stack = push(stack, { kind: 'preview' });

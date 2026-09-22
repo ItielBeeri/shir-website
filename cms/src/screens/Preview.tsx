@@ -4,6 +4,10 @@
  * The draft branch gets its own build, and this is that build - the real site
  * with the real changes, not an approximation.
  *
+ * The changes, the preview and the publish button are one screen, because they
+ * are one question: is this right, and should it go out? Splitting them meant
+ * reading a list in one place and looking at the result in another.
+ *
  * **One viewport at a time.** Two frames side by side each get half the width,
  * and the site's layout switches at 768px, so a pair of frames on a laptop is
  * just the mobile layout twice. Instead the widest *real* viewport that fits
@@ -30,6 +34,12 @@ const VIEWPORTS: Record<Device, { width: number; height: number; label: string }
 
 /** Below this the type is too small to judge copy by, so desktop is not offered. */
 const MIN_SCALE = 0.45;
+const STATUS_WORD: Record<string, string> = {
+  added: 'נוסף',
+  modified: 'שונה',
+  removed: 'נמחק',
+};
+
 const POLL_MS = 6000;
 const FRAME_TIMEOUT_MS = 8000;
 
@@ -41,6 +51,7 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
   const [available, setAvailable] = useState(0);
   const [framed, setFramed] = useState<'waiting' | 'ok' | 'blocked'>('waiting');
   const [busy, setBusy] = useState(false);
+  const [discarding, setDiscarding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nudge, setNudge] = useState(0);
 
@@ -103,6 +114,21 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
     return () => window.clearTimeout(id);
   }, [url, device]);
 
+  /** Undo one change without touching the others. */
+  async function discard(path: string): Promise<void> {
+    setDiscarding(path);
+    setError(null);
+    try {
+      await api.discard(path, `ביטול שינוי ב${describePath(path)}`);
+      await store.refreshPending();
+      await store.refreshGallery().catch(() => undefined);
+    } catch (e) {
+      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לבטל את השינוי.');
+    } finally {
+      setDiscarding(null);
+    }
+  }
+
   async function publish(): Promise<void> {
     setBusy(true);
     setError(null);
@@ -118,7 +144,12 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
   }
 
   if (store.pending.length === 0) {
-    return <p className="banner">אין שינויים שממתינים לפרסום.</p>;
+    return (
+      <>
+        <p className="banner">אין שינויים שממתינים לפרסום.</p>
+        <p className="muted">כל מה ששמרת כבר נמצא באתר.</p>
+      </>
+    );
   }
 
   const fitScale = (width: number): number =>
@@ -137,7 +168,19 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
         <h2>מה ישתנה באתר</h2>
         <ul className="change-list">
           {store.pending.map((change) => (
-            <li key={change.path}>{describePath(change.path)}</li>
+            <li key={change.path}>
+              <span>
+                <b>{describePath(change.path)}</b>
+                <span className="muted"> · {STATUS_WORD[change.status] ?? change.status}</span>
+              </span>
+              <button
+                className="ghost danger"
+                onClick={() => discard(change.path)}
+                disabled={discarding === change.path || busy}
+              >
+                {discarding === change.path ? 'מבטל…' : 'ביטול השינוי'}
+              </button>
+            </li>
           ))}
         </ul>
       </section>

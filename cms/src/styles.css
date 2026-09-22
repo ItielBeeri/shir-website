@@ -52,7 +52,7 @@ body {
   max-inline-size: 760px;
   margin-inline: auto;
   padding: var(--gap);
-  padding-block-end: 96px;
+  padding-block-end: 48px;
 }
 
 .topbar {
@@ -177,29 +177,6 @@ input:focus-visible, textarea:focus-visible { border-color: var(--accent); }
 /* A boolean is a labelled switch; the words true and false never appear. */
 .switch { display: flex; align-items: center; gap: 12px; min-block-size: var(--tap); }
 .switch input { inline-size: 22px; block-size: 22px; accent-color: var(--accent); }
-
-/* --- pending tray --- */
-
-.tray {
-  position: fixed;
-  inset-block-end: 0;
-  inset-inline: 0;
-  background: var(--card);
-  border-block-start: 1px solid var(--line);
-  padding: 12px var(--gap);
-  padding-block-end: max(12px, env(safe-area-inset-bottom));
-}
-
-.tray-inner {
-  max-inline-size: 760px;
-  margin-inline: auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.tray .count { flex: 1; min-inline-size: 140px; }
 
 .banner {
   border-radius: var(--radius);

@@ -178,23 +178,6 @@ export function Shell({
         {children}
       </main>
 
-      {store.pending.length > 0 && (
-        <div className="tray" role="region" aria-label="שינויים שטרם פורסמו">
-          <div className="tray-inner">
-            <span className="count">
-              {store.pending.length === 1
-                ? 'שינוי אחד ממתין לפרסום'
-                : `${store.pending.length} שינויים ממתינים לפרסום`}
-            </span>
-            <button className="ghost" onClick={() => onGo({ kind: 'pending' })}>
-              מה שונה?
-            </button>
-            <button className="primary" onClick={() => onGo({ kind: 'preview' })}>
-              צפייה ופרסום
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -21,7 +21,7 @@ import { Recommendations } from './screens/Recommendations';
 import { SiteDetails } from './screens/SiteDetails';
 import { Legal } from './screens/Legal';
 import { NewPost } from './screens/NewPost';
-import { History, NavEditor, Pending } from './screens/Misc';
+import { History, NavEditor } from './screens/Misc';
 import { Preview } from './screens/Preview';
 
 const GLYPHS: Record<string, string> = {
@@ -227,7 +227,6 @@ function Screen({
     );
   }
 
-  if (route.kind === 'pending') return <Pending onDone={back} />;
   if (route.kind === 'preview') return <Preview onPublished={published} />;
   if (route.kind === 'history') return <History />;
 
