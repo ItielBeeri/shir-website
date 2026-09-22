@@ -85,7 +85,7 @@ export function ImagePicker({ value, onPick, onClose }: Props): JSX.Element {
             ) : (
               <ul className="thumbs">
                 {matches.map((image) => {
-                  const url = store.urlFor(image.id);
+                  const url = store.urlFor(image.id, 160);
                   return (
                     <li key={image.id}>
                       <button
@@ -127,7 +127,7 @@ export function ImageField({
 }): JSX.Element {
   const store = useStore();
   const [open, setOpen] = useState(false);
-  const url = value ? store.urlFor(value) : null;
+  const url = value ? store.urlFor(value, 80) : null;
   const chosen = store.gallery.find((g) => g.id === value);
 
   return (

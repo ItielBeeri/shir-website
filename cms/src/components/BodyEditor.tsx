@@ -13,7 +13,7 @@ import {
   useEditorState,
 } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
-import { extensions, RawBlock, SoftImageNode } from '../editor/extensions';
+import { extensions, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
 import { ASPECTS, FLOATS } from '../lib/softimage';
 import { useStore } from '../store';
@@ -25,7 +25,7 @@ import type { PmNode } from '../content/pm-convert';
 function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element {
   const store = useStore();
   const [picking, setPicking] = useState(false);
-  const url = store.urlFor(node.attrs.id);
+  const url = store.urlFor(node.attrs.id, 80);
   const alt = store.gallery.find((g) => g.id === node.attrs.id)?.alt;
 
   return (
@@ -84,6 +84,22 @@ function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element
   );
 }
 
+/**
+ * A marker the maintainer left in the copy - `{/* PLACEHOLDER: ... *\/}` - which
+ * sits inside a paragraph and was rendering as the first words of it. She was
+ * reading MDX syntax and taking it for her own sentence.
+ */
+function RawInlineView({ node }: any): JSX.Element {
+  const source = String(node.attrs?.source ?? '');
+  const name = /PLACEHOLDER:\s*([A-Z0-9_]+)/.exec(source)?.[1];
+  return (
+    <NodeViewWrapper as="span" className="nv-inline" title={source}>
+      <span aria-hidden="true">📎</span>
+      <span className="visually-hidden">{name ? `סימון פנימי ${name}` : 'סימון פנימי'}</span>
+    </NodeViewWrapper>
+  );
+}
+
 function RawBlockView({ node }: any): JSX.Element {
   return (
     <NodeViewWrapper className="nv-raw">
@@ -93,10 +109,15 @@ function RawBlockView({ node }: any): JSX.Element {
   );
 }
 
+const hasView = new Set(['softImage', 'rawBlock', 'rawInline']);
+
 const withViews = [
-  ...extensions.filter((e) => e.name !== 'softImage' && e.name !== 'rawBlock'),
+  ...extensions.filter((e) => !hasView.has(e.name)),
   SoftImageNode.extend({ addNodeView: () => ReactNodeViewRenderer(SoftImageView) }),
   RawBlock.extend({ addNodeView: () => ReactNodeViewRenderer(RawBlockView) }),
+  RawInline.extend({
+    addNodeView: () => ReactNodeViewRenderer(RawInlineView, { as: 'span' }),
+  }),
 ];
 
 /* ---------------------------------- toolbar ---------------------------------- */

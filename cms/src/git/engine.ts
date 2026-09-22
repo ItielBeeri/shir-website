@@ -92,14 +92,36 @@ async function requireSha(t: GitTransport, branch: string): Promise<string> {
  * tip also reports every path master gained since the draft diverged, as if the
  * draft had deleted them; applying that would revert the images bot's
  * derivative commits and any other work landed meanwhile.
+ *
+ * Measuring from the base does report one path too many, though: one master
+ * has since caught up with on its own. Comparing the two blobs settles it, so
+ * the owner is never shown a change that would change nothing.
  */
-async function draftChanges(
-  t: GitTransport,
-): Promise<{ draft: string; master: string; base: string; changes: PathChange[] }> {
+async function draftChanges(t: GitTransport): Promise<{
+  draft: string;
+  master: string;
+  base: string;
+  changes: PathChange[];
+  /** The draft's blob for each changed path, already fetched. */
+  blobs: Map<string, string | null>;
+}> {
   const draft = await requireSha(t, DRAFT_BRANCH);
   const master = await requireSha(t, TARGET_BRANCH);
   const base = await t.mergeBase(master, draft);
-  return { draft, master, base, changes: await t.compare(base, draft) };
+  const measured = await t.compare(base, draft);
+
+  const changes: PathChange[] = [];
+  const blobs = new Map<string, string | null>();
+  for (const change of measured) {
+    const [mine, theirs] = await Promise.all([
+      t.getBlobSha(draft, change.path),
+      t.getBlobSha(master, change.path),
+    ]);
+    if (mine === theirs) continue;
+    changes.push(change);
+    blobs.set(change.path, mine);
+  }
+  return { draft, master, base, changes, blobs };
 }
 
 export const PUBLISH_PREFIX = 'פרסום ממערכת הניהול: ';
@@ -166,20 +188,31 @@ export async function ensureDraft(t: GitTransport): Promise<{ created: boolean; 
   return { created: false };
 }
 
-/** One commit, however many files the action touched. */
+/**
+ * One commit, however many files the action touched - including the ones it
+ * removes. Deleting an image is a write to the manifest and a removal of the
+ * file, and as two commits a failure between them leaves the site with an
+ * entry pointing at nothing, which fails the build.
+ */
 export async function saveFiles(
   t: GitTransport,
-  options: { message: string; files: FileWrite[]; branch?: string },
+  options: { message: string; files: FileWrite[]; remove?: readonly string[]; branch?: string },
 ): Promise<string> {
   const branch = options.branch ?? DRAFT_BRANCH;
+  const remove = options.remove ?? [];
   assertWritableBranch(branch);
-  assertWritablePaths(options.files.map((f) => f.path));
-  if (options.files.length === 0) throw new GitError('empty', 'nothing to save');
+  assertWritablePaths([...options.files.map((f) => f.path), ...remove]);
+  if (options.files.length === 0 && remove.length === 0) {
+    throw new GitError('empty', 'nothing to save');
+  }
 
   const entries: NewTreeEntry[] = [];
   for (const file of options.files) {
     const sha = await t.createBlob(file.content, file.encoding);
     entries.push({ path: file.path, mode: '100644', type: 'blob', sha });
+  }
+  for (const path of remove) {
+    entries.push({ path, mode: '100644', type: 'blob', sha: null });
   }
 
   return commitOnto(t, branch, options.message, entries);
@@ -200,6 +233,29 @@ export async function deleteFiles(
     options.message,
     options.paths.map((path) => ({ path, mode: '100644' as const, type: 'blob' as const, sha: null })),
   );
+}
+
+/**
+ * Move a file, in one commit.
+ *
+ * Writing the new name and deleting the old as two commits leaves a moment
+ * when the post exists at both addresses, and a failure between them leaves it
+ * that way for good.
+ */
+export async function renameFile(
+  t: GitTransport,
+  options: { from: string; to: string; content: string; message: string; branch?: string },
+): Promise<string> {
+  const branch = options.branch ?? DRAFT_BRANCH;
+  assertWritableBranch(branch);
+  assertWritablePaths([options.from, options.to]);
+  if (options.from === options.to) throw new GitError('empty', 'the name is unchanged');
+
+  const sha = await t.createBlob(options.content, 'utf-8');
+  return commitOnto(t, branch, options.message, [
+    { path: options.to, mode: '100644', type: 'blob', sha },
+    { path: options.from, mode: '100644', type: 'blob', sha: null },
+  ]);
 }
 
 /**
@@ -239,7 +295,7 @@ export interface PublishResult {
  * fast-forward the draft onto the result.
  */
 export async function publish(t: GitTransport): Promise<PublishResult> {
-  const { draft, master, base, changes } = await draftChanges(t);
+  const { master, base, changes, blobs } = await draftChanges(t);
   if (changes.length === 0) throw new GitError('empty', 'nothing to publish');
 
   const message = publishMessage(await draftMessages(t, base));
@@ -254,7 +310,7 @@ export async function publish(t: GitTransport): Promise<PublishResult> {
       entries.push({ path: change.path, mode: '100644', type: 'blob', sha: null });
       continue;
     }
-    const sha = await t.getBlobSha(draft, change.path);
+    const sha = blobs.get(change.path) ?? null;
     if (!sha) throw new GitError('missing', `draft has no blob for ${change.path}`);
     entries.push({ path: change.path, mode: '100644', type: 'blob', sha });
   }

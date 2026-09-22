@@ -346,3 +346,64 @@ describe('the published commit message', () => {
     expect(head.message).not.toContain('initial');
   });
 });
+
+/**
+ * A change master has since made for itself is not a change any more.
+ *
+ * Measuring from the merge base is what protects the images bot, but it also
+ * reports a path whose content the two branches have converged on. The owner
+ * was being shown a file as "changed" that publishing would not have touched.
+ */
+describe('a path the two branches agree on', () => {
+  const both = '[brand]\nname = "שם חדש"\n';
+
+  beforeEach(async () => {
+    git = new FakeGit(SEED);
+    await ensureDraft(git);
+  });
+
+  it('is not listed as pending once master catches up', async () => {
+    await saveFiles(git, {
+      message: 'עדכון פרטי הקשר',
+      files: [{ path: 'src/content/site.toml', content: both, encoding: 'utf-8' }],
+    });
+    expect((await pendingChanges(git)).map((c) => c.path)).toEqual(['src/content/site.toml']);
+
+    // Somebody makes the same edit on master directly.
+    await saveFiles(git, {
+      message: 'same edit, upstream',
+      files: [{ path: 'src/content/site.toml', content: both, encoding: 'utf-8' }],
+      branch: TARGET_BRANCH,
+    });
+
+    expect(await pendingChanges(git)).toEqual([]);
+  });
+
+  it('is not published as an empty commit', async () => {
+    await saveFiles(git, {
+      message: 'עדכון פרטי הקשר',
+      files: [{ path: 'src/content/site.toml', content: both, encoding: 'utf-8' }],
+    });
+    await saveFiles(git, {
+      message: 'same edit, upstream',
+      files: [{ path: 'src/content/site.toml', content: both, encoding: 'utf-8' }],
+      branch: TARGET_BRANCH,
+    });
+    await expect(publish(git)).rejects.toThrow();
+  });
+
+  it('still lists a path the two genuinely differ on', async () => {
+    await saveFiles(git, {
+      message: 'עדכון פרטי הקשר',
+      files: [{ path: 'src/content/site.toml', content: both, encoding: 'utf-8' }],
+    });
+    await saveFiles(git, {
+      message: 'a different edit, upstream',
+      files: [
+        { path: 'src/content/site.toml', content: '[brand]\nname = "משהו אחר"\n', encoding: 'utf-8' },
+      ],
+      branch: TARGET_BRANCH,
+    });
+    expect((await pendingChanges(git)).map((c) => c.path)).toEqual(['src/content/site.toml']);
+  });
+});

@@ -63,7 +63,9 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
             hidden: Boolean(data.draft),
             date: data.date ? new Date(String(data.date)).toISOString().slice(0, 10) : undefined,
             order: typeof data.order === 'number' ? data.order : undefined,
-            cover: typeof data.cover === 'string' ? data.cover : undefined,
+            // Posts name their picture `cover`; a therapy page names it
+            // `hero_image`. A row with neither is a row with a grey square.
+            cover: firstImage(data),
           } satisfies Entry;
         }),
       );
@@ -161,7 +163,7 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
 
       <ul className="entries">
         {entries.map((entry, i) => {
-          const url = entry.cover ? store.urlFor(entry.cover) : null;
+          const url = entry.cover ? store.urlFor(entry.cover, 60) : null;
           return (
             <li key={entry.file} className={entry.hidden ? 'entry is-hidden' : 'entry'}>
               <button className="entry-main" onClick={() => onOpen(entry.file)}>
@@ -229,6 +231,15 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
     </>
   );
 }
+
+const IMAGE_KEYS = ['cover', 'teaser_image', 'hero_image', 'portrait_image'] as const;
+
+const firstImage = (data: Record<string, unknown>): string | undefined => {
+  for (const key of IMAGE_KEYS) {
+    if (typeof data[key] === 'string' && data[key]) return data[key] as string;
+  }
+  return undefined;
+};
 
 /** The site's own ordering: src/lib/blog.ts for posts, `order` for therapies. */
 export function sort(entries: Entry[], kind: 'blog' | 'therapies'): Entry[] {

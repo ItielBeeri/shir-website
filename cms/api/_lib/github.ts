@@ -11,17 +11,35 @@ import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../s
 
 const API = 'https://api.github.com';
 
-/** What the owner is waiting on after pressing publish. */
+/**
+ * What the owner is waiting on after pressing publish.
+ *
+ * `none` and `unknown` are different answers: nothing has started yet, versus
+ * we could not find out. She is told which, because the first resolves itself
+ * and the second is worth mentioning to someone.
+ */
 export interface DeploymentStatus {
-  state: 'building' | 'ready' | 'failed' | 'unknown';
+  state: 'queued' | 'building' | 'ready' | 'failed' | 'none' | 'unknown';
   url?: string;
+  /** ISO 8601, so the wait can be shown as a number rather than a spinner. */
+  startedAt?: string;
+  updatedAt?: string;
 }
 
 const mapDeployState = (state: string): DeploymentStatus['state'] => {
   if (state === 'success') return 'ready';
   if (state === 'failure' || state === 'error') return 'failed';
-  if (state === 'queued' || state === 'in_progress' || state === 'pending') return 'building';
+  if (state === 'queued') return 'queued';
+  if (state === 'in_progress' || state === 'pending') return 'building';
   return 'unknown';
+};
+
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '';
+  }
 };
 
 export class GitHubError extends Error {
@@ -219,30 +237,62 @@ export class GitHubTransport implements GitTransport {
    * Needs `Deployments: read-only` on the App. Without it this returns
    * `unknown` and the caller simply shows no status, which is why nothing here
    * throws.
+   *
+   * **Two Vercel projects build this repository**, so one commit carries a
+   * deployment from each and "the newest" is a coin toss. The line the owner
+   * reads to answer "did it go up?" was reporting whichever finished last,
+   * which is sometimes this editor rather than her site. `project` names the
+   * site's Vercel project; failing that, the one thing known for certain is
+   * which deployment is our own, and that one is skipped.
    */
-  async deploymentStatus(sha: string): Promise<DeploymentStatus> {
+  async deploymentStatus(
+    sha: string,
+    options: { project?: string; selfHost?: string } = {},
+  ): Promise<DeploymentStatus> {
     try {
-      const deployments = await this.call<Array<{ id: number; environment: string }> | null>(
-        `/deployments?sha=${encodeURIComponent(sha)}&per_page=20`,
-      );
-      if (!deployments?.length) return { state: 'unknown' };
+      const deployments = await this.call<Array<{
+        id: number;
+        environment: string;
+        created_at: string;
+      }> | null>(`/deployments?sha=${encodeURIComponent(sha)}&per_page=20`);
+      if (!deployments?.length) return { state: 'none' };
 
-      // Newest first. The draft branch only ever has a preview deployment and
-      // master only a production one, so the most recent is always the right one.
-      const deployment = deployments[0];
+      const named = options.project
+        ? deployments.filter((d) => d.environment.includes(options.project as string))
+        : [];
+      // Newest first, as GitHub returns them.
+      for (const deployment of named.length ? named : deployments) {
+        const statuses = await this.call<Array<{
+          state: string;
+          environment_url?: string;
+          created_at: string;
+        }> | null>(`/deployments/${deployment.id}/statuses?per_page=1`);
 
-      const statuses = await this.call<Array<{
-        state: string;
-        environment_url?: string;
-      }> | null>(`/deployments/${deployment.id}/statuses?per_page=1`);
+        const latest = statuses?.[0];
+        const host = latest?.environment_url ? hostOf(latest.environment_url) : '';
+        if (!named.length && options.selfHost && host && host === options.selfHost) continue;
 
-      const latest = statuses?.[0];
-      // A deployment with no status yet has been created but not started.
-      if (!latest) return { state: 'building' };
-      return { state: mapDeployState(latest.state), url: latest.environment_url };
+        // A deployment with no status yet has been created but not started.
+        if (!latest) return { state: 'queued', startedAt: deployment.created_at };
+        return {
+          state: mapDeployState(latest.state),
+          url: latest.environment_url,
+          startedAt: deployment.created_at,
+          updatedAt: latest.created_at,
+        };
+      }
+      return { state: 'unknown' };
     } catch {
       return { state: 'unknown' };
     }
+  }
+
+  /** What one commit touched, so history can offer to put a file back. */
+  async commitPaths(sha: string): Promise<PathChange[]> {
+    const commit = await this.call<{
+      files?: Array<{ filename: string; status: string }>;
+    } | null>(`/commits/${encodeURIComponent(sha)}`);
+    return (commit?.files ?? []).map((f) => ({ path: f.filename, status: mapStatus(f.status) }));
   }
 
   async listCommits(branch: string, limit: number): Promise<CommitInfo[]> {

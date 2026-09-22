@@ -16,10 +16,12 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, FriendlyError } from '../api';
+import type { DeployState } from '../api';
 import { useStore } from '../store';
-import { describePath } from './Misc';
+import { describePath, sitePathFor } from './Misc';
+import { DEPLOY_WORDS } from '../model/deploy';
 
-type State = 'building' | 'ready' | 'failed' | 'unknown';
+type State = DeployState['state'];
 type Device = 'desktop' | 'mobile';
 
 /**
@@ -43,11 +45,12 @@ const STATUS_WORD: Record<string, string> = {
 const POLL_MS = 6000;
 const FRAME_TIMEOUT_MS = 8000;
 
-export function Preview({ onPublished }: { onPublished: () => void }): JSX.Element {
+export function Preview({ onPublished }: { onPublished: (sha: string) => void }): JSX.Element {
   const store = useStore();
-  const [state, setState] = useState<State>('building');
+  const [state, setState] = useState<State>('queued');
   const [url, setUrl] = useState<string | null>(null);
   const [device, setDevice] = useState<Device>('desktop');
+  const [page, setPage] = useState<string | null>(null);
   const [available, setAvailable] = useState(0);
   const [framed, setFramed] = useState<'waiting' | 'ok' | 'blocked'>('waiting');
   const [busy, setBusy] = useState(false);
@@ -90,13 +93,15 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
     void check();
   }, [check, nudge]);
 
+  const waiting = state === 'queued' || state === 'building' || state === 'none';
+
   useEffect(() => {
-    if (state !== 'building') return;
+    if (!waiting) return;
     timer.current = window.setTimeout(() => setNudge((n) => n + 1), POLL_MS);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [state, nudge]);
+  }, [waiting, nudge]);
 
   /**
    * A frame that never loads is almost always Vercel Deployment Protection: the
@@ -133,9 +138,9 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
     setBusy(true);
     setError(null);
     try {
-      await api.publish();
+      const { sha } = await api.publish();
       await store.refreshPending();
-      onPublished();
+      onPublished(sha);
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לפרסם.');
     } finally {
@@ -151,6 +156,24 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
       </>
     );
   }
+
+  /**
+   * The pages her changes actually land on. Opening the front door and asking
+   * her to navigate inside a scaled-down frame to find her own edit is the
+   * long way round to the one thing she came to look at.
+   */
+  const pages = (() => {
+    const seen = new Map<string, string>();
+    for (const change of store.pending) {
+      const to = sitePathFor(change.path);
+      if (to && !seen.has(to)) seen.set(to, describePath(change.path));
+    }
+    if (seen.size === 0) seen.set('/', 'דף הבית');
+    return [...seen].map(([to, label]) => ({ to, label }));
+  })();
+
+  const shownPage = page && pages.some((p) => p.to === page) ? page : pages[0].to;
+  const frameUrl = url ? `${url.replace(/\/$/, '')}${shownPage}` : null;
 
   const fitScale = (width: number): number =>
     available > 0 ? Math.min(1, available / width) : 1;
@@ -185,6 +208,21 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
         </ul>
       </section>
 
+      {pages.length > 1 && url && (
+        <div className="chips preview-pages" role="group" aria-label="בחירת עמוד">
+          {pages.map((p) => (
+            <button
+              key={p.to}
+              className={shownPage === p.to ? 'chip is-on' : 'chip'}
+              aria-pressed={shownPage === p.to}
+              onClick={() => setPage(p.to)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="preview-head">
         <Status state={state} />
         {url && (
@@ -203,7 +241,7 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
                 ))}
               </div>
             )}
-            <a href={url} target="_blank" rel="noopener noreferrer" className="chip">
+            <a href={frameUrl ?? url} target="_blank" rel="noopener noreferrer" className="chip">
               פתיחה בחלון חדש
             </a>
           </div>
@@ -211,7 +249,7 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
       </div>
 
       <div className="stage-wrap" ref={stage}>
-        {url ? (
+        {frameUrl ? (
           <div
             className={`stage is-${shown}`}
             style={{
@@ -220,8 +258,8 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
             }}
           >
             <iframe
-              key={shown}
-              src={url}
+              key={`${shown}${shownPage}`}
+              src={frameUrl}
               title={`תצוגה מקדימה ${viewport.label}`}
               style={{
                 width: viewport.width,
@@ -232,9 +270,7 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
             />
           </div>
         ) : (
-          <p className="muted">
-            {state === 'building' ? 'הבנייה בתהליך…' : 'אין עדיין תצוגה להראות.'}
-          </p>
+          <p className="muted">{waiting ? 'הבנייה בתהליך…' : 'אין עדיין תצוגה להראות.'}</p>
         )}
       </div>
 
@@ -249,10 +285,10 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
       )}
 
       <div className="save-row publish-row">
-        <button className="primary" onClick={publish} disabled={busy || state === 'building'}>
+        <button className="primary" onClick={publish} disabled={busy || waiting}>
           {busy ? 'מפרסם…' : 'פרסמי לאתר'}
         </button>
-        {state === 'building' && <span className="muted">אפשר לפרסם ברגע שהתצוגה מוכנה.</span>}
+        {waiting && <span className="muted">אפשר לפרסם ברגע שהתצוגה מוכנה.</span>}
         {state === 'failed' && (
           <span className="invalid">הבנייה נכשלה. עדיף לפנות לאיתיאל לפני פרסום.</span>
         )}
@@ -263,14 +299,14 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
 
 function Status({ state }: { state: State }): JSX.Element {
   const text: Record<State, string> = {
-    building: 'בונה את התצוגה…',
+    ...DEPLOY_WORDS,
     ready: 'התצוגה מוכנה',
-    failed: 'הבנייה נכשלה',
     unknown: 'לא הצלחתי לקבל מצב בנייה. אפשר לפרסם, ולבדוק באתר אחרי דקה.',
   };
+  const busy = state === 'queued' || state === 'building' || state === 'none';
   return (
     <p className={state === 'failed' ? 'invalid' : 'muted'} role="status">
-      {state === 'building' && <span className="spinner" aria-hidden="true" />}
+      {busy && <span className="spinner" aria-hidden="true" />}
       {text[state]}
     </p>
   );

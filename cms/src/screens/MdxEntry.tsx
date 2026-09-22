@@ -5,17 +5,26 @@
  * same shape - which is why `src/content/config.ts` can declare them with the
  * same handful of field types.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { api, FriendlyError } from '../api';
-import { BodyEditor } from '../components/BodyEditor';
+/**
+ * The rich-text editor is most of the bundle and is needed only on a screen
+ * that has a body to edit, so it arrives when one opens rather than before
+ * the landing screen can paint.
+ */
+const BodyEditor = lazy(async () => ({
+  default: (await import('../components/BodyEditor')).BodyEditor,
+}));
 import { FieldInput } from '../components/Fields';
 import type { FieldValue } from '../components/Fields';
 import { allBlocks, parseMdx, serializeMdx } from '../content/mdx-edit';
 import { docToPm, pmToDoc } from '../content/pm-convert';
 import type { PmNode } from '../content/pm-convert';
-import { parseFrontmatter, setFields } from '../content/frontmatter';
+import { hasField, parseFrontmatter, setField, setFields } from '../content/frontmatter';
 import type { FrontmatterValue } from '../content/frontmatter';
 import { useStore } from '../store';
+import { slugFor } from './NewPost';
+import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import type { Field } from '../model/types';
 
 interface Props {
@@ -24,10 +33,20 @@ interface Props {
   fields: Field[];
   onSaved: () => void;
   onDeleted?: () => void;
+  /** Only where the file name is the public address: a blog post. */
+  onRenamed?: (file: string) => void;
   deletable?: boolean;
 }
 
-export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }: Props): JSX.Element {
+export function MdxEntry({
+  path,
+  title,
+  fields,
+  onSaved,
+  onDeleted,
+  onRenamed,
+  deletable,
+}: Props): JSX.Element {
   const store = useStore();
   const [source, setSource] = useState<string | null>(null);
   const [pm, setPm] = useState<PmNode | null>(null);
@@ -38,6 +57,11 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  /** Bumped to remount the editor when a whole document is put back. */
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +97,12 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
   );
 
   const missing = fields.filter((f) => f.required && isEmpty(values[f.key]));
+
+  const draft = useDraftKeeper(
+    path,
+    { values, pm },
+    { dirty, ready: source !== null && pm !== null },
+  );
 
   async function save(): Promise<void> {
     if (!source || !pm) return;
@@ -123,11 +153,52 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
     }
   }
 
+  /**
+   * The file name is the address, and Astro lets a `slug` field override it -
+   * so both move together or the post keeps answering at its old URL. One
+   * commit, because a post that exists at two addresses is worse than either.
+   */
+  async function rename(): Promise<void> {
+    if (!source) return;
+    const stem = slugFor(renaming ?? '');
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    const target = `${dir}/${stem}.mdx`;
+    setRenameBusy(true);
+    setRenameError(null);
+    try {
+      const { files } = await api.list(dir);
+      if (files.includes(`${stem}.mdx`)) {
+        setRenameError('כבר יש פוסט בכתובת הזו. צריך לבחור כותרת אחרת.');
+        return;
+      }
+      const next = hasField(source, 'slug') ? setField(source, 'slug', stem) : source;
+      await api.rename(path, target, next, `שינוי כתובת: ${title} ← ${stem}`);
+      store.saved();
+      setRenaming(null);
+      onRenamed?.(`${stem}.mdx`);
+    } catch (e) {
+      setRenameError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות את הכתובת.');
+    } finally {
+      setRenameBusy(false);
+    }
+  }
+
   if (error && !source) return <p className="banner error">{error}</p>;
   if (!source || !pm) return <p className="muted">רגע, טוען…</p>;
 
   return (
     <>
+      <DraftOffer
+        keeper={draft}
+        onRestore={(value) => {
+          setValues(value.values);
+          if (value.pm) setPm(value.pm);
+          setBodyTouched(true);
+          // The editor reads its document once, at construction.
+          setRevision((n) => n + 1);
+        }}
+      />
+
       <section className="group">
         <h2>הפרטים</h2>
         {fields.map((field) => (
@@ -143,14 +214,16 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
       <h2 className="section-heading">הטקסט</h2>
       {/* Keyed by file: a new document is a new editor, so undo never reaches
           back past the moment it was opened. */}
-      <BodyEditor
-        key={path}
-        value={pm}
-        onChange={(next) => {
-          setPm(next);
-          setBodyTouched(true);
-        }}
-      />
+      <Suspense fallback={<p className="muted">רגע, טוען את העורך…</p>}>
+        <BodyEditor
+          key={`${path}#${revision}`}
+          value={pm}
+          onChange={(next) => {
+            setPm(next);
+            setBodyTouched(true);
+          }}
+        />
+      </Suspense>
 
       {/* Beside the button, not at the top: she is at the foot of a long form
           when she presses Save, and a message she has to scroll up to find is
@@ -162,6 +235,11 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
           {busy ? 'שומר…' : 'שמירה'}
         </button>
         {!dirty && !busy && <span className="muted">אין שינויים לשמור.</span>}
+        {onRenamed && (
+          <button className="ghost" onClick={() => setRenaming(title)} disabled={busy}>
+            שינוי הכתובת
+          </button>
+        )}
         {deletable && (
           <button className="ghost danger" onClick={() => setConfirmDelete(true)} disabled={busy}>
             מחיקה
@@ -170,6 +248,51 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
       </div>
       {missing.length > 0 && (
         <p className="invalid">צריך למלא: {missing.map((f) => f.label).join(', ')}</p>
+      )}
+
+      {renaming !== null && (
+        <div className="modal-backdrop" onClick={() => !renameBusy && setRenaming(null)}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label="שינוי הכתובת" onClick={(e) => e.stopPropagation()}>
+            <h2>הכתובת של הפוסט</h2>
+            <p className="help">
+              הכתובת נגזרת מהכותרת. אם שינית את הכותרת ורוצה שגם הכתובת תשתנה, אפשר לעדכן
+              אותה כאן.
+            </p>
+
+            <div className="field">
+              <label htmlFor="rename-to">הכותרת שממנה תיגזר הכתובת</label>
+              <input
+                id="rename-to"
+                type="text"
+                value={renaming}
+                onChange={(e) => setRenaming(e.target.value)}
+              />
+            </div>
+
+            <p className="muted">
+              הכתובת החדשה תהיה: <span dir="ltr">/blog/{slugFor(renaming) || '…'}</span>
+            </p>
+            <p className="invalid">
+              הכתובת הישנה תפסיק לעבוד. אם שלחת אותה למישהו או שהיא מופיעה במקום אחר,
+              הקישור יישבר.
+            </p>
+
+            {renameError && <p className="banner error" role="alert">{renameError}</p>}
+
+            <div className="modal-actions">
+              <button
+                className="primary"
+                onClick={rename}
+                disabled={renameBusy || !slugFor(renaming) || `${slugFor(renaming)}.mdx` === path.split('/').pop()}
+              >
+                {renameBusy ? 'משנה…' : 'שינוי הכתובת'}
+              </button>
+              <button className="ghost" onClick={() => setRenaming(null)} disabled={renameBusy}>
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmDelete && (

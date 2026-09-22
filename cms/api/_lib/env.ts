@@ -13,6 +13,12 @@ export interface Config {
   allowedLogins: string[];
   /** Subset of the above that may edit locked legal fields. */
   maintainerLogins: string[];
+  /**
+   * The site's Vercel project name. Optional, and only for telling the two
+   * projects' deployments of one commit apart; without it the status line
+   * falls back to skipping this editor's own deployment.
+   */
+  siteProject?: string;
 }
 
 const required = (name: string): string => {
@@ -39,6 +45,7 @@ export function config(): Config {
     repo: required('TARGET_REPO'),
     allowedLogins,
     maintainerLogins: list('MAINTAINER_GITHUB_LOGINS'),
+    siteProject: process.env.SITE_VERCEL_PROJECT || undefined,
   };
 }
 

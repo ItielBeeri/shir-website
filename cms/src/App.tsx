@@ -5,7 +5,7 @@
  * out of a post and back into its list. The drawer reaches everything from
  * anywhere, so going home first is never a required step.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { api, FriendlyError } from './api';
 import type { PathChange } from './git/engine';
 import { Shell } from './components/Shell';
@@ -13,16 +13,27 @@ import { StoreProvider, useStore } from './store';
 import { screens, screenById } from './model/screens';
 import type { Route, Stack } from './routes';
 import { back as popStack, canGoBack, current, initialStack, jump as jumpTo, push, replaceTop } from './routes';
-import { TomlForm } from './screens/TomlForm';
-import { MdxEntry } from './screens/MdxEntry';
-import { Collection } from './screens/Collection';
-import { Images } from './screens/Images';
-import { Recommendations } from './screens/Recommendations';
-import { SiteDetails } from './screens/SiteDetails';
-import { Legal } from './screens/Legal';
-import { NewPost } from './screens/NewPost';
-import { History, NavEditor } from './screens/Misc';
-import { Preview } from './screens/Preview';
+import { Deploy } from './screens/Deploy';
+import { confirmLeave } from './lib/unsaved';
+
+/**
+ * One chunk per screen. The landing screen is a grid of buttons and should not
+ * wait on a markdown parser, a TOML parser and a rich-text editor that only
+ * two of these destinations use.
+ */
+const TomlForm = lazy(async () => ({ default: (await import('./screens/TomlForm')).TomlForm }));
+const MdxEntry = lazy(async () => ({ default: (await import('./screens/MdxEntry')).MdxEntry }));
+const Collection = lazy(async () => ({ default: (await import('./screens/Collection')).Collection }));
+const Images = lazy(async () => ({ default: (await import('./screens/Images')).Images }));
+const Recommendations = lazy(async () => ({
+  default: (await import('./screens/Recommendations')).Recommendations,
+}));
+const SiteDetails = lazy(async () => ({ default: (await import('./screens/SiteDetails')).SiteDetails }));
+const Legal = lazy(async () => ({ default: (await import('./screens/Legal')).Legal }));
+const NewPost = lazy(async () => ({ default: (await import('./screens/NewPost')).NewPost }));
+const History = lazy(async () => ({ default: (await import('./screens/Misc')).History }));
+const NavEditor = lazy(async () => ({ default: (await import('./screens/Misc')).NavEditor }));
+const Preview = lazy(async () => ({ default: (await import('./screens/Preview')).Preview }));
 
 const GLYPHS: Record<string, string> = {
   pencil: '✍', book: '📚', quote: '💬', image: '🖼', home: '🏠', person: '🙋',
@@ -119,6 +130,7 @@ export default function App(): JSX.Element {
 }
 
 function Workspace(): JSX.Element {
+  const store = useStore();
   const [stack, setStack] = useState<Stack>(initialStack);
   const [drawer, setDrawer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -130,20 +142,31 @@ function Workspace(): JSX.Element {
     setError(null);
   };
 
-  /** Deeper inside the current flow: Back steps out one level. */
+  /**
+   * Every way out of a screen asks first when there is unsaved work. The
+   * editing screens keep a copy in the browser either way, but a question at
+   * the moment she would lose it is a choice, and a banner on her return is
+   * only a consolation.
+   */
   const go = useCallback((next: Route) => {
+    if (!confirmLeave()) return;
     clear();
     setStack((prev) => push(prev, next));
   }, []);
 
   /** Somewhere unrelated - the drawer. Back from there means home. */
   const jump = useCallback((next: Route) => {
+    if (!confirmLeave()) return;
     clear();
     setStack(jumpTo(next));
   }, []);
 
-  const back = useCallback(() => setStack(popStack), []);
-  const home = useCallback(() => setStack(initialStack()), []);
+  const back = useCallback(() => {
+    if (confirmLeave()) setStack(popStack);
+  }, []);
+  const home = useCallback(() => {
+    if (confirmLeave()) setStack(initialStack());
+  }, []);
   const replace = useCallback((next: Route) => setStack((prev) => replaceTop(prev, next)), []);
 
   const saved = (): void => setNotice('נשמר. עוד לא פורסם לאתר.');
@@ -161,6 +184,7 @@ function Workspace(): JSX.Element {
     >
       {notice && <p className="banner">{notice}</p>}
       {error && <p className="banner error">{error}</p>}
+      <Suspense fallback={<p className="muted">רגע, טוען…</p>}>
       <Screen
         route={route}
         go={go}
@@ -168,11 +192,15 @@ function Workspace(): JSX.Element {
         replace={replace}
         back={back}
         saved={saved}
-        published={() => {
-          setStack(initialStack());
-          setNotice('פורסם. השינוי יופיע באתר בתוך כדקה או שתיים.');
+        published={(sha) => {
+          // Straight to the screen that watches it land, rather than a line of
+          // reassurance she would have to verify herself.
+          store.watchDeploy(sha);
+          clear();
+          setStack([...initialStack(), { kind: 'deploy' }]);
         }}
       />
+      </Suspense>
     </Shell>
   );
 }
@@ -192,7 +220,7 @@ function Screen({
   replace: (route: Route) => void;
   back: () => void;
   saved: () => void;
-  published: () => void;
+  published: (sha: string) => void;
 }): JSX.Element {
   const store = useStore();
 
@@ -228,6 +256,7 @@ function Screen({
   }
 
   if (route.kind === 'preview') return <Preview onPublished={published} />;
+  if (route.kind === 'deploy') return <Deploy onDone={() => jump({ kind: 'home' })} />;
   if (route.kind === 'history') return <History />;
 
   if (route.kind === 'new') {
@@ -244,6 +273,11 @@ function Screen({
         deletable={route.id === 'blog'}
         onSaved={saved}
         onDeleted={back}
+        onRenamed={
+          route.id === 'blog'
+            ? (file) => replace({ kind: 'entry', id: route.id, file })
+            : undefined
+        }
       />
     );
   }

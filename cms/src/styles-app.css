@@ -35,12 +35,20 @@
 }
 .bar-button.is-empty { visibility: hidden; }
 
+/* The bar's title is the page heading, so it is an h1 wrapping the control
+   rather than a button pretending to be one. */
 .bar-title {
   flex: 1;
-  border: none;
-  background: transparent;
+  min-inline-size: 0;
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
+}
+.bar-title button {
+  inline-size: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
   text-align: start;
   padding-inline: 4px;
   overflow: hidden;
@@ -503,3 +511,82 @@
   border-color: var(--accent);
 }
 .pending-callout > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+
+/* The consent banner and the terms section that has to match it, side by side
+   because editing one without the other is how they come to disagree. */
+.group.is-paired { border-inline-start: 3px solid var(--accent); }
+.pair-lines { margin: 8px 0; padding-inline-start: 1.2rem; font-size: var(--fs-small); }
+.pair-lines li { margin-block-end: 6px; }
+
+/* --- the publish on its way to the site ------------------------------------ */
+
+.bar-deploy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-block-size: 38px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.bar-deploy.is-ready { border-color: var(--ok); }
+.bar-deploy.is-failed { border-color: var(--danger); color: var(--danger); background: #fbecea; }
+
+.deploy-card.is-ready { border-inline-start: 3px solid var(--ok); }
+.deploy-card.is-failed { border-inline-start: 3px solid var(--danger); }
+.deploy-state { font-size: 1.0625rem; margin-block: 4px 8px; }
+
+/* --- history, now that a row opens ----------------------------------------- */
+
+.history-head {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  text-align: start;
+  padding: 4px;
+}
+.history-text { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.history-body { border-block-start: 1px solid var(--line); margin-block-start: 8px; padding-block-start: 8px; }
+.nav-move { display: flex; gap: 6px; margin-block-start: 10px; }
+
+/* A maintainer's marker inside the copy: visibly a pin, not a word. */
+.nv-inline {
+  display: inline-block;
+  vertical-align: baseline;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 4px;
+  cursor: help;
+  user-select: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preview-pages { margin-block-end: 10px; }
+
+/* Unsaved work, offered back rather than restored behind her. */
+.draft-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.draft-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.draft-actions button { font-size: var(--fs-small); padding: 8px 12px; min-block-size: 38px; }

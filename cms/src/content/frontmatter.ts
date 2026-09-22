@@ -138,10 +138,15 @@ export function encodeLike(raw: string, value: FrontmatterValue): string {
 
   const quoted = raw.startsWith('"') || raw.startsWith("'");
   if (!value.includes('\n')) {
-    // An unquoted scalar that would now need quoting gets them; one that
-    // already had them keeps them.
-    if (!quoted && !/^[\s"'\[{|>&*#!%@`]|[:#]\s|[:\s]$/.test(value)) return value;
-    return dq(value);
+    // Bare only where the parser reads back exactly this string. `true`, `123`
+    // and `null` are otherwise a boolean, a number and nothing at all, and
+    // `z.string()` rejects each of them - a post titled 123 would fail the
+    // build rather than be called 123.
+    const safe =
+      !quoted &&
+      !/^[\s"'\[{|>&*#!%@`]|[:#]\s|[:\s]$/.test(value) &&
+      readSpan('v', value) === value;
+    return safe ? value : dq(value);
   }
   // Newlines survive only in a block scalar. `|-` keeps them and drops the
   // trailing one, which is what a multi-line field means.
@@ -151,6 +156,15 @@ export function encodeLike(raw: string, value: FrontmatterValue): string {
     .join('\n');
   return `|-\n${indented}`;
 }
+
+/**
+ * A value for a block that does not exist yet.
+ *
+ * Writing one by hand into a template is how a two-line excerpt becomes a
+ * double-quoted scalar spanning two lines, which YAML folds back into one: the
+ * owner types a line break and the site never sees it.
+ */
+export const encodeValue = (value: FrontmatterValue): string => encodeLike('', value);
 
 /** What the parser reads back from an isolated value span. */
 export function readSpan(key: string, raw: string): unknown {

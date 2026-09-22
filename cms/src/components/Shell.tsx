@@ -5,6 +5,10 @@
  * a long form needs to see where she is and how to get out without scrolling
  * back up to find out. The drawer makes every destination reachable from
  * anywhere, so "go home first" is never a required step.
+ *
+ * The bar's title is the page's `<h1>`. Every screen needs one - it is what a
+ * screen reader announces and what `page-has-heading-one` checks for - and the
+ * one thing that is always true of a screen is where it is.
  */
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
@@ -12,12 +16,15 @@ import { screens } from '../model/screens';
 import { useStore } from '../store';
 import type { Route } from '../routes';
 import { routeTitle } from '../routes';
+import { DeployChip } from '../screens/Deploy';
 
 const GLYPHS: Record<string, string> = {
   pencil: '✍', book: '📚', quote: '💬', image: '🖼', home: '🏠', person: '🙋',
   leaf: '🌿', envelope: '✉', list: '☰', phone: '📞', scale: '⚖', question: '❓',
   clock: '🕐',
 };
+
+const FOCUSABLE = 'a[href], button:not(:disabled), input, [tabindex]:not([tabindex="-1"])';
 
 interface Props {
   route: Route;
@@ -44,13 +51,42 @@ export function Shell({
 }: Props): JSX.Element {
   const store = useStore();
   const drawer = useRef<HTMLDivElement>(null);
+  const hamburger = useRef<HTMLButtonElement>(null);
 
+  /**
+   * The drawer is a dialog, so it behaves like one: nothing behind it takes
+   * focus or scrolls, and closing it puts focus back on the control that
+   * opened it rather than at the top of the document.
+   */
   useEffect(() => {
     if (!drawerOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false);
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !drawer.current) return;
+      const stops = [...drawer.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      if (stops.length === 0) return;
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
     drawer.current?.focus();
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      hamburger.current?.focus();
+    };
   }, [drawerOpen, setDrawerOpen]);
 
   const destinations = [
@@ -72,15 +108,16 @@ export function Shell({
             <span className="bar-button is-empty" aria-hidden="true" />
           )}
 
-          <button className="bar-title" onClick={onHome} aria-label="למסך הראשי">
-            {routeTitle(route)}
-          </button>
+          <h1 className="bar-title">
+            <button onClick={onHome} aria-label={`${routeTitle(route)} - למסך הראשי`}>
+              {routeTitle(route)}
+            </button>
+          </h1>
+
+          {route.kind !== 'deploy' && <DeployChip onOpen={() => onGo({ kind: 'deploy' })} />}
 
           {store.pending.length > 0 && route.kind !== 'preview' && (
-            <button
-              className="bar-publish"
-              onClick={() => onGo({ kind: 'preview' })}
-            >
+            <button className="bar-publish" onClick={() => onGo({ kind: 'preview' })}>
               צפייה ופרסום
               <span className="badge">{store.pending.length}</span>
             </button>
@@ -88,6 +125,7 @@ export function Shell({
 
           <button
             className="bar-button"
+            ref={hamburger}
             onClick={() => setDrawerOpen(true)}
             aria-label="תפריט"
             aria-expanded={drawerOpen}
@@ -103,6 +141,8 @@ export function Shell({
             className="drawer"
             ref={drawer}
             tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
             aria-label="ניווט"
             onClick={(e) => e.stopPropagation()}
           >
@@ -177,7 +217,6 @@ export function Shell({
       <main className={route.kind === 'preview' ? 'app is-wide' : 'app'} id="main">
         {children}
       </main>
-
     </>
   );
 }

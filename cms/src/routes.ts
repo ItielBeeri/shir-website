@@ -14,7 +14,9 @@ export type Route =
   | { kind: 'new'; id: string }
   | { kind: 'history' }
   /** The changes waiting, what they look like, and the publish button. */
-  | { kind: 'preview' };
+  | { kind: 'preview' }
+  /** A publish on its way to the live site. */
+  | { kind: 'deploy' };
 
 export function routeTitle(route: Route): string {
   switch (route.kind) {
@@ -24,6 +26,8 @@ export function routeTitle(route: Route): string {
       return 'היסטוריה ושחזור';
     case 'preview':
       return 'צפייה ופרסום';
+    case 'deploy':
+      return 'הפרסום לאתר';
     case 'new':
       return 'פוסט חדש';
     case 'screen':

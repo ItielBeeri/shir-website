@@ -191,13 +191,60 @@ function pmToBlock(node: PmNode): Block {
 /** Default separation for a block the owner just added. */
 const DEFAULT_GAP = '\n\n';
 
+const isEmptyParagraph = (block: Block): boolean =>
+  block.kind === 'paragraph' &&
+  block.inline.every((n) => n.type === 'text' && n.value.trim() === '');
+
+/**
+ * Whether `gap` still leaves `next` a block of its own.
+ *
+ * ProseMirror copies a node's attributes when it splits one, so a paragraph
+ * the owner makes with Enter inherits the gap of the paragraph she split from
+ * - often a single newline, which markdown reads as a line break inside one
+ * paragraph. Four paragraphs then ship as one, and the help text above the
+ * editor becomes a lie.
+ *
+ * A blank line always separates. One newline is enough only where the previous
+ * block ends at its own line - a heading, or a JSX element the editor keeps
+ * verbatim. After running text nothing but a heading can interrupt.
+ */
+export function separates(gap: string, prev: Block | null, next: Block): boolean {
+  if (!prev) return true;
+  if (/\n[^\S\n]*\n/.test(gap)) return true;
+  if (!gap.includes('\n')) return false;
+  if (prev.kind === 'heading' || prev.kind === 'opaque') return true;
+  return next.kind === 'heading';
+}
+
+const widen = (gap: string): string => (gap.includes('\n') ? `${gap}\n` : DEFAULT_GAP);
+
 export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
   const segments: Segment[] = [];
+  let prev: Block | null = null;
+  // An empty paragraph is nothing in markdown, and StarterKit's trailing node
+  // adds one after any document that does not end in a paragraph. Its spacing
+  // is real, though, so the gap travels on to whatever comes next.
+  let pending = '';
+
   (pm.content ?? []).forEach((node, i) => {
-    const gap = typeof node.attrs?.gap === 'string' ? node.attrs.gap : i === 0 ? '' : DEFAULT_GAP;
+    const own = typeof node.attrs?.gap === 'string' ? node.attrs.gap : i === 0 ? '' : DEFAULT_GAP;
+    const block = pmToBlock(node);
+    if (isEmptyParagraph(block)) {
+      pending += own;
+      return;
+    }
+
+    let gap = pending + own;
+    pending = '';
+    if (!separates(gap, prev, block)) gap = widen(gap);
     if (gap) segments.push({ type: 'gap', text: gap });
-    segments.push({ type: 'block', block: pmToBlock(node) });
+    segments.push({ type: 'block', block });
+    prev = block;
   });
+
+  // A trailing empty paragraph is spacing after the last word, which markdown
+  // has no way to mean; `pending` is deliberately dropped here so a file does
+  // not grow a blank line every time it is opened and saved.
   const trailing = typeof pm.attrs?.trailing === 'string' ? pm.attrs.trailing : '\n';
   if (trailing) segments.push({ type: 'gap', text: trailing });
   return { frontmatter, segments };

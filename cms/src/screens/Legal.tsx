@@ -15,14 +15,18 @@ import { parse as parseToml } from 'smol-toml';
 import { setStringArray, setValues } from '../content/toml-edit';
 import type { TomlPath } from '../content/toml-edit';
 import { ParagraphsInput } from '../components/Fields';
+import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import { useStore } from '../store';
 import { CONSENT_PAIR_NOTE, lockForBannerKey, lockForSection } from '../model/locks';
+import { legalProblems, measurementSection } from '../model/legal';
 
 const DOCS = [
   { file: 'src/content/pages/accessibility.toml', title: 'הצהרת נגישות' },
   { file: 'src/content/pages/terms.toml', title: 'תנאי שימוש ופרטיות' },
   { file: 'src/content/pages/consent.toml', title: 'באנר ההסכמה למדידה' },
 ] as const;
+
+const TERMS_FILE = DOCS[1].file;
 
 interface Edit {
   path: TomlPath;
@@ -65,6 +69,9 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [asked, setAsked] = useState<string | null>(null);
+  /** The terms section the banner has to agree with, and whether she read it. */
+  const [pair, setPair] = useState<{ title: string; lines: string[] } | null>(null);
+  const [paired, setPaired] = useState(false);
 
   const isConsent = file.endsWith('consent.toml');
 
@@ -92,9 +99,26 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
     void load().catch((e: FriendlyError) => setError(e.message));
   }, [load]);
 
+  // The banner is the first layer of a disclosure the terms complete, so the
+  // matching section is brought here rather than left to be remembered.
+  useEffect(() => {
+    if (!isConsent) return;
+    void api
+      .read(TERMS_FILE)
+      .then(({ content }) => setPair(content ? measurementSection(content) : null))
+      .catch(() => undefined);
+  }, [isConsent]);
+
   const dirty =
     JSON.stringify(values) !== JSON.stringify(initial) ||
     JSON.stringify(lists) !== JSON.stringify(initialLists);
+
+  const draft = useDraftKeeper(file, { values, lists }, { dirty, ready: source !== null });
+
+  const bannerChanged =
+    isConsent && ['banner.title', 'banner.body', 'banner.accept', 'banner.decline'].some(
+      (key) => values[key] !== initial[key],
+    );
 
   async function save(): Promise<void> {
     if (!source) return;
@@ -120,10 +144,20 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
       }
 
       next = setValues(next, edits);
+
+      // The same rules the API runs, run here first so she reads the reason
+      // next to the field rather than after a round trip that refuses her.
+      const problems = legalProblems(file, source, next, role);
+      if (problems.length > 0) {
+        setError(problems[0].reason);
+        return;
+      }
+
       await api.save(`עדכון ${DOCS.find((d) => d.file === file)?.title}`, [{ path: file, content: next }]);
       setSource(next);
       await load();
       store.saved();
+      setPaired(false);
       setNotice(isConsent ? CONSENT_PAIR_NOTE : 'נשמר, ותאריך העדכון התעדכן.');
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשמור.');
@@ -140,6 +174,13 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
 
   return (
     <>
+      <DraftOffer
+        keeper={draft}
+        onRestore={(value) => {
+          setValues_(value.values);
+          setLists(value.lists);
+        }}
+      />
       {notice && <p className="banner">{notice}</p>}
       {role === 'maintainer' && (
         <p className="banner">את/ה נכנס/ת כמנהל: גם השדות הנעולים פתוחים לעריכה.</p>
@@ -186,15 +227,52 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
         );
       })}
 
+      {/* X-14: the two say the same thing or they contradict each other, so
+          the other one is here rather than somewhere she has to remember. */}
+      {isConsent && bannerChanged && (
+        <section className="group is-paired">
+          <h2>הסעיף המקביל בתנאי השימוש</h2>
+          <p className="help">{CONSENT_PAIR_NOTE}</p>
+          {pair ? (
+            <>
+              <p className="muted">«{pair.title}»</p>
+              <ul className="pair-lines">
+                {pair.lines.map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="muted">לא הצלחתי לטעון את הסעיף. כדאי לפתוח את תנאי השימוש ולבדוק ידנית.</p>
+          )}
+          <div className="switch">
+            <input
+              id="pair-read"
+              type="checkbox"
+              checked={paired}
+              onChange={(e) => setPaired(e.target.checked)}
+            />
+            <label htmlFor="pair-read">קראתי, והשניים אומרים את אותו הדבר</label>
+          </div>
+        </section>
+      )}
+
       {/* Beside the button: the save is at the foot of a long document. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
-        <button className="primary" onClick={save} disabled={!dirty || busy}>
+        <button
+          className="primary"
+          onClick={save}
+          disabled={!dirty || busy || (bannerChanged && !paired)}
+        >
           {busy ? 'שומר…' : 'שמירה'}
         </button>
         {!dirty && !busy && <span className="muted">אין שינויים לשמור.</span>}
       </div>
+      {bannerChanged && !paired && (
+        <p className="invalid">צריך לאשר שקראת את הסעיף המקביל בתנאי השימוש.</p>
+      )}
 
       {asked && (
         <div className="modal-backdrop" onClick={() => setAsked(null)}>

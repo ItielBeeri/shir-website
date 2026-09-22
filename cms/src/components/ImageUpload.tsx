@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { FriendlyError } from '../api';
 import { useStore } from '../store';
-import { fileNameFor, formatBytes, imagePathFor, processImage } from '../lib/images';
+import { fileNameFor, formatBytes, imagePathFor, processImage, whyImageFailed } from '../lib/images';
 import type { ProcessedImage } from '../lib/images';
 
 export interface Chosen {
@@ -50,7 +50,7 @@ export function UploadButton({
               fileName: fileNameFor(file.name, new Set(store.gallery.map((g) => g.id))),
             });
           } catch {
-            onFailed('לא הצלחתי לקרוא את הקובץ. אפשר לנסות תמונה אחרת.');
+            onFailed(whyImageFailed(file));
           }
         }}
       />

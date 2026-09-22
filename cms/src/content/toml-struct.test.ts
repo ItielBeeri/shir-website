@@ -11,6 +11,8 @@ import {
   nextRecommendationId,
   recommendationIds,
   removeImage,
+  reorderArrayTables,
+  arrayTableCount,
   reorderRecommendations,
   replaceRecommendation,
 } from './toml-struct';
@@ -201,5 +203,56 @@ describe('removeImage', () => {
 
   it('refuses an id that is not there', () => {
     expect(() => removeImage(images(), 'nope')).toThrow();
+  });
+});
+
+describe('nav.toml order', () => {
+  const nav = () => readFileSync(join(CONTENT, 'nav.toml'), 'utf8');
+  const labels = (text: string): string[] =>
+    ((parseSmol(text) as { items: Array<{ label: string }> }).items ?? []).map((i) => i.label);
+
+  it('has more than one entry to reorder', () => {
+    expect(arrayTableCount(nav())).toBeGreaterThan(2);
+  });
+
+  it('the identity permutation changes nothing', () => {
+    const src = nav();
+    const same = [...Array(arrayTableCount(src)).keys()];
+    expect(reorderArrayTables(src, same)).toBe(src);
+  });
+
+  it('moves one entry and leaves the rest in order', () => {
+    const src = nav();
+    const before = labels(src);
+    const order = [...Array(before.length).keys()];
+    [order[0], order[1]] = [order[1], order[0]];
+    const out = reorderArrayTables(src, order);
+    expect(labels(out)).toEqual([before[1], before[0], ...before.slice(2)]);
+  });
+
+  it('keeps every key of every entry, header flags included', () => {
+    const src = nav();
+    const before = parseSmol(src) as { items: Array<Record<string, unknown>> };
+    const order = [...Array(before.items.length).keys()].reverse();
+    const after = parseSmol(reorderArrayTables(src, order)) as { items: Array<Record<string, unknown>> };
+    expect(after.items).toEqual([...before.items].reverse());
+  });
+
+  it('keeps the owner comments at the top of the file', () => {
+    const src = nav();
+    const order = [...Array(arrayTableCount(src)).keys()].reverse();
+    const out = reorderArrayTables(src, order);
+    expect(out).toContain('# ניווט האתר');
+    expect(out.includes('\n\n\n')).toBe(false);
+  });
+
+  it('refuses a permutation that drops, repeats or invents a position', () => {
+    const src = nav();
+    const n = arrayTableCount(src);
+    const all = [...Array(n).keys()];
+    expect(() => reorderArrayTables(src, all.slice(1))).toThrow();
+    expect(() => reorderArrayTables(src, [0, ...all])).toThrow();
+    expect(() => reorderArrayTables(src, all.map(() => 0))).toThrow();
+    expect(() => reorderArrayTables(src, [...all.slice(1), n])).toThrow();
   });
 });

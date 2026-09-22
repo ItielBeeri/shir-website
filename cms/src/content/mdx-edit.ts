@@ -82,19 +82,54 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
 }
 
 /**
- * Neutralise a mark character the owner typed as ordinary punctuation.
+ * Neutralise punctuation the markdown and MDX grammars would claim.
  *
- * Only a `*` or `_` that touches a non-space can open or close a mark, so a
- * lone asterisk on its own line - which this copy uses as a divider - is left
- * exactly as written. Escaping every one of them would rewrite existing body
- * text the moment an unrelated word changed, and the round-trip gate would
- * fail rather than let that through quietly.
+ * What the editor refuses to *render* is not protection: the owner types into
+ * a surface that shows `# כותרת` as ordinary words, and if it reaches the file
+ * unescaped the site builds it as a second `<h1>`. Everything the grammar can
+ * read has to be escaped on the way out, or the editor is lying about what it
+ * will publish.
+ *
+ * `*` and `_` are the exception, escaped only where they touch a non-space:
+ * only there can they open or close a mark, and this copy uses a lone asterisk
+ * on its own line as a divider. Escaping every one would rewrite body text the
+ * moment an unrelated word changed.
  */
 export function escapeInlineText(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/([*_])(?=\S)|(?<=\S)([*_])/g, (m) => `\\${m}`);
+  return (
+    value
+      .replace(/\\/g, '\\\\')
+      .replace(/([*_])(?=\S)|(?<=\S)([*_])/g, (m) => `\\${m}`)
+      // Links, images, code spans, autolinks and HTML - and `{`, which MDX
+      // reads as the start of an expression rather than as a character.
+      .replace(/[[\]`<{]/g, (m) => `\\${m}`)
+      // Only an `&` that completes an entity turns into another character.
+      .replace(/&(?=[a-zA-Z#][a-zA-Z0-9]*;)/g, '\\&')
+  );
 }
+
+/**
+ * Line starts the block grammar would claim.
+ *
+ * `remark-breaks` is on, so a paragraph is several lines and the block parser
+ * looks at every one of them. A `#` the owner typed as punctuation has to be
+ * neutralised wherever it lands, not only in the first line.
+ */
+const BLOCK_START =
+  /^([ \t]*)(#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t])|(\d{1,9})([.)])(?=[ \t])|={2,}[ \t]*$|-{2,}[ \t]*$|~{3,})/;
+
+const escapeLineStart = (line: string): string =>
+  line.replace(
+    BLOCK_START,
+    // Only ASCII punctuation is escapable, so an ordered list is broken at its
+    // delimiter: `1\.` is text, while `\1.` would ship a stray backslash.
+    (_m, indent: string, token: string, digits: string | undefined, delimiter: string) =>
+      digits ? `${indent}${digits}\\${delimiter}` : `${indent}\\${token}`,
+  );
+
+/** Every line, since every line of a paragraph is a line the parser reads. */
+const escapeBlockStarts = (text: string): string =>
+  text.split('\n').map(escapeLineStart).join('\n');
 
 export function inlineToMarkdown(nodes: Inline[]): string {
   return nodes
@@ -116,12 +151,20 @@ export function inlineToMarkdown(nodes: Inline[]): string {
 export function blockToMarkdown(block: Block): string {
   switch (block.kind) {
     case 'paragraph':
-      return inlineToMarkdown(block.inline);
+      return escapeBlockStarts(inlineToMarkdown(block.inline));
     case 'heading':
+      // The `##` is this function's own; what follows it is already inside a
+      // block, so only the marks needed escaping.
       return `${'#'.repeat(block.depth)} ${inlineToMarkdown(block.inline)}`;
     case 'list':
       return block.items
-        .map((item, i) => `${block.ordered ? `${i + 1}.` : '-'} ${inlineToMarkdown(item)}`)
+        .map((item, i) => {
+          const marker = block.ordered ? `${i + 1}.` : '-';
+          // The item's own first line follows the marker; a second line is at
+          // the start of one and could otherwise open a block of its own.
+          const [head, ...rest] = inlineToMarkdown(item).split('\n');
+          return [`${marker} ${head}`, ...rest.map(escapeLineStart)].join('\n');
+        })
         .join('\n');
     case 'opaque':
       return block.source;

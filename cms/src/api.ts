@@ -16,6 +16,14 @@ export interface StartResult {
   repo: string;
 }
 
+/** Mirrors DeploymentStatus in api/_lib/github.ts. */
+export interface DeployState {
+  state: 'queued' | 'building' | 'ready' | 'failed' | 'none' | 'unknown';
+  url?: string;
+  startedAt?: string;
+  updatedAt?: string;
+}
+
 export interface CommitInfo {
   sha: string;
   message: string;
@@ -44,6 +52,8 @@ const MESSAGES: Record<string, string> = {
   offline: 'אין חיבור לאינטרנט.',
   misconfigured: 'המערכת עדיין לא הוגדרה במלואה.',
   'no-write-access': 'למערכת אין כרגע הרשאה לשמור שינויים באתר. זה משהו שאיתיאל צריך לאשר - שווה לפנות אליו.',
+  'too-large': 'הקובץ גדול מדי בשביל האתר. אפשר לנסות תמונה קטנה יותר.',
+  'legal-rejected': 'השינוי הזה בעמוד המשפטי אינו אפשרי.',
 };
 
 const friendly = (code: string): string => MESSAGES[code] ?? 'משהו השתבש. אפשר לנסות שוב.';
@@ -63,11 +73,20 @@ async function call<T>(action: string, body?: unknown, query = ''): Promise<T> {
 
   if (response.status === 401) throw new FriendlyError(friendly('unauthenticated'), false);
   if (!response.ok) {
-    const data = (await response.json().catch(() => ({}))) as { error?: string; status?: number };
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      detail?: string;
+      status?: number;
+    };
+    // A rejected legal edit carries its own reason, written for the owner and
+    // specific to what she changed; a generic sentence would tell her nothing.
+    if (data.error === 'legal-rejected' && data.detail) {
+      throw new FriendlyError(data.detail, false);
+    }
     // A 403 from GitHub is the one upstream failure with a distinct cause the
     // owner can act on - by asking, not by retrying.
     const code = data.error === 'upstream' && data.status === 403 ? 'no-write-access' : data.error;
-    throw new FriendlyError(friendly(code ?? 'upstream'));
+    throw new FriendlyError(friendly(code ?? 'upstream'), code !== 'too-large');
   }
   return (await response.json()) as T;
 }
@@ -88,10 +107,16 @@ export const api = {
       ref ? `?ref=${encodeURIComponent(ref)}` : '',
     ),
 
-  save: (message: string, files: Array<{ path: string; content: string; encoding?: 'utf-8' | 'base64' }>) =>
+  /** `remove` rides along in the same commit, for an action that does both. */
+  save: (
+    message: string,
+    files: Array<{ path: string; content: string; encoding?: 'utf-8' | 'base64' }>,
+    remove: string[] = [],
+  ) =>
     call<{ sha: string; pending: PathChange[] }>('save', {
       message,
       files: files.map((f) => ({ encoding: 'utf-8', ...f })),
+      remove,
     }),
 
   pending: () => call<{ pending: PathChange[] }>('pending', {}),
@@ -102,11 +127,7 @@ export const api = {
   refs: () => call<{ draft: string | null; target: string | null }>('refs', undefined, ''),
 
   status: (sha?: string) =>
-    call<{ state: 'building' | 'ready' | 'failed' | 'unknown'; url?: string }>(
-      'status',
-      undefined,
-      sha ? `?sha=${encodeURIComponent(sha)}` : '',
-    ),
+    call<DeployState>('status', undefined, sha ? `?sha=${encodeURIComponent(sha)}` : ''),
 
   remove: (paths: string[], message: string) =>
     call<{ sha: string; pending: PathChange[] }>('delete', { paths, message }),
@@ -117,6 +138,13 @@ export const api = {
   publish: () => call<{ sha: string; paths: PathChange[] }>('publish', {}),
 
   history: () => call<{ commits: CommitInfo[] }>('history', {}),
+
+  /** The paths one published commit touched, fetched when a row is opened. */
+  commit: (sha: string) =>
+    call<{ paths: PathChange[] }>('commit', undefined, `?sha=${encodeURIComponent(sha)}`),
+
+  rename: (from: string, to: string, content: string, message: string) =>
+    call<{ sha: string; pending: PathChange[] }>('rename', { from, to, content, message }),
 
   restore: (path: string, commitSha: string, message: string) =>
     call<{ sha: string; pending: PathChange[] }>('restore', { path, commitSha, message }),

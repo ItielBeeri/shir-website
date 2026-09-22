@@ -83,21 +83,22 @@ export const RawInline = Node.create({
  * The blank lines before each top-level block, carried through editing.
  * Several files separate sections with more than one blank line, and with
  * `remark-breaks` on that is visible spacing, not formatting noise.
+ *
+ * `trailing` is the same thing at the end of the file, and it has to be
+ * declared: only attributes an extension names survive `getJSON`, and one file
+ * ends without a newline, so guessing costs it a byte on its first save.
  */
+const whitespace = { default: null, renderHTML: () => ({}), parseHTML: () => null };
+
 const GapAttribute = Extension.create({
   name: 'gap',
   addGlobalAttributes() {
     return [
       {
         types: ['paragraph', 'heading', 'bulletList', 'orderedList', 'softImage', 'rawBlock'],
-        attributes: {
-          gap: {
-            default: null,
-            renderHTML: () => ({}),
-            parseHTML: () => null,
-          },
-        },
+        attributes: { gap: whitespace },
       },
+      { types: ['doc'], attributes: { trailing: whitespace } },
     ];
   },
 });

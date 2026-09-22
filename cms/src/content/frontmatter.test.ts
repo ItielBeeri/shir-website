@@ -8,6 +8,7 @@ import {
   hasField,
   parseFrontmatter,
   readSpan,
+  encodeValue,
   removeField,
   setField,
   setFields,
@@ -180,5 +181,35 @@ describe('frontmatter', () => {
       const out = setFields(src, [{ key: 'order', value: undefined }]);
       expect(hasField(out, 'order')).toBe(false);
     });
+  });
+});
+
+describe('encodeValue, for a block being written from scratch', () => {
+  const parse = (body: string) => parseFrontmatter(`---\n${body}\n---\n\nגוף\n`).data;
+
+  it('keeps a line break the owner typed', () => {
+    const out = parse(`excerpt: ${encodeValue('שורה ראשונה' + String.fromCharCode(10) + 'שורה שנייה')}`);
+    expect(out.excerpt).toBe('שורה ראשונה' + String.fromCharCode(10) + 'שורה שנייה');
+  });
+
+  it('never writes a quoted scalar that spans lines', () => {
+    const encoded = encodeValue('אחת' + String.fromCharCode(10) + 'שתיים');
+    expect(encoded.startsWith('"')).toBe(false);
+    expect(encoded.startsWith('|')).toBe(true);
+  });
+
+  it('quotes a value that would otherwise change meaning', () => {
+    expect(parse(`title: ${encodeValue('בדיקה: "ציטוט" ו#תגית')}`).title).toBe('בדיקה: "ציטוט" ו#תגית');
+    // Bare, these would be a boolean and a number, which z.string() rejects.
+    expect(parse(`title: ${encodeValue('true')}`).title).toBe('true');
+    expect(parse(`title: ${encodeValue('123')}`).title).toBe('123');
+    expect(parse(`title: ${encodeValue('null')}`).title).toBe('null');
+    expect(parse(`title: ${encodeValue('')}`).title).toBe('');
+  });
+
+  it('writes an empty list and a boolean the schema can read', () => {
+    expect(parse(`tags: ${encodeValue([])}`).tags).toEqual([]);
+    expect(parse(`draft: ${encodeValue(true)}`).draft).toBe(true);
+    expect(parse(`tags: ${encodeValue(['אחת', 'שתיים'])}`).tags).toEqual(['אחת', 'שתיים']);
   });
 });

@@ -88,22 +88,29 @@ interface Block {
 }
 
 /**
- * Each `[[recommendations]]` block, from its header to the start of the next -
- * so the blank line between them travels with the block above and a reorder
- * cannot collapse two blocks together.
+ * Each `[[table]]` block, from its header to the start of the next - so the
+ * blank line between them travels with the block above and a reorder cannot
+ * collapse two blocks together.
  */
-function recommendationBlocks(src: string): { blocks: Block[]; head: string } {
+function arrayTables(src: string): { tables: Array<{ node: any; text: string }>; head: string } {
   const top = parseTOML(src).body[0] as any;
-  const tables = top.body.filter(
-    (n: any) => n.type === 'TOMLTable' && n.kind === 'array',
-  );
-  if (!tables.length) return { blocks: [], head: src };
+  const nodes = top.body.filter((n: any) => n.type === 'TOMLTable' && n.kind === 'array');
+  if (!nodes.length) return { tables: [], head: src };
 
-  const head = src.slice(0, tables[0].range[0]);
-  const blocks: Block[] = tables.map((t: any, i: number) => {
-    const end = i + 1 < tables.length ? tables[i + 1].range[0] : src.length;
-    const idKv = t.body.find((kv: any) => kv.key.keys[0].name === 'id');
-    return { id: String(idKv?.value.value ?? i), text: src.slice(t.range[0], end) };
+  return {
+    head: src.slice(0, nodes[0].range[0]),
+    tables: nodes.map((node: any, i: number) => ({
+      node,
+      text: src.slice(node.range[0], i + 1 < nodes.length ? nodes[i + 1].range[0] : src.length),
+    })),
+  };
+}
+
+function recommendationBlocks(src: string): { blocks: Block[]; head: string } {
+  const { tables, head } = arrayTables(src);
+  const blocks: Block[] = tables.map(({ node, text }, i) => {
+    const idKv = node.body.find((kv: any) => kv.key.keys[0].name === 'id');
+    return { id: String(idKv?.value.value ?? i), text };
   });
   return { blocks, head };
 }
@@ -175,3 +182,29 @@ export function nextRecommendationId(src: string): string {
   const next = (used.length ? Math.max(...used) : 0) + 1;
   return `recommendation-${String(next).padStart(2, '0')}`;
 }
+
+/**
+ * Reorder `[[table]]` entries that have no id of their own - the menu, whose
+ * order is its meaning: `nav.toml` is the single source of truth for the order
+ * of the header and the footer alike (AGENTS.md §5).
+ *
+ * `order` lists every current position exactly once, in the order they should
+ * appear. Positions rather than names, because two menu items may be called
+ * the same thing and neither carries a key.
+ */
+export function reorderArrayTables(src: string, order: readonly number[]): string {
+  const { tables, head } = arrayTables(src);
+  const distinct = new Set(order);
+  if (
+    order.length !== tables.length ||
+    distinct.size !== tables.length ||
+    order.some((i) => !Number.isInteger(i) || i < 0 || i >= tables.length)
+  ) {
+    throw new Error('reorder must list every entry exactly once');
+  }
+  const next = order.map((i) => tables[i].text);
+  return head + next.map((t, i) => withSeparator(t, i === next.length - 1)).join('');
+}
+
+/** How many `[[table]]` entries a document has. */
+export const arrayTableCount = (src: string): number => arrayTables(src).tables.length;

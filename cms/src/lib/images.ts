@@ -6,26 +6,9 @@
  * so the id is an implementation detail she should never meet - which is also
  * what makes the guide's "register it in the list" step disappear.
  */
-import { parse as parseToml } from 'smol-toml';
 import { IMAGE_DIRS } from '../git/paths';
 
-export interface GalleryImage {
-  id: string;
-  /** Site-absolute, e.g. "/img/content/portrait-1.jpeg". */
-  file: string;
-  alt: string;
-  credit?: string;
-}
-
-export function parseGallery(source: string): GalleryImage[] {
-  const data = parseToml(source) as Record<string, { file: string; alt: string; credit?: string }>;
-  return Object.entries(data).map(([id, entry]) => ({
-    id,
-    file: entry.file,
-    alt: entry.alt,
-    credit: entry.credit,
-  }));
-}
+export type { GalleryImage } from '../content/gallery';
 
 /**
  * Thumbnails come from raw.githubusercontent at the draft ref, so an image
@@ -34,6 +17,40 @@ export function parseGallery(source: string): GalleryImage[] {
  */
 export const rawUrl = (repo: string, ref: string, publicPath: string): string =>
   `https://raw.githubusercontent.com/${repo}/${ref}/public${publicPath}`;
+
+/** One row of public/img/_opt/manifest.json, written by scripts/optimize-images.mjs. */
+export interface DerivativeEntry {
+  key: string;
+  width: number;
+  height: number;
+  widths: number[];
+  digest: string;
+}
+
+export type Derivatives = Record<string, DerivativeEntry>;
+
+/**
+ * A small version of a picture, for a thumbnail.
+ *
+ * The originals are megapixels; the gallery paints them at about 200px, and a
+ * phone was downloading every one of them at full size to do it. The images
+ * workflow has already written narrow copies, so the editor uses those.
+ *
+ * `null` when there is none - the derivatives lag a fresh upload by one CI
+ * run, and the caller falls back to the original rather than showing nothing.
+ */
+export function derivativeFor(
+  derivatives: Derivatives | null,
+  publicPath: string,
+  want: number,
+): string | null {
+  const entry = derivatives?.[publicPath];
+  if (!entry?.widths?.length) return null;
+  // Twice the painted size, so it still looks right on a dense screen.
+  const target = want * 2;
+  const width = entry.widths.find((w) => w >= target) ?? entry.widths[entry.widths.length - 1];
+  return `/img/_opt/${entry.key}-${width}.${entry.digest}.webp`;
+}
 
 /** Latin, lowercase, hyphenated - the filename never shows in the UI. */
 export function fileNameFor(original: string, taken: ReadonlySet<string>): string {
@@ -74,6 +91,18 @@ const QUALITY = 0.82;
  * `imageOrientation: 'from-image'` applies EXIF rotation, without which
  * portrait photos from a phone arrive sideways.
  */
+/**
+ * What the browser could not decode. iPhones photograph in HEIC by default and
+ * Chrome cannot read it, which is the likeliest upload to fail - so the
+ * message says which format, not only that something went wrong.
+ */
+export function whyImageFailed(file: File): string {
+  if (/heic|heif/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
+    return 'התמונה בפורמט HEIC, שהדפדפן לא יודע לפתוח. בטלפון אפשר לשתף אותה לעצמך בוואטסאפ ולהעלות את מה שהתקבל, או לשנות בהגדרות המצלמה ל"תואם ביותר".';
+  }
+  return 'לא הצלחתי לקרוא את הקובץ. אפשר לנסות תמונה אחרת.';
+}
+
 export async function processImage(file: File): Promise<ProcessedImage> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
@@ -146,5 +175,13 @@ export function findUsage(id: string, files: Array<{ path: string; label: string
   return out.filter((u, i) => out.findIndex((o) => o.path === u.path) === i);
 }
 
-export const formatBytes = (bytes: number): string =>
-  bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.round(bytes / 1000)} KB`;
+/**
+ * Rounding to whole kilobytes reported a 400-byte file as "0 KB", so an upload
+ * announced that it had shrunk from nothing to something.
+ */
+export const formatBytes = (bytes: number): string => {
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  if (bytes >= 100_000) return `${Math.round(bytes / 1000)} KB`;
+  if (bytes >= 1000) return `${(bytes / 1000).toFixed(1)} KB`;
+  return `${bytes} בתים`;
+};

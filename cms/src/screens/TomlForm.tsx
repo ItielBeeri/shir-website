@@ -12,6 +12,7 @@ import { useStore } from '../store';
 import type { TomlScalar } from '../content/toml-edit';
 import type { Field, Screen } from '../model/types';
 import { FieldInput } from '../components/Fields';
+import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import type { FieldValue } from '../components/Fields';
 
 interface Props {
@@ -65,6 +66,7 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
   }, [screen, fields]);
 
   const dirty = Object.keys(values).some((k) => values[k] !== initial[k]);
+  const draft = useDraftKeeper(screen.file!, values, { dirty, ready: source !== null });
   const missing = fields.filter(
     (f) => f.required && typeof values[f.key] === 'string' && !String(values[f.key]).trim(),
   );
@@ -107,6 +109,8 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
 
   return (
     <>
+      <DraftOffer keeper={draft} onRestore={setValues_} />
+
       {(screen.groups ?? []).map((group, i) => (
         <section className="group" key={i}>
           {group.title && <h2>{group.title}</h2>}

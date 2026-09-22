@@ -10,7 +10,12 @@
 :root {
   --ink: #2d2a26;
   --ink-soft: #55504a;
-  --mist: #8a837a;
+  /*
+   * Every muted line - card blurbs, help text, status - is body-size text on
+   * one of three near-white backgrounds, so it is held to 4.5:1 against all of
+   * them. The lighter grey this used to be reached 3.2:1 on the soft accent.
+   */
+  --mist: #6f685e;
   --paper: #f7f4ef;
   --card: #fffdfa;
   --line: #e4ddd2;

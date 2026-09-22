@@ -15,20 +15,50 @@ import { useStore } from '../store';
 import { AltFields, UploadButton, UploadPanel, altMissing } from '../components/ImageUpload';
 import type { Chosen } from '../components/ImageUpload';
 import { findUsage, imagePathFor, processImage } from '../lib/images';
+import { screens } from '../model/screens';
+import { describePath } from './Misc';
 import type { Usage } from '../lib/images';
 import { setValue } from '../content/toml-edit';
 import { removeImage } from '../content/toml-struct';
 
 const GALLERY = 'src/content/images.toml';
 
-/** Everywhere an image id can appear, with the Hebrew name of the place. */
-const REFERENCING: Array<{ path: string; label: string }> = [
-  { path: 'src/content/pages/home.toml', label: 'דף הבית' },
-  { path: 'src/content/about/about.mdx', label: 'עמוד אודות' },
-  { path: 'src/content/therapies/psychotherapy.mdx', label: 'פסיכותרפיה' },
-  { path: 'src/content/therapies/shiatsu.mdx', label: 'טיפול במגע' },
-  { path: 'src/content/therapies/voice.mdx', label: 'פתיחת קול' },
-];
+/**
+ * Everywhere an image id can appear, derived from the model rather than listed.
+ *
+ * A hard-coded list silently stops covering a page the day one is added, and
+ * the check it feeds is what stops a delete from breaking the build. An id
+ * reaches the site through a TOML field of type `image`, or through any MDX
+ * file - its frontmatter or a `<SoftImage>` in its body.
+ */
+async function referencingFiles(): Promise<Array<{ path: string; label: string; content: string }>> {
+  const tomls = screens
+    .filter((s) => s.file?.endsWith('.toml'))
+    .filter((s) => (s.groups ?? []).some((g) => g.fields.some((f) => f.type === 'image')))
+    .map((s) => ({ path: s.file as string, label: s.title }));
+
+  const singleMdx = screens
+    .filter((s) => s.file?.endsWith('.mdx'))
+    .map((s) => ({ path: s.file as string, label: s.title }));
+
+  const dirs = [...new Set(screens.map((s) => s.dir).filter(Boolean) as string[])];
+  const listed = (
+    await Promise.all(
+      dirs.map(async (dir) => {
+        const { files } = await api.list(dir);
+        return files
+          .filter((f) => f.endsWith('.mdx'))
+          .map((f) => ({ path: `${dir}/${f}`, label: describePath(`${dir}/${f}`) }));
+      }),
+    )
+  ).flat();
+
+  const all = [...tomls, ...singleMdx, ...listed];
+  const unique = all.filter((f, i) => all.findIndex((o) => o.path === f.path) === i);
+  return Promise.all(
+    unique.map(async (f) => ({ ...f, content: (await api.read(f.path)).content ?? '' })),
+  );
+}
 
 interface Editing {
   id: string;
@@ -43,7 +73,8 @@ export function Images(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [usage, setUsage] = useState<{ id: string; found: Usage[] } | null>(null);
+  /** `found: null` means the scan is still running. */
+  const [usage, setUsage] = useState<{ id: string; found: Usage[] | null } | null>(null);
 
   /** Description and decorative travel together: they are one decision. */
   async function saveDescription(edit: Editing): Promise<void> {
@@ -87,26 +118,19 @@ export function Images(): JSX.Element {
     }
   }
 
-  /** Never orphan a reference: check first, and say where it is used. */
+  /**
+   * Never orphan a reference: check first, and say where it is used. Reading
+   * every page takes a few seconds, so the dialog opens first and says it is
+   * checking - the button used to sit silent long enough to look broken.
+   */
   async function askDelete(id: string): Promise<void> {
     setBusy(true);
     setError(null);
+    setUsage({ id, found: null });
     try {
-      const files = await Promise.all(
-        REFERENCING.map(async (f) => ({ ...f, content: (await api.read(f.path)).content ?? '' })),
-      );
-      const { files: posts } = await api.list('src/content/blog');
-      const postFiles = await Promise.all(
-        posts
-          .filter((f) => f.endsWith('.mdx'))
-          .map(async (f) => ({
-            path: `src/content/blog/${f}`,
-            label: `הפוסט ${f.replace(/\.mdx$/, '')}`,
-            content: (await api.read(`src/content/blog/${f}`)).content ?? '',
-          })),
-      );
-      setUsage({ id, found: findUsage(id, [...files, ...postFiles]) });
+      setUsage({ id, found: findUsage(id, await referencingFiles()) });
     } catch (e) {
+      setUsage(null);
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לבדוק היכן התמונה בשימוש.');
     } finally {
       setBusy(false);
@@ -121,8 +145,13 @@ export function Images(): JSX.Element {
       const { content } = await api.read(GALLERY);
       if (!content) return;
       const next = removeImage(content, id);
-      await api.save(`מחיקת תמונה: ${image.alt || id}`, [{ path: GALLERY, content: next }]);
-      await api.remove([`public${image.file}`], 'מחיקת קובץ התמונה');
+      // One commit, like the add: two would leave an entry naming a file that
+      // is gone, which is a failed build rather than a missing picture.
+      await api.save(
+        `מחיקת תמונה: ${image.alt || 'ללא תיאור'}`,
+        [{ path: GALLERY, content: next }],
+        [`public${image.file}`],
+      );
       await store.refreshGallery();
       store.saved();
       setUsage(null);
@@ -151,7 +180,7 @@ export function Images(): JSX.Element {
 
       <ul className="gallery">
         {store.gallery.map((image) => {
-          const url = store.urlFor(image.id);
+          const url = store.urlFor(image.id, 240);
           return (
             <li key={image.id} className="gallery-card">
               {url ? <img src={url} alt="" loading="lazy" /> : <span className="image-empty">—</span>}
@@ -264,7 +293,15 @@ export function Images(): JSX.Element {
       {usage && (
         <div className="modal-backdrop" onClick={() => setUsage(null)}>
           <div className="modal is-small" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            {usage.found.length > 0 ? (
+            {usage.found === null ? (
+              <>
+                <h2>רגע, בודקת</h2>
+                <p className="muted">
+                  <span className="spinner" aria-hidden="true" />
+                  עוברת על כל העמודים כדי לוודא שאף אחד לא משתמש בתמונה הזו.
+                </p>
+              </>
+            ) : usage.found.length > 0 ? (
               <>
                 <h2>אי אפשר למחוק</h2>
                 <p>התמונה הזו בשימוש ב:</p>

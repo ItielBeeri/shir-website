@@ -7,7 +7,10 @@
  */
 import { useState } from 'react';
 import { api, FriendlyError } from '../api';
+import { encodeValue } from '../content/frontmatter';
+import type { FrontmatterValue } from '../content/frontmatter';
 import { ImageField } from '../components/ImagePicker';
+import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import { useStore } from '../store';
 
 const DIR = 'src/content/blog';
@@ -34,6 +37,11 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
 
   const slug = slugFor(title);
   const ready = slug.length > 0 && excerpt.trim().length > 0;
+  const draft = useDraftKeeper(
+    'new-post',
+    { title, excerpt, cover },
+    { dirty: Boolean(title.trim() || excerpt.trim() || cover), ready: true },
+  );
 
   async function create(): Promise<void> {
     setBusy(true);
@@ -48,14 +56,20 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
       }
 
       const today = new Date().toISOString().slice(0, 10);
+      // Every value goes through the encoder rather than into a quoted
+      // template: a two-line excerpt written between quotes is a YAML scalar
+      // that folds back into one line, and the owner's line break is gone
+      // before she ever sees the post.
+      const field = (key: string, value: FrontmatterValue): string =>
+        `${key}: ${encodeValue(value)}`;
       const frontmatter = [
         '---',
-        `title: "${title.trim().replace(/"/g, '\\"')}"`,
-        `excerpt: "${excerpt.trim().replace(/"/g, '\\"')}"`,
+        field('title', title.trim()),
+        field('excerpt', excerpt.trim()),
         `date: ${today}`,
-        ...(cover ? [`cover: "${cover}"`] : []),
-        'tags: []',
-        'draft: true',
+        ...(cover ? [field('cover', cover)] : []),
+        field('tags', []),
+        field('draft', true),
         '---',
         '',
         'כאן מתחיל הפוסט.',
@@ -64,6 +78,9 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
 
       await api.save(`פוסט חדש: ${title.trim()}`, [{ path: `${DIR}/${name}`, content: frontmatter }]);
       store.saved();
+      // The post is the draft now; keeping a copy would offer it back on the
+      // next new post as if it had been abandoned.
+      draft.discard();
       onCreated(name);
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי ליצור את הפוסט.');
@@ -74,6 +91,15 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
 
   return (
     <>
+      <DraftOffer
+        keeper={draft}
+        onRestore={(value) => {
+          setTitle(value.title);
+          setExcerpt(value.excerpt);
+          setCover(value.cover);
+        }}
+      />
+
       <p className="help">
         נתחיל בשלושה פרטים. הפוסט ייווצר מוסתר, כך שאפשר לכתוב אותו בנחת ולהציג אותו
         כשהוא מוכן.
