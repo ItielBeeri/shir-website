@@ -95,11 +95,49 @@ async function requireSha(t: GitTransport, branch: string): Promise<string> {
  */
 async function draftChanges(
   t: GitTransport,
-): Promise<{ draft: string; master: string; changes: PathChange[] }> {
+): Promise<{ draft: string; master: string; base: string; changes: PathChange[] }> {
   const draft = await requireSha(t, DRAFT_BRANCH);
   const master = await requireSha(t, TARGET_BRANCH);
   const base = await t.mergeBase(master, draft);
-  return { draft, master, changes: await t.compare(base, draft) };
+  return { draft, master, base, changes: await t.compare(base, draft) };
+}
+
+export const PUBLISH_PREFIX = 'פרסום ממערכת הניהול: ';
+
+/** Git's own guidance on subject length; Hebrew counts the same. */
+const SUBJECT_LIMIT = 72;
+
+/**
+ * One commit on master, describing everything it carries.
+ *
+ * The saves are the record of what the owner actually did - "עדכון דף הבית",
+ * "הוספת תמונה: …" - and collapsing them into a single generic line throws
+ * that away at exactly the moment it becomes the permanent history.
+ *
+ * Repeats are folded: saving the same page four times is one thing done, not
+ * four. Order is oldest first, the order she did them in.
+ */
+export function publishMessage(messages: readonly string[]): string {
+  const unique = [...new Set(messages.map((m) => m.split('\n')[0].trim()).filter(Boolean))];
+  if (unique.length === 0) return `${PUBLISH_PREFIX}עדכון תוכן`;
+
+  const subject = `${PUBLISH_PREFIX}${unique.join(' · ')}`;
+  if (subject.length <= SUBJECT_LIMIT) return subject;
+
+  // Too long for one line: summarise, and keep every message in the body.
+  const body = unique.map((m) => `- ${m}`).join('\n');
+  return `${PUBLISH_PREFIX}${unique.length} שינויים\n\n${body}`;
+}
+
+/** Subjects of the draft's own commits, oldest first. */
+async function draftMessages(t: GitTransport, base: string): Promise<string[]> {
+  const commits = await t.listCommits(DRAFT_BRANCH, 100);
+  const mine: string[] = [];
+  for (const commit of commits) {
+    if (commit.sha === base) break;
+    mine.push(commit.message);
+  }
+  return mine.reverse();
 }
 
 /**
@@ -200,9 +238,11 @@ export interface PublishResult {
  * Apply only the paths the draft changed onto master's current tree, then
  * fast-forward the draft onto the result.
  */
-export async function publish(t: GitTransport, message: string): Promise<PublishResult> {
-  const { draft, master, changes } = await draftChanges(t);
+export async function publish(t: GitTransport): Promise<PublishResult> {
+  const { draft, master, base, changes } = await draftChanges(t);
   if (changes.length === 0) throw new GitError('empty', 'nothing to publish');
+
+  const message = publishMessage(await draftMessages(t, base));
 
   // A draft that somehow carries a change outside content is refused whole
   // rather than partially applied.

@@ -114,8 +114,7 @@ export const api = {
   discard: (path: string, message: string) =>
     call<{ sha: string; pending: PathChange[] }>('discard', { path, message }),
 
-  publish: (message: string) =>
-    call<{ sha: string; paths: PathChange[] }>('publish', { message }),
+  publish: () => call<{ sha: string; paths: PathChange[] }>('publish', {}),
 
   history: () => call<{ commits: CommitInfo[] }>('history', {}),
 

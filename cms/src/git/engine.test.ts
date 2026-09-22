@@ -8,6 +8,7 @@ import {
   history,
   pendingChanges,
   publish,
+  publishMessage,
   restorePath,
   saveFiles,
 } from './engine';
@@ -133,7 +134,7 @@ describe('publish', () => {
       message: 'edit home',
       files: [{ path: 'src/content/pages/home.toml', content: 'edited', encoding: 'utf-8' }],
     });
-    const result = await publish(git, 'פרסום');
+    const result = await publish(git);
     expect(result.paths.map((p) => p.path)).toEqual(['src/content/pages/home.toml']);
 
     const files = git.filesOn(TARGET_BRANCH);
@@ -154,7 +155,7 @@ describe('publish', () => {
       'chore: rebuild image derivatives',
     );
 
-    await publish(git, 'פרסום');
+    await publish(git);
     const files = git.filesOn(TARGET_BRANCH);
     expect(files['public/img/_opt/manifest.json']).toBe('{"v":2}');
     expect(files['public/img/_opt/a-900.abc.avif']).toBe('AVIF');
@@ -168,7 +169,7 @@ describe('publish', () => {
     });
     await git.commitDirect(TARGET_BRANCH, { 'src/lib/new.ts': 'export {}' }, 'dev work');
 
-    await publish(git, 'פרסום');
+    await publish(git);
     const files = git.filesOn(TARGET_BRANCH);
     expect(files['src/lib/new.ts']).toBe('export {}');
     expect(files['src/content/pages/home.toml']).toBe('edited');
@@ -176,7 +177,7 @@ describe('publish', () => {
 
   it('carries a deletion through', async () => {
     await deleteFiles(git, { message: 'מחיקה', paths: ['src/content/images.toml'] });
-    await publish(git, 'פרסום');
+    await publish(git);
     expect(git.filesOn(TARGET_BRANCH)['src/content/images.toml']).toBeUndefined();
   });
 
@@ -185,7 +186,7 @@ describe('publish', () => {
       message: 'edit',
       files: [{ path: 'src/content/site.toml', content: 'edited', encoding: 'utf-8' }],
     });
-    const result = await publish(git, 'פרסום');
+    const result = await publish(git);
     expect(await git.getRefSha(DRAFT_BRANCH)).toBe(result.sha);
     expect(await git.getRefSha(TARGET_BRANCH)).toBe(result.sha);
     expect(await pendingChanges(git)).toEqual([]);
@@ -193,14 +194,14 @@ describe('publish', () => {
 
   it('G-10 refuses an empty publish and leaves master untouched', async () => {
     const before = await git.getRefSha(TARGET_BRANCH);
-    await expect(publish(git, 'פרסום')).rejects.toThrow(/nothing to publish/);
+    await expect(publish(git)).rejects.toThrow(/nothing to publish/);
     expect(await git.getRefSha(TARGET_BRANCH)).toBe(before);
   });
 
   it('refuses whole rather than partially when the draft strays outside content', async () => {
     await git.commitDirect(DRAFT_BRANCH, { 'src/pages/index.astro': 'tampered' }, 'sneaky');
     const before = await git.getRefSha(TARGET_BRANCH);
-    await expect(publish(git, 'פרסום')).rejects.toThrow(/refusing to write/);
+    await expect(publish(git)).rejects.toThrow(/refusing to write/);
     expect(await git.getRefSha(TARGET_BRANCH)).toBe(before);
   });
 });
@@ -250,7 +251,7 @@ describe('pending, discard, restore, history', () => {
       message: 'edit',
       files: [{ path: 'src/content/site.toml', content: 'edited', encoding: 'utf-8' }],
     });
-    await publish(git, 'פרסום');
+    await publish(git);
 
     const commits = await history(git, 10);
     const initial = commits.find((c) => c.message === 'initial')!;
@@ -273,5 +274,75 @@ describe('pending, discard, restore, history', () => {
     await expect(
       restorePath(git, { path: 'src/pages/index.astro', commitSha: commits[0].sha, message: 'x' }),
     ).rejects.toThrow(/refusing to write/);
+  });
+});
+
+describe('the published commit message', () => {
+  const subjectOf = (message: string): string => message.split('\n')[0];
+
+  it('opens with the agreed prefix', () => {
+    expect(publishMessage(['עדכון דף הבית'])).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+  });
+
+  it('carries every distinct message, oldest first', () => {
+    const out = publishMessage(['עדכון דף הבית', 'הוספת תמונה', 'עדכון אודות']);
+    expect(out).toContain('עדכון דף הבית');
+    expect(out).toContain('הוספת תמונה');
+    expect(out).toContain('עדכון אודות');
+    expect(out.indexOf('עדכון דף הבית')).toBeLessThan(out.indexOf('הוספת תמונה'));
+  });
+
+  it('folds repeats: saving one page four times is one thing done', () => {
+    const out = publishMessage(['עדכון דף הבית', 'עדכון דף הבית', 'עדכון דף הבית']);
+    expect(out).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+  });
+
+  it('keeps the subject readable and moves a long list into the body', () => {
+    const many = Array.from({ length: 8 }, (_, i) => `עדכון של פריט מספר ${i + 1} ברשימה`);
+    const out = publishMessage(many);
+    expect(subjectOf(out).length).toBeLessThanOrEqual(72);
+    expect(subjectOf(out)).toContain('פרסום ממערכת הניהול:');
+    expect(subjectOf(out)).toContain('8 שינויים');
+    for (const m of many) expect(out).toContain(m);
+    expect(out.split('\n')[1]).toBe('');
+  });
+
+  it('uses only the first line of a multi-line save message', () => {
+    expect(publishMessage(['כותרת\n\nגוף ההודעה'])).toBe('פרסום ממערכת הניהול: כותרת');
+  });
+
+  it('never produces an empty subject', () => {
+    expect(publishMessage([])).toBe('פרסום ממערכת הניהול: עדכון תוכן');
+    expect(publishMessage(['', '   '])).toBe('פרסום ממערכת הניהול: עדכון תוכן');
+  });
+
+  it('composes the real master commit from the draft commits', async () => {
+    await saveFiles(git, {
+      message: 'עדכון דף הבית',
+      files: [{ path: 'src/content/pages/home.toml', content: 'a', encoding: 'utf-8' }],
+    });
+    await saveFiles(git, {
+      message: 'הוספת תמונה: שיר בטבע',
+      files: [{ path: 'src/content/images.toml', content: 'b', encoding: 'utf-8' }],
+    });
+
+    await publish(git);
+    const [head] = await git.listCommits(TARGET_BRANCH, 1);
+    expect(head.message).toBe('פרסום ממערכת הניהול: עדכון דף הבית · הוספת תמונה: שיר בטבע');
+  });
+
+  it('does not sweep in commits that were already on master', async () => {
+    await git.commitDirect(TARGET_BRANCH, { 'src/content/site.toml': 'x' }, 'עבודה של איתיאל');
+    await ensureDraft(git);
+    await saveFiles(git, {
+      message: 'עדכון דף הבית',
+      files: [{ path: 'src/content/pages/home.toml', content: 'a', encoding: 'utf-8' }],
+    });
+
+    await publish(git);
+    const [head] = await git.listCommits(TARGET_BRANCH, 1);
+    expect(head.message).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+    expect(head.message).not.toContain('עבודה של איתיאל');
+    expect(head.message).not.toContain('initial');
   });
 });

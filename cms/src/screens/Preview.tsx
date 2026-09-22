@@ -107,7 +107,7 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
     setBusy(true);
     setError(null);
     try {
-      await api.publish('פרסום שינויים מהמערכת');
+      await api.publish();
       await store.refreshPending();
       onPublished();
     } catch (e) {

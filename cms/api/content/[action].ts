@@ -127,7 +127,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
 
       case 'publish': {
-        const result = await publish(git, String(body.message ?? 'פרסום שינויים'));
+        // The message is composed from the draft's own commits, server-side.
+        const result = await publish(git);
         res.status(200).json(result);
         return;
       }
