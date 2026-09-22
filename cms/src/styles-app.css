@@ -216,6 +216,26 @@
 .editor-tools button.is-on { background: var(--accent-soft); border-color: var(--accent); }
 .tools-sep { inline-size: 1px; background: var(--line); margin-inline: 4px; }
 
+/* Both keys make a line and only the spacing tells them apart, so the editor
+   says so rather than leaving it to be discovered. */
+.editor-help {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: var(--fs-small);
+  color: var(--mist);
+  border-block-end: 1px solid var(--line);
+}
+.editor-help kbd {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 0.92em;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
 .prose-edit { padding: 16px; min-block-size: 40vh; line-height: 1.8; outline: none; }
 .prose-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .prose-edit h2 { font-size: 1.3rem; font-weight: 400; margin-block: 1.6rem 0.6rem; }
@@ -303,6 +323,7 @@
 .entry-title { font-weight: 600; }
 .entry-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .entry-actions button { font-size: var(--fs-small); padding: 8px 10px; }
+.entry-error { flex-basis: 100%; margin: 0; }
 
 .rec {
   display: flex;
@@ -317,9 +338,27 @@
 .rec.is-hidden { opacity: 0.55; }
 .rec > img { inline-size: 110px; border-radius: 8px; object-fit: cover; align-self: flex-start; }
 .rec-body { flex: 1; min-inline-size: 200px; display: flex; flex-direction: column; gap: 8px; }
-.rec-text { margin: 0; font-size: var(--fs-small); white-space: pre-line; }
+/* A card is a summary; the whole text is in the form behind it. */
+.rec-text {
+  margin: 0;
+  font-size: var(--fs-small);
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
 .rec-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .rec-actions button { font-size: var(--fs-small); padding: 8px 10px; }
+.rec-shot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-block: 8px 16px;
+}
 
 .pending-list li, .history li, .nav-items li {
   display: flex;

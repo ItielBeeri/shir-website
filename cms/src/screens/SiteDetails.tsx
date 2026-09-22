@@ -120,7 +120,6 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
 
       <section className="group">
         <h2>דרכי יצירת קשר</h2>
@@ -150,6 +149,10 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
       <Group title="השם ושורת התחומים" fields={BRAND} values={simple} onChange={setSimple} />
       <Group title="קישורים" fields={LINKS} values={simple} onChange={setSimple} invalid={badLinks} />
       <Group title="כותרת תחתונה" fields={FOOTER} values={simple} onChange={setSimple} />
+
+      {/* Beside the button: the save is at the foot of the form, and a
+          message at the top is a message she never scrolls back to see. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
         <button

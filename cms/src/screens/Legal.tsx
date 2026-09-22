@@ -4,12 +4,17 @@
  * Two duties that the editor guide asks the owner to remember are mechanical
  * here: the `updated` date bumps itself on every save, per file, and editing
  * the banner surfaces the terms section that has to say the same thing.
+ *
+ * A section's paragraphs are a list, not a fixed set of boxes. These documents
+ * describe what the site actually does, and what the site does gains and loses
+ * clauses - so a sentence can be added and removed here, not only rewritten.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { api, FriendlyError } from '../api';
 import { parse as parseToml } from 'smol-toml';
-import { setValues } from '../content/toml-edit';
+import { setStringArray, setValues } from '../content/toml-edit';
 import type { TomlPath } from '../content/toml-edit';
+import { ParagraphsInput } from '../components/Fields';
 import { useStore } from '../store';
 import { CONSENT_PAIR_NOTE, lockForBannerKey, lockForSection } from '../model/locks';
 
@@ -23,6 +28,9 @@ interface Edit {
   path: TomlPath;
   value: string;
 }
+
+const toPath = (key: string): TomlPath =>
+  key.split('.').map((seg) => (/^\d+$/.test(seg) ? Number(seg) : seg));
 
 export function Legal(): JSX.Element {
   const store = useStore();
@@ -51,6 +59,8 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
   const [source, setSource] = useState<string | null>(null);
   const [values, setValues_] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
+  const [lists, setLists] = useState<Record<string, string[]>>({});
+  const [initialLists, setInitialLists] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,37 +71,55 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
   const load = useCallback(async () => {
     const { content } = await api.read(file);
     if (!content) return;
+    const parsed = parseToml(content);
     const collected: Record<string, string> = {};
-    for (const { path, value } of walk(parseToml(content))) {
-      if (typeof value === 'string') collected[path.join('.')] = value;
+    const collectedLists: Record<string, string[]> = {};
+    for (const { path, value } of walk(parsed)) {
+      if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
+        collectedLists[path.join('.')] = value as string[];
+      } else if (typeof value === 'string') {
+        collected[path.join('.')] = value;
+      }
     }
     setSource(content);
     setValues_(collected);
     setInitial(collected);
+    setLists(collectedLists);
+    setInitialLists(collectedLists);
   }, [file]);
 
   useEffect(() => {
     void load().catch((e: FriendlyError) => setError(e.message));
   }, [load]);
 
-  const dirty = JSON.stringify(values) !== JSON.stringify(initial);
+  const dirty =
+    JSON.stringify(values) !== JSON.stringify(initial) ||
+    JSON.stringify(lists) !== JSON.stringify(initialLists);
 
   async function save(): Promise<void> {
     if (!source) return;
     setBusy(true);
     setError(null);
     try {
+      // Lists first and one at a time: each rewrite moves every byte after it,
+      // so the ranges the next edit needs are only valid once it has landed.
+      let next = source;
+      for (const [key, items] of Object.entries(lists)) {
+        if (JSON.stringify(items) === JSON.stringify(initialLists[key])) continue;
+        next = setStringArray(next, toPath(key), items);
+      }
+
       const edits: Edit[] = Object.entries(values)
         .filter(([key, value]) => value !== initial[key])
-        .map(([key, value]) => ({ path: key.split('.').map(seg => (/^\d+$/.test(seg) ? Number(seg) : seg)), value }));
+        .map(([key, value]) => ({ path: toPath(key), value }));
 
       // The date is part of the document's meaning, not bookkeeping: it is
       // shown to visitors and is what makes the statement current.
-      if (!isConsent && edits.length) {
+      if (!isConsent && dirty) {
         edits.push({ path: ['meta', 'updated'], value: new Date().toISOString().slice(0, 10) });
       }
 
-      const next = setValues(source, edits);
+      next = setValues(next, edits);
       await api.save(`עדכון ${DOCS.find((d) => d.file === file)?.title}`, [{ path: file, content: next }]);
       setSource(next);
       await load();
@@ -112,7 +140,6 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
       {notice && <p className="banner">{notice}</p>}
       {role === 'maintainer' && (
         <p className="banner">את/ה נכנס/ת כמנהל: גם השדות הנעולים פתוחים לעריכה.</p>
@@ -132,20 +159,35 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
                 </button>
               </p>
             )}
-            {group.fields.map((field) => (
-              <div className="field" key={field.key}>
-                <label htmlFor={`l-${field.key}`}>{field.label}</label>
-                <textarea
-                  id={`l-${field.key}`}
-                  value={values[field.key] ?? ''}
-                  disabled={locked}
-                  onChange={(e) => setValues_((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                />
-              </div>
-            ))}
+            {group.fields.map((field) =>
+              field.kind === 'list' ? (
+                <div className="field" key={field.key}>
+                  <span className="field-label">{field.label}</span>
+                  <ParagraphsInput
+                    value={lists[field.key] ?? []}
+                    disabled={locked}
+                    itemLabel={field.itemLabel}
+                    onChange={(items) => setLists((prev) => ({ ...prev, [field.key]: items }))}
+                  />
+                </div>
+              ) : (
+                <div className="field" key={field.key}>
+                  <label htmlFor={`l-${field.key}`}>{field.label}</label>
+                  <textarea
+                    id={`l-${field.key}`}
+                    value={values[field.key] ?? ''}
+                    disabled={locked}
+                    onChange={(e) => setValues_((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  />
+                </div>
+              ),
+            )}
           </section>
         );
       })}
+
+      {/* Beside the button: the save is at the foot of a long document. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
         <button className="primary" onClick={save} disabled={!dirty || busy}>
@@ -177,21 +219,28 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
 
 /* ------------------------------ shape description ---------------------------- */
 
+type LegalField =
+  | { kind: 'text'; key: string; label: string }
+  | { kind: 'list'; key: string; label: string; itemLabel: string };
+
 interface Group {
   title: string;
   lockReason?: string;
-  fields: Array<{ key: string; label: string }>;
+  fields: LegalField[];
 }
 
 function walk(value: unknown, path: TomlPath = []): Array<{ path: TomlPath; value: unknown }> {
-  if (Array.isArray(value)) return value.flatMap((v, i) => walk(v, [...path, i]));
+  if (Array.isArray(value)) {
+    if (value.every((v) => typeof v === 'string')) return [{ path, value }];
+    return value.flatMap((v, i) => walk(v, [...path, i]));
+  }
   if (value && typeof value === 'object') {
     return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => walk(v, [...path, k]));
   }
   return [{ path, value }];
 }
 
-/** The document's own shape, turned into titled groups of text areas. */
+/** The document's own shape, turned into titled groups of fields. */
 function describe(file: string, parsed: Record<string, unknown>): Group[] {
   if (file.endsWith('consent.toml')) {
     const banner = (parsed.banner ?? {}) as Record<string, string>;
@@ -210,7 +259,7 @@ function describe(file: string, parsed: Record<string, unknown>): Group[] {
       .map((key) => ({
         title: LABELS[key],
         lockReason: lockForBannerKey(key)?.reason,
-        fields: [{ key: `banner.${key}`, label: LABELS[key] }],
+        fields: [{ kind: 'text' as const, key: `banner.${key}`, label: LABELS[key] }],
       }));
   }
 
@@ -219,21 +268,25 @@ function describe(file: string, parsed: Record<string, unknown>): Group[] {
   groups.push({
     title: 'ראש העמוד',
     fields: [
-      { key: 'meta.title', label: 'הכותרת' },
-      { key: 'meta.description', label: 'תיאור לתוצאות חיפוש' },
-      ...(meta.intro !== undefined ? [{ key: 'meta.intro', label: 'שורת הפתיחה' }] : []),
+      { kind: 'text', key: 'meta.title', label: 'הכותרת' },
+      { kind: 'text', key: 'meta.description', label: 'תיאור לתוצאות חיפוש' },
+      ...(meta.intro !== undefined
+        ? [{ kind: 'text' as const, key: 'meta.intro', label: 'שורת הפתיחה' }]
+        : []),
     ],
   });
+
+  const sectionFields = (prefix: string, section: { body?: string[]; items?: string[] }): LegalField[] => [
+    ...(section.body ? [{ kind: 'list' as const, key: `${prefix}.body`, label: 'הפסקאות', itemLabel: 'פסקה' }] : []),
+    ...(section.items ? [{ kind: 'list' as const, key: `${prefix}.items`, label: 'הרשימה', itemLabel: 'שורה' }] : []),
+  ];
 
   const sections = (parsed.sections ?? []) as Array<{ title: string; body?: string[]; items?: string[] }>;
   sections.forEach((section, i) => {
     groups.push({
       title: section.title,
       lockReason: lockForSection(file, section.title)?.reason,
-      fields: [
-        ...(section.body ?? []).map((_, j) => ({ key: `sections.${i}.body.${j}`, label: `פסקה ${j + 1}` })),
-        ...(section.items ?? []).map((_, j) => ({ key: `sections.${i}.items.${j}`, label: `שורה ${j + 1}` })),
-      ],
+      fields: sectionFields(`sections.${i}`, section),
     });
   });
 
@@ -246,16 +299,7 @@ function describe(file: string, parsed: Record<string, unknown>): Group[] {
       groups.push({
         title: `${part.heading} · ${section.title}`,
         lockReason: lockForSection(file, section.title)?.reason,
-        fields: [
-          ...(section.body ?? []).map((_, k) => ({
-            key: `parts.${i}.sections.${j}.body.${k}`,
-            label: `פסקה ${k + 1}`,
-          })),
-          ...(section.items ?? []).map((_, k) => ({
-            key: `parts.${i}.sections.${j}.items.${k}`,
-            label: `שורה ${k + 1}`,
-          })),
-        ],
+        fields: sectionFields(`parts.${i}.sections.${j}`, section),
       });
     });
   });

@@ -86,7 +86,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   if (action === 'logout') {
     res.setHeader('Set-Cookie', clearCookie(SESSION_COOKIE));
-    res.status(200).json({ ok: true });
+    // The button is a link, so this is a navigation and its answer is a page.
+    // Home with no cookie is the sign-in screen, which is where she is going.
+    res.redirect(302, '/');
     return;
   }
 

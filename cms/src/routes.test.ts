@@ -62,7 +62,7 @@ describe('navigation', () => {
   });
 
   it('the new-post wizard becomes the post without leaving a step behind', () => {
-    let stack = push(initialStack(), { kind: 'new', id: 'blog-new' });
+    let stack = push(initialStack(), { kind: 'new', id: 'blog' });
     stack = replaceTop(stack, { kind: 'entry', id: 'blog', file: 'new.mdx' });
 
     expect(stack.length).toBe(2);

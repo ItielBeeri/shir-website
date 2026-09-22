@@ -10,41 +10,64 @@
  * Writing splices one value's source span, like toml-edit. js-yaml offers no
  * ranges, so the span is found by scanning from the key - which is tractable
  * because the frontmatter vocabulary is small and fixed by src/content/config.ts.
+ *
+ * An optional key the file does not have is written by inserting a line, and
+ * cleared by removing that line. No value stands for absent: `order` is
+ * `z.number().int().positive()`, so writing 0 to unpin a post fails the build
+ * instead of unpinning it.
  */
 import { load } from 'js-yaml';
 
 export type FrontmatterValue = string | number | boolean | string[];
 
-const FENCE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+const FENCE = /^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)/;
 
 export interface Frontmatter {
   /** The whole block including both fences, exactly as written. */
   raw: string;
   /** Just the YAML between the fences. */
   text: string;
+  /** Where `text` begins within the source. */
+  offset: number;
   data: Record<string, unknown>;
+}
+
+export interface WriteOptions {
+  /**
+   * Preferred key sequence, consulted only when a key has to be inserted: the
+   * new line goes after the last key of the list the file already has. Without
+   * it an optional field lands at the end of the block, away from its siblings.
+   */
+  order?: readonly string[];
 }
 
 export function parseFrontmatter(source: string): Frontmatter {
   const m = source.match(FENCE);
   if (!m) throw new Error('no frontmatter');
-  const data = load(m[1]);
+  const data = load(m[2]);
   if (data === null || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('frontmatter is not a mapping');
   }
-  return { raw: m[0], text: m[1], data: data as Record<string, unknown> };
+  return { raw: m[0], text: m[2], offset: m[1].length, data: data as Record<string, unknown> };
 }
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Where a key's value begins, or null when the file has no such key. */
+function valueStart(text: string, key: string): number | null {
+  const m = new RegExp('^' + escapeRe(key) + ':[ \\t]*', 'm').exec(text);
+  return m ? m.index + m[0].length : null;
+}
+
 /** Offsets of a key's value within the frontmatter text. */
 export function fieldRange(text: string, key: string): [number, number] {
-  const re = new RegExp('^' + escapeRe(key) + ':[ \\t]*', 'm');
-  const m = re.exec(text);
-  if (!m) throw new Error(`no such frontmatter field: ${key}`);
-  const start = m.index + m[0].length;
+  const start = valueStart(text, key);
+  if (start === null) throw new Error(`no such frontmatter field: ${key}`);
   return [start, valueEnd(text, start)];
 }
+
+export const hasField = (source: string, key: string): boolean =>
+  valueStart(parseFrontmatter(source).text, key) !== null;
 
 function valueEnd(text: string, start: number): number {
   const ch = text[start];
@@ -138,9 +161,63 @@ export function readSpan(key: string, raw: string): unknown {
   }
 }
 
-export function setField(source: string, key: string, value: FrontmatterValue): string {
+/* ------------------------------- whole lines -------------------------------- */
+
+function lineStart(text: string, key: string): number {
+  const m = new RegExp('^' + escapeRe(key) + ':', 'm').exec(text);
+  if (!m) throw new Error(`no such frontmatter field: ${key}`);
+  return m.index;
+}
+
+/** Just past a key's last line, including its newline where it has one. */
+function lineEnd(text: string, key: string): number {
+  const [, end] = fieldRange(text, key);
+  // A block scalar's span already runs past its final newline.
+  if (end > 0 && text[end - 1] === '\n') return end;
+  const nl = text.indexOf('\n', end);
+  return nl < 0 ? text.length : nl + 1;
+}
+
+function insertionPoint(text: string, key: string, order: readonly string[]): number {
+  const present = new Set(fieldNames(text));
+  const at = order.indexOf(key);
+  if (at >= 0) {
+    for (let i = at - 1; i >= 0; i -= 1) if (present.has(order[i])) return lineEnd(text, order[i]);
+    for (let i = at + 1; i < order.length; i += 1) if (present.has(order[i])) return lineStart(text, order[i]);
+  }
+  return text.length;
+}
+
+/** The block carries no trailing newline, so its end is a case of its own. */
+function insertField(
+  text: string,
+  key: string,
+  value: FrontmatterValue,
+  order: readonly string[],
+): string {
+  const line = `${key}: ${encodeLike('', value)}`;
+  const at = insertionPoint(text, key, order);
+  return at >= text.length
+    ? `${text}\n${line}`
+    : `${text.slice(0, at)}${line}\n${text.slice(at)}`;
+}
+
+const splice = (source: string, fm: Frontmatter, text: string): string =>
+  source.slice(0, fm.offset) + text + source.slice(fm.offset + fm.text.length);
+
+export function setField(
+  source: string,
+  key: string,
+  value: FrontmatterValue,
+  options: WriteOptions = {},
+): string {
   const fm = parseFrontmatter(source);
-  const [start, end] = fieldRange(fm.text, key);
+  const start = valueStart(fm.text, key);
+  if (start === null) {
+    return splice(source, fm, insertField(fm.text, key, value, options.order ?? []));
+  }
+
+  const end = valueEnd(fm.text, start);
   const raw = fm.text.slice(start, end);
 
   // A write that does not change the value must not change bytes. This is not
@@ -149,16 +226,26 @@ export function setField(source: string, key: string, value: FrontmatterValue): 
   // line and silently reformat copy nobody asked to touch.
   if (JSON.stringify(readSpan(key, raw)) === JSON.stringify(value)) return source;
 
-  const text = fm.text.slice(0, start) + encodeLike(raw, value) + fm.text.slice(end);
-  return source.slice(0, fm.raw.length).replace(fm.text, text) + source.slice(fm.raw.length);
+  return splice(source, fm, fm.text.slice(0, start) + encodeLike(raw, value) + fm.text.slice(end));
 }
 
+export function removeField(source: string, key: string): string {
+  const fm = parseFrontmatter(source);
+  if (valueStart(fm.text, key) === null) return source;
+  const cut = fm.text.slice(0, lineStart(fm.text, key)) + fm.text.slice(lineEnd(fm.text, key));
+  return splice(source, fm, cut.replace(/\n$/, ''));
+}
+
+/** `undefined` removes the key: an optional field with no value is not there. */
 export function setFields(
   source: string,
-  edits: Array<{ key: string; value: FrontmatterValue }>,
+  edits: Array<{ key: string; value: FrontmatterValue | undefined }>,
+  options: WriteOptions = {},
 ): string {
   let out = source;
-  for (const { key, value } of edits) out = setField(out, key, value);
+  for (const { key, value } of edits) {
+    out = value === undefined ? removeField(out, key) : setField(out, key, value, options);
+  }
   return out;
 }
 

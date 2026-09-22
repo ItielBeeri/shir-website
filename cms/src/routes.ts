@@ -25,7 +25,7 @@ export function routeTitle(route: Route): string {
     case 'preview':
       return 'צפייה ופרסום';
     case 'new':
-      return screens.find((s) => s.id === route.id)?.title ?? 'חדש';
+      return 'פוסט חדש';
     case 'screen':
     case 'entry':
       return screens.find((s) => s.id === route.id)?.title ?? 'עריכה';

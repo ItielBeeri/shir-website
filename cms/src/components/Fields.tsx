@@ -208,15 +208,30 @@ function TagsInput({
   );
 }
 
-function ParagraphsInput({
+/**
+ * A list of paragraphs, which is a list before it is a set of boxes: the count
+ * is the owner's to change. Without add and remove she can rewrite what is
+ * there and nothing else, and a statement that has to match the site cannot
+ * gain the sentence the site just earned.
+ */
+export function ParagraphsInput({
   value,
   disabled,
+  itemLabel = 'פסקה',
   onChange,
 }: {
   value: string[];
   disabled?: boolean;
+  /** Hebrew, singular - "פסקה" for prose, "שורה" for a bulleted list. */
+  itemLabel?: string;
   onChange: (value: string[]) => void;
 }): JSX.Element {
+  const swap = (i: number, j: number): void => {
+    const next = value.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
   return (
     <div className="paragraphs">
       {value.map((paragraph, i) => (
@@ -224,7 +239,7 @@ function ParagraphsInput({
           <textarea
             value={paragraph}
             disabled={disabled}
-            aria-label={`פסקה ${i + 1}`}
+            aria-label={`${itemLabel} ${i + 1}`}
             onChange={(e) => {
               const next = value.slice();
               next[i] = e.target.value;
@@ -237,18 +252,23 @@ function ParagraphsInput({
               className="ghost"
               aria-label="העברה למעלה"
               disabled={disabled || i === 0}
-              onClick={() => {
-                const next = value.slice();
-                [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                onChange(next);
-              }}
+              onClick={() => swap(i, i - 1)}
             >
               ↑
             </button>
             <button
               type="button"
+              className="ghost"
+              aria-label="העברה למטה"
+              disabled={disabled || i === value.length - 1}
+              onClick={() => swap(i, i + 1)}
+            >
+              ↓
+            </button>
+            <button
+              type="button"
               className="ghost danger"
-              aria-label={`מחיקת פסקה ${i + 1}`}
+              aria-label={`מחיקת ${itemLabel} ${i + 1}`}
               disabled={disabled}
               onClick={() => onChange(value.filter((_, j) => j !== i))}
             >
@@ -258,8 +278,9 @@ function ParagraphsInput({
         </div>
       ))}
       <button type="button" className="ghost" disabled={disabled} onClick={() => onChange([...value, ''])}>
-        הוספת פסקה
+        + הוספת {itemLabel}
       </button>
+      {value.length === 0 && <p className="muted">אין כאן כלום כרגע.</p>}
     </div>
   );
 }

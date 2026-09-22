@@ -235,11 +235,10 @@ function Screen({
   }
 
   if (route.kind === 'entry') {
-    const screen = screenById(route.id === 'blog' ? 'blog-new' : route.id);
-    const dir = screenById(route.id).dir!;
+    const screen = screenById(route.id);
     return (
       <MdxEntry
-        path={`${dir}/${route.file}`}
+        path={`${screen.dir!}/${route.file}`}
         title={route.file.replace(/\.mdx$/, '')}
         fields={screen.frontmatter ?? []}
         deletable={route.id === 'blog'}
@@ -270,14 +269,13 @@ function Screen({
       );
 
     case 'collection':
-      return screen.id === 'blog-new' ? (
-        <NewPost onCreated={(file) => replace({ kind: 'entry', id: 'blog', file })} />
-      ) : (
+      return (
         <Collection
           dir={screen.dir!}
           kind={screen.id === 'blog' ? 'blog' : 'therapies'}
+          fieldOrder={(screen.frontmatter ?? []).map((f) => f.key)}
           onOpen={(file) => go({ kind: 'entry', id: screen.id, file })}
-          onNew={screen.id === 'blog' ? () => go({ kind: 'new', id: 'blog-new' }) : undefined}
+          onNew={screen.id === 'blog' ? () => go({ kind: 'new', id: 'blog' }) : undefined}
         />
       );
 

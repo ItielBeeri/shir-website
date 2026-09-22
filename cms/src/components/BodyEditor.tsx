@@ -5,8 +5,13 @@
  * boundary is not undo. Everything the toolbar offers is something `.prose`
  * styles; the schema in ../editor/extensions.ts is what actually enforces that.
  */
-import { useEffect } from 'react';
-import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+  useEditorState,
+} from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import { extensions, RawBlock, SoftImageNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
@@ -98,40 +103,58 @@ const withViews = [
 
 function Toolbar({ editor }: { editor: Editor }): JSX.Element {
   const [picking, setPicking] = useState(false);
-  const mark = (name: string) => (editor.isActive(name) ? 'is-on' : '');
-  const block = (name: string, attrs?: Record<string, unknown>) =>
-    editor.isActive(name, attrs) ? 'is-on' : '';
+
+  /**
+   * The toolbar reports where the caret is, not what was last pressed.
+   * `useEditor` deliberately does not re-render on a transaction, so reading
+   * `isActive` straight from the editor lights a button when it is clicked and
+   * leaves it lit everywhere after - and never lights it when she simply moves
+   * into text that is already bold. This subscribes to the parts read here.
+   */
+  const on = useEditorState({
+    editor,
+    selector: ({ editor: e }) => ({
+      emphasis: e.isActive('emphasis'),
+      italic: e.isActive('italic'),
+      bold: e.isActive('bold'),
+      h2: e.isActive('heading', { level: 2 }),
+      h3: e.isActive('heading', { level: 3 }),
+      bullet: e.isActive('bulletList'),
+      ordered: e.isActive('orderedList'),
+      canUndo: e.can().undo(),
+      canRedo: e.can().redo(),
+    }),
+  });
+
+  const toggle = (active: boolean): Record<string, unknown> => ({
+    className: active ? 'is-on' : '',
+    'aria-pressed': active,
+  });
 
   return (
     <div className="editor-tools" role="toolbar" aria-label="עיצוב טקסט">
-      <button className={mark('emphasis')} onClick={() => editor.chain().focus().toggleMark('emphasis').run()}>
+      <button {...toggle(on.emphasis)} onClick={() => editor.chain().focus().toggleMark('emphasis').run()}>
         <em>הדגשה</em>
       </button>
-      <button className={mark('italic')} onClick={() => editor.chain().focus().toggleMark('italic').run()}>
+      <button {...toggle(on.italic)} onClick={() => editor.chain().focus().toggleMark('italic').run()}>
         <i>נטוי</i>
       </button>
-      <button className={mark('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+      <button {...toggle(on.bold)} onClick={() => editor.chain().focus().toggleBold().run()}>
         <b>מודגש</b>
       </button>
 
       <span className="tools-sep" aria-hidden="true" />
 
-      <button
-        className={block('heading', { level: 2 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-      >
+      <button {...toggle(on.h2)} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
         כותרת
       </button>
-      <button
-        className={block('heading', { level: 3 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-      >
+      <button {...toggle(on.h3)} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
         כותרת משנה
       </button>
-      <button className={block('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+      <button {...toggle(on.bullet)} onClick={() => editor.chain().focus().toggleBulletList().run()}>
         רשימה
       </button>
-      <button className={block('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+      <button {...toggle(on.ordered)} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
         ממוספרת
       </button>
       <button onClick={() => setPicking(true)}>תמונה</button>
@@ -140,14 +163,14 @@ function Toolbar({ editor }: { editor: Editor }): JSX.Element {
 
       <button
         onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
+        disabled={!on.canUndo}
         aria-label="ביטול הפעולה האחרונה"
       >
         ↶ ביטול
       </button>
       <button
         onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
+        disabled={!on.canRedo}
         aria-label="ביצוע מחדש"
       >
         ↷
@@ -173,6 +196,13 @@ interface Props {
   onChange: (doc: PmNode) => void;
 }
 
+/**
+ * The document is the editor's starting content and is never pushed in again:
+ * a `setContent` is a transaction, so it becomes the first thing undo undoes,
+ * and the button offers to take back an edit she never made. The caller opens
+ * a different file by giving this a new `key`, which is also what a fresh undo
+ * history for that file means.
+ */
 export function BodyEditor({ value, onChange }: Props): JSX.Element {
   const editor = useEditor(
     {
@@ -186,18 +216,17 @@ export function BodyEditor({ value, onChange }: Props): JSX.Element {
     [],
   );
 
-  // Replace the document only when a different file is opened; setting content
-  // on every keystroke would reset the caret and wipe the undo history.
-  useEffect(() => {
-    if (editor && !editor.isDestroyed) editor.commands.setContent(value as never, { emitUpdate: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor]);
-
   if (!editor) return <p className="muted">רגע…</p>;
 
   return (
     <div className="editor">
       <Toolbar editor={editor} />
+      {/* The one thing about this editor that is not visible by looking at it:
+          both keys make a line, and only the spacing tells them apart. */}
+      <p className="editor-help">
+        המקש <kbd dir="ltr">Enter</kbd> מתחיל פסקה חדשה, עם רווח בין הפסקאות.{' '}
+        <kbd dir="ltr">Shift + Enter</kbd> יורד שורה בתוך אותה פסקה, בלי רווח.
+      </p>
       <EditorContent editor={editor} />
     </div>
   );

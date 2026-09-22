@@ -5,10 +5,14 @@
  * here is what a visitor sees. Blog: pinned first by descending `order`, then
  * newest first. Therapies: ascending `order`. The editor guide has to warn
  * that the two are opposite; here neither is a number she types.
+ *
+ * A failure is reported inside the row that failed. A banner at the top of a
+ * list is out of sight by the third entry, and a button that does nothing and
+ * says nothing reads as a broken button.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { api, FriendlyError } from '../api';
-import { parseFrontmatter, setField } from '../content/frontmatter';
+import { parseFrontmatter, removeField, setField } from '../content/frontmatter';
 import { useStore } from '../store';
 
 export interface Entry {
@@ -25,18 +29,26 @@ export interface Entry {
 interface Props {
   dir: string;
   kind: 'blog' | 'therapies';
+  /** Frontmatter keys in model order, so an inserted key lands among its kin. */
+  fieldOrder: string[];
   onOpen: (file: string) => void;
   onNew?: () => void;
 }
 
-export function Collection({ dir, kind, onOpen, onNew }: Props): JSX.Element {
+/** Whose fault the message is: a row, or the screen as a whole. */
+interface Trouble {
+  file: string | null;
+  message: string;
+}
+
+export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX.Element {
   const store = useStore();
   const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [trouble, setTrouble] = useState<Trouble | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
+    setTrouble(null);
     try {
       const { files } = await api.list(dir);
       const wanted = files.filter((f) => f.endsWith('.mdx') && !f.startsWith('_'));
@@ -57,7 +69,10 @@ export function Collection({ dir, kind, onOpen, onNew }: Props): JSX.Element {
       );
       setEntries(sort(loaded, kind));
     } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לטעון את הרשימה.');
+      setTrouble({
+        file: null,
+        message: e instanceof FriendlyError ? e.message : 'לא הצלחתי לטעון את הרשימה.',
+      });
     }
   }, [dir, kind]);
 
@@ -65,74 +80,79 @@ export function Collection({ dir, kind, onOpen, onNew }: Props): JSX.Element {
     void load();
   }, [load]);
 
-  async function toggleHidden(entry: Entry): Promise<void> {
+  /** One row's write, start to finish, with its own failure attached to it. */
+  async function act(
+    entry: Entry,
+    whenItGoesWrong: string,
+    run: () => Promise<void>,
+  ): Promise<void> {
     setBusy(entry.file);
+    setTrouble(null);
     try {
+      await run();
+      store.saved();
+      await load();
+    } catch (e) {
+      setTrouble({
+        file: entry.file,
+        message: e instanceof FriendlyError ? e.message : whenItGoesWrong,
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const toggleHidden = (entry: Entry): Promise<void> =>
+    act(entry, 'לא הצלחתי לשנות.', async () => {
       const { content } = await api.read(entry.path);
       if (!content) return;
-      const next = setField(content, 'draft', !entry.hidden);
+      const next = setField(content, 'draft', !entry.hidden, { order: fieldOrder });
       await api.save(`${entry.hidden ? 'הצגת' : 'הסתרת'} ${entry.title}`, [
         { path: entry.path, content: next },
       ]);
-      store.saved();
-      await load();
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות.');
-    } finally {
-      setBusy(null);
-    }
-  }
+    });
 
-  /** Pinning writes an `order` above every other, so it needs no number. */
-  async function pin(entry: Entry, on: boolean): Promise<void> {
-    setBusy(entry.file);
-    try {
+  /**
+   * Pinning writes an `order` above every other, so it needs no number, and
+   * unpinning takes the key away rather than writing 0 - the schema requires a
+   * positive number, so 0 is a broken build, not an unpinned post.
+   */
+  const pin = (entry: Entry, on: boolean): Promise<void> =>
+    act(entry, 'לא הצלחתי לשנות את הסדר.', async () => {
       const highest = Math.max(0, ...(entries ?? []).map((e) => e.order ?? 0));
       const { content } = await api.read(entry.path);
       if (!content) return;
-      const next = setField(content, 'order', on ? highest + 1 : 0);
+      const next = on
+        ? setField(content, 'order', highest + 1, { order: fieldOrder })
+        : removeField(content, 'order');
       await api.save(`${on ? 'הצמדת' : 'שחרור'} ${entry.title}`, [
         { path: entry.path, content: next },
       ]);
-      store.saved();
-      await load();
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות את הסדר.');
-    } finally {
-      setBusy(null);
-    }
-  }
+    });
 
-  async function reorderTherapy(entry: Entry, direction: -1 | 1): Promise<void> {
-    if (!entries) return;
-    const at = entries.findIndex((e) => e.file === entry.file);
-    const other = entries[at + direction];
-    if (!other) return;
-    setBusy(entry.file);
-    try {
+  const reorderTherapy = (entry: Entry, direction: -1 | 1): Promise<void> =>
+    act(entry, 'לא הצלחתי לשנות את הסדר.', async () => {
+      const at = (entries ?? []).findIndex((e) => e.file === entry.file);
+      const other = (entries ?? [])[at + direction];
+      if (!other) return;
       const files = await Promise.all(
         [entry, other].map(async (e) => ({ e, content: (await api.read(e.path)).content })),
       );
       const writes = files.map(({ e, content }, i) => ({
         path: e.path,
-        content: setField(content!, 'order', (i === 0 ? other : entry).order ?? i + 1),
+        content: setField(content!, 'order', (i === 0 ? other : entry).order ?? i + 1, {
+          order: fieldOrder,
+        }),
       }));
       await api.save('שינוי סדר הטיפולים', writes);
-      store.saved();
-      await load();
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות את הסדר.');
-    } finally {
-      setBusy(null);
-    }
-  }
+    });
 
-  if (error && !entries) return <p className="banner error">{error}</p>;
+  if (trouble && !entries) return <p className="banner error">{trouble.message}</p>;
   if (!entries) return <p className="muted">רגע, טוען…</p>;
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
+      {trouble && trouble.file === null && <p className="banner error">{trouble.message}</p>}
       {onNew && (
         <button className="primary wide" onClick={onNew}>
           + כתיבת פוסט חדש
@@ -196,6 +216,12 @@ export function Collection({ dir, kind, onOpen, onNew }: Props): JSX.Element {
                   </>
                 )}
               </div>
+
+              {trouble?.file === entry.file && (
+                <p className="entry-error invalid" role="alert">
+                  {trouble.message}
+                </p>
+              )}
             </li>
           );
         })}

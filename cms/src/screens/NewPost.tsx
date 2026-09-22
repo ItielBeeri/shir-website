@@ -74,7 +74,6 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
       <p className="help">
         נתחיל בשלושה פרטים. הפוסט ייווצר מוסתר, כך שאפשר לכתוב אותו בנחת ולהציג אותו
         כשהוא מוכן.
@@ -95,6 +94,10 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
 
         <ImageField label="תמונת הנושא" help="אפשר גם לבחור אחר כך." value={cover} onChange={setCover} />
       </section>
+
+      {/* Beside the button: the save is at the foot of the form, and a
+          message at the top is a message she never scrolls back to see. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
         <button className="primary" onClick={create} disabled={!ready || busy}>

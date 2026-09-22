@@ -13,10 +13,10 @@ const CONTENT = 'src/content';
 
 export const screens: Screen[] = [
   {
-    id: 'blog-new',
-    title: 'כתיבת פוסט חדש',
-    blurb: 'פוסט חדש לבלוג, שלב אחר שלב',
-    icon: 'pencil',
+    id: 'blog',
+    title: 'בלוג',
+    blurb: 'כתיבת פוסט חדש, עריכה, סדר והסתרה',
+    icon: 'book',
     kind: 'collection',
     dir: `${CONTENT}/blog`,
     body: true,
@@ -52,15 +52,6 @@ export const screens: Screen[] = [
         invert: true,
       },
     ],
-  },
-  {
-    id: 'blog',
-    title: 'הפוסטים שלי',
-    blurb: 'עריכה, סדר והסתרה',
-    icon: 'book',
-    kind: 'collection',
-    dir: `${CONTENT}/blog`,
-    body: true,
   },
   {
     id: 'recommendations',

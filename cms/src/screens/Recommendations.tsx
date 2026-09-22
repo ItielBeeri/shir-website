@@ -6,6 +6,11 @@
  * mistake - a `screenshot` line that names a file that is not there, which
  * fails the build and takes every recommendation off the site - cannot happen.
  *
+ * Editing is the same act: one form holding everything a recommendation is,
+ * saved once. Every field committing the moment it is touched turned a card of
+ * corrections into a page of history and left no way back from a half-made
+ * change - the screens with forms all work the other way, and so does this.
+ *
  * File order is display order (`loadRecommendations` does not re-sort), so the
  * list here is the list a visitor sees.
  */
@@ -18,6 +23,7 @@ import {
   deleteRecommendation,
   nextRecommendationId,
   reorderRecommendations,
+  replaceRecommendation,
 } from '../content/toml-struct';
 import { parse as parseToml } from 'smol-toml';
 import { processImage, formatBytes, rawUrl } from '../lib/images';
@@ -36,15 +42,39 @@ interface Rec {
   active: boolean;
 }
 
+/** Everything about a recommendation except what code decides. */
+interface Draft {
+  alt: string;
+  transcription: string;
+  relatedTherapies: string[];
+  active: boolean;
+}
+
+const EMPTY: Draft = { alt: '', transcription: '', relatedTherapies: [], active: true };
+
+const draftOf = (rec: Rec): Draft => ({
+  alt: rec.alt,
+  transcription: rec.transcription,
+  relatedTherapies: [...rec.relatedTherapies],
+  active: rec.active,
+});
+
+interface Trouble {
+  id: string | null;
+  message: string;
+}
+
 export function Recommendations(): JSX.Element {
   const store = useStore();
   const [source, setSource] = useState<string | null>(null);
   const [items, setItems] = useState<Rec[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [trouble, setTrouble] = useState<Trouble | null>(null);
   const [adding, setAdding] = useState<ProcessedImage | null>(null);
-  const [draft, setDraft] = useState({ alt: '', text: '', therapies: [] as string[] });
+  const [editing, setEditing] = useState<Rec | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  /** Screenshots committed this session, so a replacement is visible at once. */
+  const [fresh, setFresh] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
@@ -53,7 +83,10 @@ export function Recommendations(): JSX.Element {
       setSource(content);
       setItems(((parseToml(content) as { recommendations?: Rec[] }).recommendations ?? []) as Rec[]);
     } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לטעון את ההמלצות.');
+      setTrouble({
+        id: null,
+        message: e instanceof FriendlyError ? e.message : 'לא הצלחתי לטעון את ההמלצות.',
+      });
     }
   }, []);
 
@@ -61,218 +94,156 @@ export function Recommendations(): JSX.Element {
     void load();
   }, [load]);
 
-  const write = async (next: string, message: string): Promise<void> => {
-    await api.save(message, [{ path: FILE, content: next }]);
-    store.saved();
+  const adopt = (next: string): void => {
     setSource(next);
     setItems(((parseToml(next) as { recommendations?: Rec[] }).recommendations ?? []) as Rec[]);
   };
 
-  async function toggleActive(rec: Rec): Promise<void> {
-    if (!source) return;
+  /** One write, with its failure attached to the card that caused it. */
+  async function act(
+    id: string | null,
+    whenItGoesWrong: string,
+    run: () => Promise<void>,
+  ): Promise<boolean> {
     setBusy(true);
+    setTrouble(null);
     try {
-      const at = items.findIndex((r) => r.id === rec.id);
-      await write(
-        setValue(source, ['recommendations', at, 'active'], !rec.active),
-        `${rec.active ? 'הסתרת' : 'הצגת'} המלצה`,
-      );
+      await run();
+      store.saved();
+      return true;
     } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות.');
+      setTrouble({ id, message: e instanceof FriendlyError ? e.message : whenItGoesWrong });
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
-  async function move(rec: Rec, direction: -1 | 1): Promise<void> {
-    if (!source) return;
-    const ids = items.map((r) => r.id);
-    const at = ids.indexOf(rec.id);
-    if (at + direction < 0 || at + direction >= ids.length) return;
-    setBusy(true);
-    try {
-      [ids[at], ids[at + direction]] = [ids[at + direction], ids[at]];
-      await write(reorderRecommendations(source, ids), 'שינוי סדר ההמלצות');
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות את הסדר.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function setTherapies(rec: Rec, therapies: string[]): Promise<void> {
-    if (!source) return;
-    setBusy(true);
-    try {
+  const toggleActive = (rec: Rec): Promise<boolean> =>
+    act(rec.id, 'לא הצלחתי לשנות.', async () => {
       const at = items.findIndex((r) => r.id === rec.id);
-      // The array is rewritten element-wise, so a change of length needs the
-      // whole block replaced; simplest correct route is remove-and-re-add.
-      const without = deleteRecommendation(source, rec.id);
-      const next = appendRecommendation(without, { ...rec, relatedTherapies: therapies });
+      const next = setValue(source!, ['recommendations', at, 'active'], !rec.active);
+      await api.save(`${rec.active ? 'הסתרת' : 'הצגת'} המלצה`, [{ path: FILE, content: next }]);
+      adopt(next);
+    });
+
+  const move = (rec: Rec, direction: -1 | 1): Promise<boolean> =>
+    act(rec.id, 'לא הצלחתי לשנות את הסדר.', async () => {
       const ids = items.map((r) => r.id);
-      await write(reorderRecommendations(next, ids), 'שיוך המלצה לטיפול');
-      void at;
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לשנות את השיוך.');
-    } finally {
-      setBusy(false);
-    }
+      const at = ids.indexOf(rec.id);
+      if (at + direction < 0 || at + direction >= ids.length) return;
+      [ids[at], ids[at + direction]] = [ids[at + direction], ids[at]];
+      const next = reorderRecommendations(source!, ids);
+      await api.save('שינוי סדר ההמלצות', [{ path: FILE, content: next }]);
+      adopt(next);
+    });
+
+  /** The whole card at once, and the screenshot with it when it changed. */
+  async function saveEdit(rec: Rec, draft: Draft, replacement: ProcessedImage | null): Promise<void> {
+    const ok = await act(rec.id, 'לא הצלחתי לשמור.', async () => {
+      const next = replaceRecommendation(source!, rec.id, {
+        id: rec.id,
+        screenshot: rec.screenshot,
+        alt: draft.alt.trim(),
+        transcription: draft.transcription.trim(),
+        relatedTherapies: draft.relatedTherapies,
+        active: draft.active,
+      });
+      const files = [{ path: FILE, content: next, encoding: 'utf-8' as const }];
+      if (replacement) {
+        files.unshift({
+          path: `public${rec.screenshot}`,
+          content: replacement.base64,
+          encoding: 'base64' as never,
+        });
+      }
+      await api.save('עדכון המלצה', files);
+      adopt(next);
+      if (replacement) setFresh((prev) => ({ ...prev, [rec.id]: replacement.previewUrl }));
+    });
+    if (ok) setEditing(null);
   }
 
-  async function add(): Promise<void> {
-    if (!source || !adding) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const id = nextRecommendationId(source);
+  async function add(draft: Draft, replacement: ProcessedImage | null): Promise<void> {
+    const shot = replacement ?? adding;
+    if (!shot) return;
+    const ok = await act(null, 'לא הצלחתי להוסיף את ההמלצה.', async () => {
+      const id = nextRecommendationId(source!);
       const screenshot = `/img/recommendations/${id}.jpeg`;
-      const next = appendRecommendation(source, {
+      const next = appendRecommendation(source!, {
         id,
         screenshot,
         alt: draft.alt.trim(),
-        transcription: draft.text.trim(),
-        relatedTherapies: draft.therapies,
-        active: true,
+        transcription: draft.transcription.trim(),
+        relatedTherapies: draft.relatedTherapies,
+        active: draft.active,
       });
       // Screenshot and entry in one commit - they are meaningless apart.
       await api.save('הוספת המלצה', [
-        { path: `${DIR}/${id}.jpeg`, content: adding.base64, encoding: 'base64' },
+        { path: `${DIR}/${id}.jpeg`, content: shot.base64, encoding: 'base64' },
         { path: FILE, content: next },
       ]);
-      store.saved();
-      setSource(next);
-      setItems(((parseToml(next) as { recommendations?: Rec[] }).recommendations ?? []) as Rec[]);
-      setAdding(null);
-      setDraft({ alt: '', text: '', therapies: [] });
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי להוסיף את ההמלצה.');
-    } finally {
-      setBusy(false);
-    }
+      adopt(next);
+      setFresh((prev) => ({ ...prev, [id]: shot.previewUrl }));
+    });
+    if (ok) setAdding(null);
   }
 
   async function remove(rec: Rec): Promise<void> {
-    if (!source) return;
-    setBusy(true);
-    try {
-      await write(deleteRecommendation(source, rec.id), 'מחיקת המלצה');
+    const ok = await act(rec.id, 'לא הצלחתי למחוק.', async () => {
+      const next = deleteRecommendation(source!, rec.id);
+      await api.save('מחיקת המלצה', [{ path: FILE, content: next }]);
       await api.remove([`public${rec.screenshot}`], 'מחיקת צילום המסך');
-      store.saved();
-      setConfirming(null);
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי למחוק.');
-    } finally {
-      setBusy(false);
-    }
+      adopt(next);
+    });
+    if (ok) setConfirming(null);
   }
 
-  if (!source) return <p className="muted">רגע, טוען…</p>;
+  const shotUrl = (rec: Rec): string =>
+    fresh[rec.id] ?? rawUrl(store.repo, 'content-draft', rec.screenshot);
+
+  if (!source) {
+    return trouble ? <p className="banner error">{trouble.message}</p> : <p className="muted">רגע, טוען…</p>;
+  }
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
-
-      {adding ? (
-        <section className="group">
-          <h2>המלצה חדשה</h2>
-          <img src={adding.previewUrl} alt="" className="upload-preview" />
-          <p className="muted">הוקטן ל־{formatBytes(adding.bytes)}</p>
-
-          <div className="field">
-            <label htmlFor="rec-text">הטקסט של ההמלצה</label>
-            <p className="help">מעתיקים כמו שהוא. הוא משמש לחיפוש ולהקראה.</p>
-            <textarea
-              id="rec-text"
-              value={draft.text}
-              onChange={(e) => setDraft({ ...draft, text: e.target.value })}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="rec-alt">תיאור קצר של הצילום</label>
-            <input
-              id="rec-alt"
-              type="text"
-              value={draft.alt}
-              onChange={(e) => setDraft({ ...draft, alt: e.target.value })}
-              placeholder="למשל: המלצה על טיפול במגע ושחרור כאבי גב"
-            />
-          </div>
-
-          <div className="field">
-            <span className="field-label">לאיזה טיפול ההמלצה שייכת?</span>
-            <div className="chips">
-              {THERAPY_OPTIONS.map((t) => (
-                <button
-                  key={t.value}
-                  className={draft.therapies.includes(t.value) ? 'chip is-on' : 'chip'}
-                  aria-pressed={draft.therapies.includes(t.value)}
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      therapies: draft.therapies.includes(t.value)
-                        ? draft.therapies.filter((v) => v !== t.value)
-                        : [...draft.therapies, t.value],
-                    })
-                  }
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="modal-actions">
-            <button className="primary" onClick={add} disabled={busy || !draft.text.trim() || !draft.alt.trim()}>
-              {busy ? 'מוסיף…' : 'הוספה'}
-            </button>
-            <button className="ghost" onClick={() => setAdding(null)} disabled={busy}>ביטול</button>
-          </div>
-          {(!draft.text.trim() || !draft.alt.trim()) && (
-            <p className="invalid">צריך גם את הטקסט וגם תיאור קצר.</p>
-          )}
-        </section>
-      ) : (
-        <label className="primary wide as-button">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setAdding(await processImage(file));
-            }}
-          />
-          <span>+ הוספת המלצה</span>
-        </label>
+      {trouble && trouble.id === null && !adding && (
+        <p className="banner error" role="alert">{trouble.message}</p>
       )}
+
+      <label className="primary wide as-button">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            setTrouble(null);
+            setAdding(await processImage(file));
+          }}
+        />
+        <span>+ הוספת המלצה</span>
+      </label>
 
       <ul className="recs">
         {items.map((rec, i) => (
           <li key={rec.id} className={rec.active ? 'rec' : 'rec is-hidden'}>
-            <img src={rawUrl(store.repo, 'content-draft', rec.screenshot)} alt="" loading="lazy" />
+            <img src={shotUrl(rec)} alt="" loading="lazy" />
             <div className="rec-body">
               <p className="rec-text">{rec.transcription}</p>
-              <div className="chips">
-                {THERAPY_OPTIONS.map((t) => (
-                  <button
-                    key={t.value}
-                    className={rec.relatedTherapies.includes(t.value) ? 'chip is-on' : 'chip'}
-                    disabled={busy}
-                    onClick={() =>
-                      setTherapies(
-                        rec,
-                        rec.relatedTherapies.includes(t.value)
-                          ? rec.relatedTherapies.filter((v) => v !== t.value)
-                          : [...rec.relatedTherapies, t.value],
-                      )
-                    }
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <p className="muted">
+                {rec.alt ? `תיאור הצילום: ${rec.alt}` : 'אין תיאור לצילום'}
+                {rec.relatedTherapies.length > 0 &&
+                  ` · ${rec.relatedTherapies
+                    .map((v) => THERAPY_OPTIONS.find((t) => t.value === v)?.label ?? v)
+                    .join(', ')}`}
+              </p>
               <div className="rec-actions">
+                <button className="ghost" onClick={() => setEditing(rec)} disabled={busy}>
+                  עריכה
+                </button>
                 <button className="ghost" onClick={() => move(rec, -1)} disabled={i === 0 || busy} aria-label="העברה למעלה">↑</button>
                 <button className="ghost" onClick={() => move(rec, 1)} disabled={i === items.length - 1 || busy} aria-label="העברה למטה">↓</button>
                 <button className="ghost" onClick={() => toggleActive(rec)} disabled={busy}>
@@ -282,10 +253,40 @@ export function Recommendations(): JSX.Element {
                   מחיקה
                 </button>
               </div>
+              {trouble?.id === rec.id && !editing && (
+                <p className="invalid" role="alert">{trouble.message}</p>
+              )}
             </div>
           </li>
         ))}
       </ul>
+
+      {adding && (
+        <RecForm
+          heading="המלצה חדשה"
+          confirmLabel="הוספה"
+          initial={EMPTY}
+          preview={adding.previewUrl}
+          note={`הוקטן ל־${formatBytes(adding.bytes)}`}
+          busy={busy}
+          error={trouble && trouble.id === null ? trouble.message : null}
+          onSubmit={add}
+          onCancel={() => setAdding(null)}
+        />
+      )}
+
+      {editing && (
+        <RecForm
+          heading="עריכת המלצה"
+          confirmLabel="שמירה"
+          initial={draftOf(editing)}
+          preview={shotUrl(editing)}
+          busy={busy}
+          error={trouble && trouble.id === editing.id ? trouble.message : null}
+          onSubmit={(draft, replacement) => saveEdit(editing, draft, replacement)}
+          onCancel={() => setEditing(null)}
+        />
+      )}
 
       {confirming && (
         <div className="modal-backdrop" onClick={() => setConfirming(null)}>
@@ -300,8 +301,10 @@ export function Recommendations(): JSX.Element {
               </button>
               <button
                 className="ghost"
-                onClick={() => {
-                  void toggleActive(items.find((r) => r.id === confirming)!);
+                disabled={busy}
+                onClick={async () => {
+                  const rec = items.find((r) => r.id === confirming)!;
+                  if (rec.active) await toggleActive(rec);
                   setConfirming(null);
                 }}
               >
@@ -313,5 +316,153 @@ export function Recommendations(): JSX.Element {
         </div>
       )}
     </>
+  );
+}
+
+/* ---------------------------------- the form --------------------------------- */
+
+function RecForm({
+  heading,
+  confirmLabel,
+  initial,
+  preview,
+  note,
+  busy,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  heading: string;
+  confirmLabel: string;
+  initial: Draft;
+  preview: string;
+  note?: string;
+  busy: boolean;
+  error: string | null;
+  onSubmit: (draft: Draft, replacement: ProcessedImage | null) => void;
+  onCancel: () => void;
+}): JSX.Element {
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [replacement, setReplacement] = useState<ProcessedImage | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  const missing = !draft.transcription.trim() || !draft.alt.trim();
+  const shown = replacement?.previewUrl ?? preview;
+
+  return (
+    <div className="modal-backdrop" onClick={busy ? undefined : onCancel}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={heading}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h2>{heading}</h2>
+          <button className="ghost" onClick={onCancel} disabled={busy} aria-label="סגירה">✕</button>
+        </div>
+
+        <img src={shown} alt="" className="upload-preview" />
+        <div className="rec-shot-row">
+          {(replacement || note) && (
+            <span className="muted">
+              {replacement ? `הוקטן ל־${formatBytes(replacement.bytes)}` : note}
+            </span>
+          )}
+          <label className="ghost as-button">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                setFailed(null);
+                try {
+                  setReplacement(await processImage(file));
+                } catch {
+                  setFailed('לא הצלחתי לקרוא את הקובץ. אפשר לנסות תמונה אחרת.');
+                }
+              }}
+            />
+            <span>החלפת הצילום</span>
+          </label>
+        </div>
+
+        <div className="field">
+          <label htmlFor="rec-text">הטקסט של ההמלצה</label>
+          <p className="help">מעתיקים כמו שהוא. הוא משמש לחיפוש ולהקראה.</p>
+          <textarea
+            id="rec-text"
+            value={draft.transcription}
+            onChange={(e) => setDraft((d) => ({ ...d, transcription: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="rec-alt">תיאור קצר של הצילום</label>
+          <p className="help">נקרא בקול למי שגולשת עם תוכנת הקראה.</p>
+          <input
+            id="rec-alt"
+            type="text"
+            value={draft.alt}
+            onChange={(e) => setDraft((d) => ({ ...d, alt: e.target.value }))}
+            placeholder="למשל: המלצה על טיפול במגע ושחרור כאבי גב"
+          />
+        </div>
+
+        <div className="field">
+          <span className="field-label">לאיזה טיפול ההמלצה שייכת?</span>
+          <div className="chips">
+            {THERAPY_OPTIONS.map((t) => {
+              const on = draft.relatedTherapies.includes(t.value);
+              return (
+                <button
+                  key={t.value}
+                  className={on ? 'chip is-on' : 'chip'}
+                  aria-pressed={on}
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      relatedTherapies: d.relatedTherapies.includes(t.value)
+                        ? d.relatedTherapies.filter((v) => v !== t.value)
+                        : [...d.relatedTherapies, t.value],
+                    }))
+                  }
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="switch">
+          <input
+            id="rec-active"
+            type="checkbox"
+            checked={draft.active}
+            onChange={(e) => setDraft((d) => ({ ...d, active: e.target.checked }))}
+          />
+          <label htmlFor="rec-active">מוצגת באתר</label>
+        </div>
+
+        {failed && <p className="banner error" role="alert">{failed}</p>}
+        {error && <p className="banner error" role="alert">{error}</p>}
+
+        <div className="modal-actions">
+          <button
+            className="primary"
+            onClick={() => onSubmit(draft, replacement)}
+            disabled={busy || missing}
+          >
+            {busy ? 'שומר…' : confirmLabel}
+          </button>
+          <button className="ghost" onClick={onCancel} disabled={busy}>ביטול</button>
+        </div>
+        {missing && <p className="invalid">צריך גם את הטקסט וגם תיאור קצר.</p>}
+      </div>
+    </div>
   );
 }

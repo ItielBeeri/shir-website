@@ -139,6 +139,26 @@ export function reorderRecommendations(src: string, order: string[]): string {
   return head + next.map((t, i) => withSeparator(t, i === next.length - 1)).join('');
 }
 
+/**
+ * Rewrite one entry where it stands.
+ *
+ * Every field of a recommendation is edited at once, and an array whose length
+ * changed cannot be spliced value by value, so the block is re-rendered whole.
+ * Doing that in place is what keeps the entry's position - display order is
+ * file order - without a delete and an append that would move it to the end.
+ */
+export function replaceRecommendation(
+  src: string,
+  id: string,
+  entry: RecommendationEntry,
+): string {
+  const { blocks, head } = recommendationBlocks(src);
+  if (!blocks.some((b) => b.id === id)) throw new Error(`no such recommendation: ${id}`);
+  if (entry.id !== id) throw new Error('a recommendation cannot change its id');
+  const next = blocks.map((b) => (b.id === id ? renderRecommendationEntry(entry) : b.text));
+  return head + next.map((t, i) => withSeparator(t, i === next.length - 1)).join('');
+}
+
 export function deleteRecommendation(src: string, id: string): string {
   const { blocks, head } = recommendationBlocks(src);
   if (!blocks.some((b) => b.id === id)) throw new Error(`no such recommendation: ${id}`);

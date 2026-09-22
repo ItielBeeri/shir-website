@@ -8,9 +8,8 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
-import { FriendlyError } from '../api';
-import { fileNameFor, formatBytes, imagePathFor, processImage } from '../lib/images';
-import type { ProcessedImage } from '../lib/images';
+import { UploadButton, UploadPanel } from './ImageUpload';
+import type { Chosen } from './ImageUpload';
 
 interface Props {
   value?: string;
@@ -21,11 +20,7 @@ interface Props {
 export function ImagePicker({ value, onPick, onClose }: Props): JSX.Element {
   const store = useStore();
   const [query, setQuery] = useState('');
-  const [uploading, setUploading] = useState<ProcessedImage | null>(null);
-  const [fileName, setFileName] = useState('');
-  const [alt, setAlt] = useState('');
-  const [decorative, setDecorative] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [chosen, setChosen] = useState<Chosen | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
 
@@ -39,40 +34,6 @@ export function ImagePicker({ value, onPick, onClose }: Props): JSX.Element {
   const matches = store.gallery.filter(
     (image) => !query.trim() || image.alt.includes(query.trim()),
   );
-
-  async function onFile(file: File): Promise<void> {
-    setError(null);
-    try {
-      const processed = await processImage(file);
-      setUploading(processed);
-      setFileName(fileNameFor(file.name, new Set(store.gallery.map((g) => g.id))));
-      setAlt('');
-      setDecorative(false);
-    } catch {
-      setError('לא הצלחתי לקרוא את הקובץ. אפשר לנסות תמונה אחרת.');
-    }
-  }
-
-  async function confirmUpload(): Promise<void> {
-    if (!uploading) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const id = await store.addImage({
-        fileName,
-        path: imagePathFor(fileName),
-        base64: uploading.base64,
-        alt: decorative ? '' : alt.trim(),
-        previewUrl: uploading.previewUrl,
-      });
-      onPick(id);
-      onClose();
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי להעלות את התמונה.');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -90,57 +51,18 @@ export function ImagePicker({ value, onPick, onClose }: Props): JSX.Element {
           <button className="ghost" onClick={onClose} aria-label="סגירה">✕</button>
         </div>
 
-        {error && <p className="banner error">{error}</p>}
+        {error && <p className="banner error" role="alert">{error}</p>}
 
-        {uploading ? (
-          <div className="upload-review">
-            <img src={uploading.previewUrl} alt="" className="upload-preview" />
-            <p className="muted">
-              {uploading.width}×{uploading.height} · הוקטנה מ־{formatBytes(uploading.originalBytes)} ל־
-              {formatBytes(uploading.bytes)}
-            </p>
-
-            <div className="field">
-              <label htmlFor="pick-alt">מה רואים בתמונה?</label>
-              <p className="help">
-                המשפט הזה נקרא בקול למי שגולשת עם תוכנת הקראה, ומוצג אם התמונה לא נטענת.
-              </p>
-              <input
-                id="pick-alt"
-                type="text"
-                value={alt}
-                disabled={decorative}
-                onChange={(e) => setAlt(e.target.value)}
-                placeholder="למשל: שיר אמיתי מטפלת במגע"
-              />
-            </div>
-
-            <div className="switch">
-              <input
-                id="pick-decorative"
-                type="checkbox"
-                checked={decorative}
-                onChange={(e) => setDecorative(e.target.checked)}
-              />
-              <label htmlFor="pick-decorative">זו תמונת קישוט בלבד, אין בה מידע</label>
-            </div>
-
-            <div className="modal-actions">
-              <button
-                className="primary"
-                onClick={confirmUpload}
-                disabled={busy || (!decorative && !alt.trim())}
-              >
-                {busy ? 'מעלה…' : 'הוספה ובחירה'}
-              </button>
-              <button className="ghost" onClick={() => setUploading(null)} disabled={busy}>
-                ביטול
-              </button>
-            </div>
-            {!decorative && !alt.trim() && (
-              <p className="invalid">צריך לכתוב מה רואים בתמונה, או לסמן שהיא קישוט בלבד.</p>
-            )}
-          </div>
+        {chosen ? (
+          <UploadPanel
+            chosen={chosen}
+            confirmLabel="הוספה ובחירה"
+            onUploaded={(id) => {
+              onPick(id);
+              onClose();
+            }}
+            onCancel={() => setChosen(null)}
+          />
         ) : (
           <>
             <div className="picker-tools">
@@ -151,14 +73,11 @@ export function ImagePicker({ value, onPick, onClose }: Props): JSX.Element {
                 placeholder="חיפוש לפי התיאור"
                 aria-label="חיפוש תמונה"
               />
-              <label className="upload-button">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files?.[0] && void onFile(e.target.files[0])}
-                />
-                <span>העלאת תמונה חדשה</span>
-              </label>
+              <UploadButton
+                label="העלאת תמונה חדשה"
+                onChosen={setChosen}
+                onFailed={setError}
+              />
             </div>
 
             {matches.length === 0 ? (

@@ -73,7 +73,6 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
       <p className="help">
         אלה שמות העמודים בתפריט העליון ובכותרת התחתונה. אפשר לשנות את הכיתוב, ולבחור
         אילו מהם מופיעים גם בתפריט העליון.
@@ -111,6 +110,10 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
           </li>
         ))}
       </ul>
+
+      {/* Beside the button: the save is at the foot of the form, and a
+          message at the top is a message she never scrolls back to see. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
         <button className="primary" onClick={() => save(items)} disabled={busy}>

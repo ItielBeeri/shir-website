@@ -89,9 +89,11 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
         .filter((f) => !same(values[f.key], initial[f.key]))
         .map((f) => ({
           key: f.key,
-          value: (f.invert ? !values[f.key] : values[f.key]) as FrontmatterValue,
+          value: (f.invert ? !values[f.key] : values[f.key]) as FrontmatterValue | undefined,
         }));
-      if (edits.length) next = setFields(next, edits);
+      // The model's order places a key the file does not carry yet - an
+      // optional field left blank until now - beside the ones it belongs with.
+      if (edits.length) next = setFields(next, edits, { order: fields.map((f) => f.key) });
 
       await api.save(`עדכון ${title}`, [{ path, content: next }]);
       const reparsed = parseMdx(next);
@@ -126,8 +128,6 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
-
       <section className="group">
         <h2>הפרטים</h2>
         {fields.map((field) => (
@@ -141,13 +141,21 @@ export function MdxEntry({ path, title, fields, onSaved, onDeleted, deletable }:
       </section>
 
       <h2 className="section-heading">הטקסט</h2>
+      {/* Keyed by file: a new document is a new editor, so undo never reaches
+          back past the moment it was opened. */}
       <BodyEditor
+        key={path}
         value={pm}
         onChange={(next) => {
           setPm(next);
           setBodyTouched(true);
         }}
       />
+
+      {/* Beside the button, not at the top: she is at the foot of a long form
+          when she presses Save, and a message she has to scroll up to find is
+          a message she never sees. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <div className="save-row">
         <button className="primary" onClick={save} disabled={!dirty || busy || missing.length > 0}>

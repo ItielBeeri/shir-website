@@ -2,7 +2,16 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { fieldNames, fieldRange, parseFrontmatter, readSpan, setField } from './frontmatter';
+import {
+  fieldNames,
+  fieldRange,
+  hasField,
+  parseFrontmatter,
+  readSpan,
+  removeField,
+  setField,
+  setFields,
+} from './frontmatter';
 
 const CONTENT = join(__dirname, '../../../src/content');
 const files = [
@@ -96,5 +105,80 @@ describe('frontmatter', () => {
     const src = readFileSync(join(CONTENT, 'blog/מה-זה-צל.mdx'), 'utf8');
     const out = setField(src, 'title', 'עם "מרכאות" בפנים');
     expect(parseFrontmatter(out).data.title).toBe('עם "מרכאות" בפנים');
+  });
+
+  /* An optional key the file does not carry: pinning a post is exactly this. */
+  describe('keys that are not in the file yet', () => {
+    const BLOG_KEYS = ['title', 'excerpt', 'date', 'cover', 'tags', 'related_therapy', 'order', 'draft'];
+    const unpinned = join(CONTENT, 'blog/מה-זה-צל.mdx');
+
+    it('inserts the line rather than failing', () => {
+      const src = readFileSync(unpinned, 'utf8');
+      expect(hasField(src, 'order')).toBe(false);
+      const out = setField(src, 'order', 2, { order: BLOG_KEYS });
+      expect(parseFrontmatter(out).data.order).toBe(2);
+    });
+
+    it('puts it where the model says it belongs, not at the end', () => {
+      const src = readFileSync(unpinned, 'utf8');
+      const names = fieldNames(parseFrontmatter(setField(src, 'order', 2, { order: BLOG_KEYS })).text);
+      expect(names.indexOf('order')).toBe(names.indexOf('related_therapy') + 1);
+      expect(names.indexOf('order')).toBe(names.indexOf('draft') - 1);
+    });
+
+    it('changes nothing else, body included', () => {
+      const src = readFileSync(unpinned, 'utf8');
+      const before = parseFrontmatter(src);
+      const out = setField(src, 'order', 2, { order: BLOG_KEYS });
+      const after = parseFrontmatter(out);
+      for (const key of Object.keys(before.data)) {
+        expect(after.data[key], key).toEqual(before.data[key]);
+      }
+      expect(out.slice(after.raw.length)).toBe(src.slice(before.raw.length));
+    });
+
+    it('falls back to the end of the block with nothing to go by', () => {
+      const src = readFileSync(unpinned, 'utf8');
+      const names = fieldNames(parseFrontmatter(setField(src, 'order', 2)).text);
+      expect(names[names.length - 1]).toBe('order');
+    });
+  });
+
+  describe('clearing a key', () => {
+    const BLOG_KEYS = ['title', 'excerpt', 'date', 'cover', 'tags', 'related_therapy', 'order', 'draft'];
+    const pinned = join(CONTENT, 'blog/אנושיות-מרפאת.mdx');
+
+    it('removes the whole line', () => {
+      const src = readFileSync(pinned, 'utf8');
+      expect(hasField(src, 'order')).toBe(true);
+      const out = removeField(src, 'order');
+      expect(hasField(out, 'order')).toBe(false);
+      expect(parseFrontmatter(out).data.order).toBeUndefined();
+    });
+
+    it('leaves every other byte alone', () => {
+      const src = readFileSync(pinned, 'utf8');
+      const value = parseFrontmatter(src).data.order as number;
+      expect(setField(removeField(src, 'order'), 'order', value, { order: BLOG_KEYS })).toBe(src);
+    });
+
+    it('is a no-op when the key was never there', () => {
+      const src = readFileSync(join(CONTENT, 'blog/מה-זה-צל.mdx'), 'utf8');
+      expect(removeField(src, 'order')).toBe(src);
+    });
+
+    it('does not leave a blank line when the last field goes', () => {
+      const src = readFileSync(pinned, 'utf8');
+      const last = fieldNames(parseFrontmatter(src).text).pop()!;
+      const out = removeField(src, last);
+      expect(parseFrontmatter(out).text.endsWith('\n')).toBe(false);
+      expect(Object.keys(parseFrontmatter(out).data)).not.toContain(last);
+    });
+
+    it('setFields treats undefined as a removal', () => {
+      const src = readFileSync(pinned, 'utf8');
+      const out = setFields(src, [{ key: 'order', value: undefined }]);
+      expect(hasField(out, 'order')).toBe(false);
+    });
   });
 });

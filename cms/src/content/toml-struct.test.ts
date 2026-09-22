@@ -12,6 +12,7 @@ import {
   recommendationIds,
   removeImage,
   reorderRecommendations,
+  replaceRecommendation,
 } from './toml-struct';
 
 const CONTENT = join(__dirname, '../../../src/content');
@@ -126,6 +127,36 @@ describe('recommendations.toml', () => {
 
   it('refuses to delete an id that is not there', () => {
     expect(() => deleteRecommendation(recs(), 'nope')).toThrow();
+  });
+
+  it('replaces one entry in place, keeping its position', () => {
+    const src = recs();
+    const ids = recommendationIds(src);
+    const target = ids[1];
+    const out = replaceRecommendation(src, target, { ...rec(target), transcription: 'טקסט חדש' });
+
+    expect(recommendationIds(out)).toEqual(ids);
+    const after = parseSmol(out) as any;
+    const before = parseSmol(src) as any;
+    expect(after.recommendations[1].transcription).toBe('טקסט חדש');
+    expect(after.recommendations[1].relatedTherapies).toEqual(['shiatsu', 'voice']);
+    for (const i of [0, 2].filter((n) => n < ids.length)) {
+      expect(after.recommendations[i]).toEqual(before.recommendations[i]);
+    }
+  });
+
+  it('accepts a related-therapy list of a different length', () => {
+    const src = recs();
+    const target = recommendationIds(src)[0];
+    const out = replaceRecommendation(src, target, { ...rec(target), relatedTherapies: [] });
+    expect((parseSmol(out) as any).recommendations[0].relatedTherapies).toEqual([]);
+  });
+
+  it('refuses to replace an id that is not there, or to change one', () => {
+    const src = recs();
+    const target = recommendationIds(src)[0];
+    expect(() => replaceRecommendation(src, 'nope', rec('nope'))).toThrow();
+    expect(() => replaceRecommendation(src, target, rec('something-else'))).toThrow();
   });
 
   it('derives the next id so the owner never invents one', () => {

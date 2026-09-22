@@ -107,8 +107,6 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
 
   return (
     <>
-      {error && <p className="banner error">{error}</p>}
-
       {(screen.groups ?? []).map((group, i) => (
         <section className="group" key={i}>
           {group.title && <h2>{group.title}</h2>}
@@ -124,6 +122,10 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
           ))}
         </section>
       ))}
+
+      {/* Beside the button: a failure reported at the top of a long form is
+          reported where she is not looking. */}
+      {error && <p className="banner error" role="alert">{error}</p>}
 
       <button className="primary" onClick={save} disabled={!dirty || busy || missing.length > 0}>
         {busy ? 'שומר…' : 'שמירה'}

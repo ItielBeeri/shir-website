@@ -91,7 +91,7 @@ describe('content model', () => {
       [...block(name).matchAll(/^\s{4}([a-z_]+):/gm)].map((m) => m[1]);
 
     for (const [collection, screenId] of [
-      ['blog', 'blog-new'],
+      ['blog', 'blog'],
       ['therapies', 'therapies'],
       ['about', 'about'],
     ] as const) {
