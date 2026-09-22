@@ -485,5 +485,17 @@
       1080
     ],
     "digest": "4b5b632d495b64a1"
+  },
+  "/img/recommendations/recommendation-15.jpeg": {
+    "key": "recommendations/recommendation-15",
+    "width": 1080,
+    "height": 933,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "f0e24e0cf1bcdf15"
   }
 }
