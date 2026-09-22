@@ -21,7 +21,7 @@ const GLYPHS: Record<string, string> = {
 };
 
 export default function App(): JSX.Element {
-  const [state, setState] = useState<'checking' | 'out' | 'in'>('checking');
+  const [state, setState] = useState<'checking' | 'out' | 'in' | 'broken'>('checking');
   const [role, setRole] = useState<Role>('owner');
   const [pending, setPending] = useState<PathChange[]>([]);
   const [open, setOpen] = useState<Screen | null>(null);
@@ -38,21 +38,42 @@ export default function App(): JSX.Element {
     }
   }, []);
 
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
-    api
-      .me()
-      .then(async (me) => {
-        if (!me.signedIn) {
-          setState('out');
-          return;
-        }
+    let cancelled = false;
+    void (async () => {
+      let signedIn = false;
+      try {
+        signedIn = (await api.me()).signedIn;
+      } catch {
+        if (!cancelled) setState('out');
+        return;
+      }
+      if (cancelled) return;
+      if (!signedIn) {
+        setState('out');
+        return;
+      }
+      // Signed in. Anything that fails from here is a fault to report, never a
+      // silent bounce back to the sign-in button - that reads as "it forgot me"
+      // and leaves nothing to act on.
+      try {
         const start = await api.start();
+        if (cancelled) return;
         setRole(start.role);
         setPending(start.pending);
         setState('in');
-      })
-      .catch(() => setState('out'));
-  }, []);
+      } catch (e) {
+        if (cancelled) return;
+        setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לפתוח את המערכת.');
+        setState('broken');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
 
   async function doPublish(): Promise<void> {
     setBusy(true);
@@ -70,6 +91,27 @@ export default function App(): JSX.Element {
 
   if (state === 'checking') {
     return <main className="app center"><p className="muted">רגע…</p></main>;
+  }
+
+  if (state === 'broken') {
+    return (
+      <main className="app center">
+        <div>
+          <h1 style={{ fontWeight: 400 }}>לא הצלחתי לפתוח את המערכת</h1>
+          <p className="banner error" style={{ maxInlineSize: '34ch', marginInline: 'auto' }}>
+            {error}
+          </p>
+          <p style={{ marginBlockStart: 20, display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="primary" onClick={() => setAttempt((n) => n + 1)}>
+              נסי שוב
+            </button>
+            <a href="/api/auth/logout">
+              <button className="ghost">התנתקות</button>
+            </a>
+          </p>
+        </div>
+      </main>
+    );
   }
 
   if (state === 'out') {

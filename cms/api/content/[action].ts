@@ -146,8 +146,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   } catch (error) {
     const err = error as Error & { kind?: string; status?: number };
-    // `PathRejected` and `GitError` are the two the client can act on; anything
-    // else is reported as an opaque failure rather than leaking API text.
+    // The owner gets a Hebrew sentence, never API text - but the real cause has
+    // to reach the Vercel log, or a 502 here is undiagnosable from the outside.
+    console.error('[content]', action, err.name, err.status ?? '', err.message);
+
     if (err.name === 'PathRejected') {
       res.status(403).json({ error: 'path-rejected', detail: err.message });
       return;
@@ -156,7 +158,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.status(409).json({ error: err.kind ?? 'conflict' });
       return;
     }
-    res.status(502).json({ error: 'upstream' });
+    // The upstream status is not sensitive and is the one thing that makes a
+    // failure actionable: 403 means the installation lacks write access.
+    res.status(502).json({ error: 'upstream', status: err.status });
   }
 }
 

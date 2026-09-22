@@ -41,6 +41,7 @@ const MESSAGES: Record<string, string> = {
   upstream: 'לא הצלחתי להגיע ל-GitHub כרגע.',
   offline: 'אין חיבור לאינטרנט.',
   misconfigured: 'המערכת עדיין לא הוגדרה במלואה.',
+  'no-write-access': 'למערכת אין כרגע הרשאה לשמור שינויים באתר. זה משהו שאיתיאל צריך לאשר - שווה לפנות אליו.',
 };
 
 const friendly = (code: string): string => MESSAGES[code] ?? 'משהו השתבש. אפשר לנסות שוב.';
@@ -60,8 +61,11 @@ async function call<T>(action: string, body?: unknown, query = ''): Promise<T> {
 
   if (response.status === 401) throw new FriendlyError(friendly('unauthenticated'), false);
   if (!response.ok) {
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new FriendlyError(friendly(data.error ?? 'upstream'));
+    const data = (await response.json().catch(() => ({}))) as { error?: string; status?: number };
+    // A 403 from GitHub is the one upstream failure with a distinct cause the
+    // owner can act on - by asking, not by retrying.
+    const code = data.error === 'upstream' && data.status === 403 ? 'no-write-access' : data.error;
+    throw new FriendlyError(friendly(code ?? 'upstream'));
   }
   return (await response.json()) as T;
 }
