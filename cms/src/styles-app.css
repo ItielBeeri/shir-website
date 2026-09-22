@@ -329,6 +329,7 @@
 }
 .entry-text { display: flex; flex-direction: column; gap: 2px; }
 .entry-title { font-weight: 600; }
+.entry-pin { margin-inline-end: 4px; }
 .entry-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .entry-actions button { font-size: var(--fs-small); padding: 8px 10px; }
 .entry-error { flex-basis: 100%; margin: 0; }

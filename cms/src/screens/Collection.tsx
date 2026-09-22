@@ -4,7 +4,8 @@
  * Ordering matches the site exactly by reusing its own rule, so what she sees
  * here is what a visitor sees. Blog: pinned first by descending `order`, then
  * newest first. Therapies: ascending `order`. The editor guide has to warn
- * that the two are opposite; here neither is a number she types.
+ * that the two are opposite; here neither is a number she types - both lists
+ * move with the same arrows as recommendations.
  *
  * A failure is reported inside the row that failed. A banner at the top of a
  * list is out of sight by the third entry, and a button that does nothing and
@@ -115,21 +116,47 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
     });
 
   /**
-   * Pinning writes an `order` above every other, so it needs no number, and
-   * unpinning takes the key away rather than writing 0 - the schema requires a
-   * positive number, so 0 is a broken build, not an unpinned post.
+   * The arrows over blog posts. Pinned posts move among themselves; ↑ on an
+   * unpinned post pins it just below the last pinned one, and ↓ on the last
+   * pinned post unpins it back into date order. Afterwards the pinned posts are
+   * renumbered n..1, so a tie between two equal `order`s can never make an
+   * arrow do nothing. Unpinning removes the key rather than writing 0 - the
+   * schema requires a positive number, so 0 is a broken build.
    */
-  const pin = (entry: Entry, on: boolean): Promise<void> =>
+  const reorderPost = (entry: Entry, direction: -1 | 1): Promise<void> =>
     act(entry, 'לא הצלחתי לשנות את הסדר.', async () => {
-      const highest = Math.max(0, ...(entries ?? []).map((e) => e.order ?? 0));
-      const { content } = await api.read(entry.path);
-      if (!content) return;
-      const next = on
-        ? setField(content, 'order', highest + 1, { order: fieldOrder })
-        : removeField(content, 'order');
-      await api.save(`${on ? 'הצמדת' : 'שחרור'} ${entry.title}`, [
-        { path: entry.path, content: next },
-      ]);
+      const all = entries ?? [];
+      const pinned = all.filter((e) => e.order);
+      const at = pinned.findIndex((e) => e.file === entry.file);
+      let next: Entry[];
+      let message = 'שינוי סדר הפוסטים';
+      if (at === -1) {
+        if (direction === 1) return;
+        next = [...pinned, entry];
+        message = `הצמדת ${entry.title}`;
+      } else if (direction === 1 && at === pinned.length - 1) {
+        next = pinned.slice(0, -1);
+        message = `שחרור ${entry.title}`;
+      } else {
+        if (at + direction < 0) return;
+        next = [...pinned];
+        [next[at], next[at + direction]] = [next[at + direction], next[at]];
+      }
+      const orders = new Map(next.map((e, i) => [e.file, next.length - i]));
+      const changed = all.filter((e) => orders.get(e.file) !== e.order);
+      const writes = await Promise.all(
+        changed.map(async (e) => {
+          const { content } = await api.read(e.path);
+          const order = orders.get(e.file);
+          return {
+            path: e.path,
+            content: order
+              ? setField(content!, 'order', order, { order: fieldOrder })
+              : removeField(content!, 'order'),
+          };
+        }),
+      );
+      await api.save(message, writes);
     });
 
   const reorderTherapy = (entry: Entry, direction: -1 | 1): Promise<void> =>
@@ -169,53 +196,49 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
               <button className="entry-main" onClick={() => onOpen(entry.file)}>
                 {url ? <img src={url} alt="" /> : <span className="entry-thumb" aria-hidden="true" />}
                 <span className="entry-text">
-                  <span className="entry-title">{entry.title}</span>
+                  <span className="entry-title">
+                    {kind === 'blog' && !!entry.order && (
+                      <span className="entry-pin" role="img" aria-label="מוצמד" title="מוצמד">
+                        📌
+                      </span>
+                    )}
+                    {entry.title}
+                  </span>
                   <span className="muted">
                     {entry.hidden && 'מוסתר · '}
-                    {kind === 'blog'
-                      ? `${entry.order ? 'מוצמד לראש · ' : ''}${entry.date ?? ''}`
-                      : `מיקום ${i + 1}`}
+                    {kind === 'blog' ? entry.date ?? '' : `מיקום ${i + 1}`}
                   </span>
                 </span>
               </button>
 
               <div className="entry-actions">
-                {kind === 'blog' ? (
-                  <>
-                    <button
-                      className="ghost"
-                      disabled={busy === entry.file}
-                      onClick={() => pin(entry, !entry.order)}
-                    >
-                      {entry.order ? 'שחרור' : 'הצמדה לראש'}
-                    </button>
-                    <button
-                      className="ghost"
-                      disabled={busy === entry.file}
-                      onClick={() => toggleHidden(entry)}
-                    >
-                      {entry.hidden ? 'הצגה' : 'הסתרה'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className="ghost"
-                      aria-label="העברה למעלה"
-                      disabled={i === 0 || busy === entry.file}
-                      onClick={() => reorderTherapy(entry, -1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="ghost"
-                      aria-label="העברה למטה"
-                      disabled={i === entries.length - 1 || busy === entry.file}
-                      onClick={() => reorderTherapy(entry, 1)}
-                    >
-                      ↓
-                    </button>
-                  </>
+                <button
+                  className="ghost"
+                  aria-label="העברה למעלה"
+                  disabled={(i === 0 && (kind !== 'blog' || !!entry.order)) || busy === entry.file}
+                  onClick={() => (kind === 'blog' ? reorderPost : reorderTherapy)(entry, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  className="ghost"
+                  aria-label="העברה למטה"
+                  disabled={
+                    (kind === 'blog' ? !entry.order : i === entries.length - 1) ||
+                    busy === entry.file
+                  }
+                  onClick={() => (kind === 'blog' ? reorderPost : reorderTherapy)(entry, 1)}
+                >
+                  ↓
+                </button>
+                {kind === 'blog' && (
+                  <button
+                    className="ghost"
+                    disabled={busy === entry.file}
+                    onClick={() => toggleHidden(entry)}
+                  >
+                    {entry.hidden ? 'הצגה' : 'הסתרה'}
+                  </button>
                 )}
               </div>
 
