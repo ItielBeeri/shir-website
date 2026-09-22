@@ -85,7 +85,8 @@ moment it lands.
 | F-10 | `*` emphasis and `_` italic are distinguished by source marker (§4.3) |
 | F-11 | Editing one paragraph leaves block count and every opaque block unchanged |
 
-**Extensions still required:**
+`src/content/toml-struct.test.ts` · `src/content/frontmatter.test.ts` ·
+`src/content/parser-contract.test.ts`
 
 | ID | Assertion |
 |---|---|
@@ -96,9 +97,14 @@ moment it lands.
 | F-16 | A frontmatter field edit leaves every other field, comment and line break in the frontmatter untouched |
 | F-17 | Every `PLACEHOLDER` marker present before an edit is present after it |
 | F-18 | Fuzz: 500 random values (Hebrew, emoji, quotes, newlines, `#`, `=`, `[`, `"""`, RTL marks, 10 KB strings) written to every slot in every file → the file still parses and the value reads back exactly |
+| F-19 | The CMS reads content with the same parser majors the site does; a divergence fails rather than silently changing what the owner sees |
 
 F-18 is the cheapest insurance in the suite. The live incident (§7.4) was a
-newline in a basic string; a fuzzer finds that class in seconds.
+newline in a basic string; a fuzzer finds that class in seconds. **Still to
+write** — everything else in §4.1 is implemented.
+
+F-19 is not hypothetical: `js-yaml` 5 rejects `psychotherapy.mdx` and
+`voice.mdx` outright, while the 4.x Astro pins folds them.
 
 ### 4.2 Content model parity
 
@@ -416,9 +422,14 @@ CI: L0/L1/L5-unit on every push touching `cms/**` **or** `src/content/**` - a
 content change can break a CMS test, which is the point of one repo. L2-L6 on
 pull requests and nightly.
 
-Open items: Playwright and `@axe-core/playwright` are not yet dependencies;
-the sacrificial repo and its App installation do not yet exist; `test:write`,
-`test:e2e` and `test:parity` are not yet wired.
+**Implemented today (195 tests, `pnpm test`):** all of §4.1 except F-18, all of
+§4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function level) and the
+whole engine layer (§5.2 G-1…G-12) against an in-memory git.
+
+**Not yet wired:** F-18 · §4.3 validation · §4.4 parity · the live half of §5.3
+(B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·
+§8 non-functional. Playwright and `@axe-core/playwright` are not dependencies
+yet, and the sacrificial repo and its App installation do not exist.
 
 ---
 
