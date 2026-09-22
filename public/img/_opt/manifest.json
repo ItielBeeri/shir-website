@@ -305,6 +305,20 @@
     ],
     "digest": "b4679edeba43160a"
   },
+  "/img/content/image-2026-09-22.jpg": {
+    "key": "content/image-2026-09-22",
+    "width": 2048,
+    "height": 1936,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "134823a02d38f845"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
