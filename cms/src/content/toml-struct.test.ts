@@ -10,6 +10,7 @@ import {
   imageIds,
   nextRecommendationId,
   recommendationIds,
+  removeImage,
   reorderRecommendations,
 } from './toml-struct';
 
@@ -135,5 +136,39 @@ describe('recommendations.toml', () => {
     // And it stays free after appending it.
     const out = appendRecommendation(src, rec(next));
     expect(nextRecommendationId(out)).not.toBe(next);
+  });
+});
+
+describe('removeImage', () => {
+  it('removes exactly one entry and keeps the header comments', () => {
+    const src = images();
+    const before = parseSmol(src) as Record<string, unknown>;
+    const out = removeImage(src, 'portrait-2');
+
+    expect(out).toContain('# מאגר תמונות מרכזי');
+    const after = parseSmol(out) as Record<string, unknown>;
+    expect(after['portrait-2']).toBeUndefined();
+    for (const id of Object.keys(before)) {
+      if (id === 'portrait-2') continue;
+      expect(after[id], id).toEqual(before[id]);
+    }
+    expect(Object.keys(after).length).toBe(Object.keys(before).length - 1);
+  });
+
+  it('leaves no blank-line pile-up and one trailing newline', () => {
+    const out = removeImage(images(), 'portrait-2');
+    expect(out).not.toMatch(/\n{3,}/);
+    expect(out.endsWith('\n')).toBe(true);
+    expect(out.endsWith('\n\n')).toBe(false);
+  });
+
+  it('can remove the last entry', () => {
+    const ids = imageIds(images());
+    const out = removeImage(images(), ids[ids.length - 1]);
+    expect(imageIds(out)).toEqual(ids.slice(0, -1));
+  });
+
+  it('refuses an id that is not there', () => {
+    expect(() => removeImage(images(), 'nope')).toThrow();
   });
 });

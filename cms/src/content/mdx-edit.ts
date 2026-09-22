@@ -81,12 +81,27 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
   return out;
 }
 
+/**
+ * Neutralise a mark character the owner typed as ordinary punctuation.
+ *
+ * Only a `*` or `_` that touches a non-space can open or close a mark, so a
+ * lone asterisk on its own line - which this copy uses as a divider - is left
+ * exactly as written. Escaping every one of them would rewrite existing body
+ * text the moment an unrelated word changed, and the round-trip gate would
+ * fail rather than let that through quietly.
+ */
+export function escapeInlineText(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/([*_])(?=\S)|(?<=\S)([*_])/g, (m) => `\\${m}`);
+}
+
 export function inlineToMarkdown(nodes: Inline[]): string {
   return nodes
     .map((n) => {
       switch (n.type) {
         case 'text':
-          return n.value;
+          return escapeInlineText(n.value);
         case 'emphasis':
           return `${n.marker}${inlineToMarkdown(n.children)}${n.marker}`;
         case 'strong':
@@ -183,6 +198,12 @@ export function serializeMdx(doc: MdxDoc, changed: ReadonlySet<number> = new Set
     .join('');
   return doc.frontmatter + body;
 }
+
+/** Every block index, for a full re-serialization. */
+export const allBlocks = (doc: MdxDoc): Set<number> =>
+  new Set(
+    doc.segments.map((s, i) => (s.type === 'block' ? i : -1)).filter((i) => i >= 0),
+  );
 
 /** Index of every segment holding an editable (non-opaque) block. */
 export function editableBlocks(doc: MdxDoc): number[] {

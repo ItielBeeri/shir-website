@@ -10,15 +10,16 @@ import { api, FriendlyError } from '../api';
 import { findSlot, setValues } from '../content/toml-edit';
 import type { TomlScalar } from '../content/toml-edit';
 import type { Field, Screen } from '../model/types';
+import { FieldInput } from '../components/Fields';
+import type { FieldValue } from '../components/Fields';
 
 interface Props {
   screen: Screen;
   role: 'owner' | 'maintainer';
   onSaved: () => void;
-  onBack: () => void;
 }
 
-type Values = Record<string, TomlScalar>;
+type Values = Record<string, FieldValue>;
 
 const readValue = (source: string, field: Field): TomlScalar | undefined => {
   try {
@@ -30,7 +31,7 @@ const readValue = (source: string, field: Field): TomlScalar | undefined => {
   }
 };
 
-export function TomlForm({ screen, role, onSaved, onBack }: Props): JSX.Element {
+export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
   const [source, setSource] = useState<string | null>(null);
   const [values, setValues_] = useState<Values>({});
   const [initial, setInitial] = useState<Values>({});
@@ -73,7 +74,7 @@ export function TomlForm({ screen, role, onSaved, onBack }: Props): JSX.Element 
     try {
       const edits = fields
         .filter((f) => values[f.key] !== undefined && values[f.key] !== initial[f.key])
-        .map((f) => ({ path: f.path ?? [], value: values[f.key] }));
+        .map((f) => ({ path: f.path ?? [], value: values[f.key] as TomlScalar }));
       const next = setValues(source, edits);
       await api.save(`עדכון ${screen.title}`, [{ path: screen.file!, content: next }]);
       setSource(next);
@@ -89,23 +90,20 @@ export function TomlForm({ screen, role, onSaved, onBack }: Props): JSX.Element 
   if (error && !source) {
     return (
       <>
-        <Header title={screen.title} onBack={onBack} />
-        <p className="banner error">{error}</p>
+          <p className="banner error">{error}</p>
       </>
     );
   }
   if (!source) {
     return (
       <>
-        <Header title={screen.title} onBack={onBack} />
-        <p className="muted">רגע, טוען…</p>
+          <p className="muted">רגע, טוען…</p>
       </>
     );
   }
 
   return (
     <>
-      <Header title={screen.title} onBack={onBack} />
       {error && <p className="banner error">{error}</p>}
 
       {(screen.groups ?? []).map((group, i) => (
@@ -116,7 +114,7 @@ export function TomlForm({ screen, role, onSaved, onBack }: Props): JSX.Element 
             <FieldInput
               key={field.key}
               field={field}
-              role={role}
+              locked={Boolean(field.locked) && role === 'owner'}
               value={values[field.key]}
               onChange={(v) => setValues_((prev) => ({ ...prev, [field.key]: v }))}
             />
@@ -132,73 +130,5 @@ export function TomlForm({ screen, role, onSaved, onBack }: Props): JSX.Element 
       )}
       {!dirty && !busy && <p className="muted" style={{ marginBlockStart: 8 }}>אין שינויים לשמור.</p>}
     </>
-  );
-}
-
-function Header({ title, onBack }: { title: string; onBack: () => void }): JSX.Element {
-  return (
-    <div className="topbar">
-      <button className="ghost" onClick={onBack} aria-label="חזרה למסך הראשי">
-        →
-      </button>
-      <h1>{title}</h1>
-    </div>
-  );
-}
-
-function FieldInput({
-  field,
-  role,
-  value,
-  onChange,
-}: {
-  field: Field;
-  role: 'owner' | 'maintainer';
-  value: TomlScalar | undefined;
-  onChange: (value: TomlScalar) => void;
-}): JSX.Element {
-  const id = `f-${field.key.replace(/\W/g, '-')}`;
-  const locked = Boolean(field.locked) && role === 'owner';
-
-  return (
-    <div className="field">
-      <label htmlFor={id}>{field.label}</label>
-      {field.help && <p className="help" id={`${id}-help`}>{field.help}</p>}
-
-      {field.type === 'boolean' ? (
-        <div className="switch">
-          <input
-            id={id}
-            type="checkbox"
-            checked={Boolean(value)}
-            disabled={locked}
-            aria-describedby={field.help ? `${id}-help` : undefined}
-            onChange={(e) => onChange(e.target.checked)}
-          />
-          <span>{value ? 'מוצג באתר' : 'מוסתר'}</span>
-        </div>
-      ) : field.type === 'longtext' ? (
-        <textarea
-          id={id}
-          value={String(value ?? '')}
-          disabled={locked}
-          aria-describedby={field.help ? `${id}-help` : undefined}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ) : (
-        <input
-          id={id}
-          type={field.type === 'number' ? 'number' : 'text'}
-          value={String(value ?? '')}
-          disabled={locked}
-          aria-describedby={field.help ? `${id}-help` : undefined}
-          onChange={(e) =>
-            onChange(field.type === 'number' ? Number(e.target.value) : e.target.value)
-          }
-        />
-      )}
-
-      {locked && <p className="help muted">{field.locked}</p>}
-    </div>
   );
 }

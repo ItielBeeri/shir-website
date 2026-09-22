@@ -1,6 +1,7 @@
 # CMS plan - a friendly editing surface for shir-amitai.com
 
-Status: **approved, not yet implemented.**
+Status: **approved; implementation under way in `cms/`.**
+Where this and the code disagree, the code wins.
 
 Records approved decisions only. Where this and `AGENTS.md` disagree once
 `cms/` exists, `AGENTS.md` wins.
@@ -63,21 +64,19 @@ One repo, two Vercel projects, one GitHub App. No new vendors. ₪0/month.
                     │  │ Hebrew, RTL, mobile-first         │  │
                     │  └───────────────────────────────────┘  │
                     │  ┌───────────────────────────────────┐  │
-                    │  │ /api/auth/{login,callback,logout} │  │
-                    │  │ /api/gh/[...path]   ← path-gated  │  │
-                    │  │ /api/status         ← build state │  │
+                    │  │ /api/auth/[action]                │  │
+                    │  │ /api/content/[action] ← typed API │  │
                     │  └───────────────┬───────────────────┘  │
                     └──────────────────┼──────────────────────┘
                                        │ user access token (HttpOnly cookie)
-                          ┌────────────┴────────────┐
-                          ▼                         ▼
-        ┌──────────────────────────────┐   ┌──────────────────┐
-        │ GitHub App                   │   │ Vercel REST API  │
-        │ "shir-website-editor"        │   │ (read-only token)│
-        │   Contents: read & write     │   │ deployment state │
-        │   Metadata: read             │   └──────────────────┘
-        │   installed on ONE repo      │
-        └──────────────┬───────────────┘
+                                       │
+                                       ▼
+        ┌────────────────────────────────────────────────────┐
+        │ GitHub App "shir-website-editor"                   │
+        │   Contents: read & write · Metadata: read          │
+        │   Deployments: read  (build status)                │
+        │   installed on ONE repo                            │
+        └──────────────┬─────────────────────────────────────┘
                        │
         ┌──────────────┴───────────────────────────────────────┐
         │  ItielBeeri/shir-website  (public)                   │
@@ -135,33 +134,39 @@ Without an ignored-build-step every CMS commit redeploys the website, so
 project #1's `vercel.json` gains:
 
 ```json
-"ignoreCommand": "git diff --quiet HEAD^ HEAD -- src public astro.config.mjs package.json pnpm-lock.yaml vercel.json"
+"ignoreCommand": "git rev-parse HEAD^ >/dev/null 2>&1 && git diff --quiet HEAD^ HEAD -- :/src :/public :/astro.config.mjs :/tsconfig.json :/package.json :/pnpm-lock.yaml :/vercel.json :/.nvmrc"
 ```
 
-Exit 0 skips the build. This is why `AGENTS.md` §10.1's "holds cache headers
+Exit 0 skips the build. The pathspecs are **repo-root-relative (`:/`)** because
+Vercel runs this from the project's Root Directory: a plain `-- cms` in the CMS
+project resolves to `cms/cms`, matches nothing, and cancels every build. This is why `AGENTS.md` §10.1's "holds cache headers
 and nothing else" is softened in §9.
 
 ### 3.3 Authentication
 
 A GitHub **App** (not an OAuth App), installed on one repository, with
-*Contents: read & write* and *Metadata: read*. It cannot reach settings,
-workflows, or any other repo.
+*Contents: read & write*, *Metadata: read* and *Deployments: read*. It cannot
+reach settings, workflows, or any other repo.
 
 1. `admin.shir-amitai.com` → one button: **התחברות**.
 2. `/api/auth/login` → GitHub authorize → `/api/auth/callback`.
 3. The function exchanges the code for a user access token (client secret stays
    server-side), checks the login against the allow-list, and sets the token in
    an **HttpOnly, Secure, SameSite=Lax** cookie.
-4. The SPA never holds the token. All GitHub traffic goes through
-   `/api/gh/[...path]`, which attaches it.
+4. The SPA never holds the token. Every operation is a named action on
+   `/api/content/[action]`, and the write engine runs there.
 
-That proxy is the permission model, not just plumbing: server-side it rejects
-any write outside `src/content/**` and `public/img/**`, and any branch other
-than `content-draft` and `master`. Guide §1.7 and §9.5 become physically
-impossible rather than remembered.
+A **typed API, not a generic proxy**: a proxy would have to find paths buried in
+git tree payloads to enforce the allowlist, whereas here the client cannot
+express a call the allowlist has not already seen. Server-side it rejects any
+write outside `src/content/**` and `public/img/**`, any path whose extension is
+not content, and any branch other than `content-draft` and `master`. Guide §1.7
+and §9.5 become impossible rather than remembered.
 
-User-token expiry is disabled, so she signs in a couple of times a year.
-Revocation is uninstalling the App.
+User-token expiry is **enabled** - GitHub's default and the better posture for a
+credential that can write to the live site. The 8-hour token refreshes silently
+in the function, so she never meets a login screen for it. Revocation is
+uninstalling the App.
 
 **Two roles, one app**, keyed off the authenticated GitHub login:
 
@@ -175,16 +180,19 @@ maintainer sees exactly what the owner sees.
 
 **Secrets** live only in Vercel project #2's encrypted environment variables -
 never in the repo, never in the client bundle: GitHub App client id and secret,
-a session signing secret, a read-only Vercel API token, the allowed logins, and
-the target repo. The repo is public; nothing depends on `cms/` being
+a session signing secret, the allowed logins, and the target repo. **No Vercel
+API token**: Vercel issues no read-only tokens, and the narrowest one available
+could delete projects and read every environment variable in the account. Build
+status comes from GitHub's deployment statuses, which Vercel already pushes to
+the repository and which the session token can read. The repo is public; nothing depends on `cms/` being
 unreadable, because every rule is enforced server-side.
 
 ### 3.4 Publish
 
 - Each save → a commit on `content-draft`.
 - Vercel builds that branch's preview automatically (already default).
-- The app shows the real preview with a live build indicator from the Vercel
-  API (`בונה…` → `מוכן לצפייה`). **On desktop, both viewports side by side** -
+- The app shows the real preview with a live build indicator, read from the
+  deployment statuses Vercel pushes to the repository (`בונה…` → `מוכן לצפייה`). **On desktop, both viewports side by side** -
   a 390 px mobile frame and a fluid desktop frame off one build. On phones, the
   mobile frame with a toggle.
 - One green button: **פרסמי לאתר**.

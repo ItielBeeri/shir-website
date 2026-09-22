@@ -13,11 +13,6 @@ export interface Config {
   allowedLogins: string[];
   /** Subset of the above that may edit locked legal fields. */
   maintainerLogins: string[];
-  /** Read-only Vercel API token, for deployment status. */
-  vercelToken?: string;
-  /** Vercel project id of the website, for deployment status. */
-  siteProjectId?: string;
-  vercelTeamId?: string;
 }
 
 const required = (name: string): string => {
@@ -44,9 +39,6 @@ export function config(): Config {
     repo: required('TARGET_REPO'),
     allowedLogins,
     maintainerLogins: list('MAINTAINER_GITHUB_LOGINS'),
-    vercelToken: process.env.VERCEL_READ_TOKEN,
-    siteProjectId: process.env.SITE_VERCEL_PROJECT_ID,
-    vercelTeamId: process.env.VERCEL_TEAM_ID,
   };
 }
 

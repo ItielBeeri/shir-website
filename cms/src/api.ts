@@ -12,6 +12,8 @@ export interface StartResult {
   pending: PathChange[];
   role: 'owner' | 'maintainer';
   login: string;
+  /** "owner/repo" - the client needs it to build thumbnail URLs. */
+  repo: string;
 }
 
 export interface CommitInfo {
@@ -93,6 +95,19 @@ export const api = {
     }),
 
   pending: () => call<{ pending: PathChange[] }>('pending', {}),
+
+  list: (dir: string) =>
+    call<{ files: string[] }>('list', undefined, `?dir=${encodeURIComponent(dir)}`),
+
+  status: (sha?: string) =>
+    call<{ state: 'building' | 'ready' | 'failed' | 'unknown'; url?: string }>(
+      'status',
+      undefined,
+      sha ? `?sha=${encodeURIComponent(sha)}` : '',
+    ),
+
+  remove: (paths: string[], message: string) =>
+    call<{ sha: string; pending: PathChange[] }>('delete', { paths, message }),
 
   discard: (path: string, message: string) =>
     call<{ sha: string; pending: PathChange[] }>('discard', { path, message }),

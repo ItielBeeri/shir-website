@@ -11,6 +11,19 @@ import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../s
 
 const API = 'https://api.github.com';
 
+/** What the owner is waiting on after pressing publish. */
+export interface DeploymentStatus {
+  state: 'building' | 'ready' | 'failed' | 'unknown';
+  url?: string;
+}
+
+const mapDeployState = (state: string): DeploymentStatus['state'] => {
+  if (state === 'success') return 'ready';
+  if (state === 'failure' || state === 'error') return 'failed';
+  if (state === 'queued' || state === 'in_progress' || state === 'pending') return 'building';
+  return 'unknown';
+};
+
 export class GitHubError extends Error {
   constructor(
     readonly status: number,
@@ -163,6 +176,14 @@ export class GitHubTransport implements GitTransport {
     return Buffer.from(entry.content, (entry.encoding as BufferEncoding) ?? 'base64').toString('utf8');
   }
 
+  /** File names directly under a directory at a commit. */
+  async listDir(commitSha: string, dir: string): Promise<string[]> {
+    const entries = await this.call<Array<{ name: string; type: string }> | null>(
+      `/contents/${encodePath(dir)}?ref=${commitSha}`,
+    );
+    return (entries ?? []).filter((e) => e.type === 'file').map((e) => e.name);
+  }
+
   async mergeBase(aSha: string, bSha: string): Promise<string> {
     const cmp = await this.call<{ merge_base_commit: { sha: string } }>(
       `/compare/${aSha}...${bSha}`,
@@ -184,6 +205,43 @@ export class GitHubTransport implements GitTransport {
       page += 1;
     }
     return out;
+  }
+
+  /**
+   * What the host reports about a commit, read from GitHub's deployment
+   * statuses rather than from Vercel's own API.
+   *
+   * Vercel pushes these to the repo already, so this reuses the session token
+   * against one repository. A Vercel API token would work too, but Vercel has
+   * no read-only tokens: the smallest one available can delete projects and
+   * read every environment variable in the account, to render a status line.
+   *
+   * Needs `Deployments: read-only` on the App. Without it this returns
+   * `unknown` and the caller simply shows no status, which is why nothing here
+   * throws.
+   */
+  async deploymentStatus(sha: string): Promise<DeploymentStatus> {
+    try {
+      const deployments = await this.call<Array<{ id: number; environment: string }> | null>(
+        `/deployments?sha=${encodeURIComponent(sha)}&per_page=20`,
+      );
+      if (!deployments?.length) return { state: 'unknown' };
+
+      // Newest first; production is what "did it go up?" means.
+      const production =
+        deployments.find((d) => /prod/i.test(d.environment)) ?? deployments[0];
+
+      const statuses = await this.call<Array<{
+        state: string;
+        environment_url?: string;
+      }> | null>(`/deployments/${production.id}/statuses?per_page=1`);
+
+      const latest = statuses?.[0];
+      if (!latest) return { state: 'building' };
+      return { state: mapDeployState(latest.state), url: latest.environment_url };
+    } catch {
+      return { state: 'unknown' };
+    }
   }
 
   async listCommits(branch: string, limit: number): Promise<CommitInfo[]> {

@@ -28,9 +28,21 @@ exercise anything past it.
 ### 1. GitHub App
 
 Already created as `shir-website-editor`, installed on `ItielBeeri/shir-website`
-only, with **Contents: read & write** and **Metadata: read** and nothing else.
+only. Repository permissions, and nothing else:
+
+| Permission | Why |
+|---|---|
+| **Contents: read & write** | reading and committing content |
+| **Metadata: read** | mandatory alongside any repository permission |
+| **Deployments: read** | the publish status indicator (see below) |
+
 No private key is needed — every write happens as the signed-in user through
 the OAuth flow, never as an installation.
+
+**Changing an App's permissions after installing it does not grant them.** The
+installation keeps the old set until the change is approved at
+github.com/settings/installations. Reads succeeding while the first write 403s
+is the signature of that.
 
 ### 2. Vercel project
 
@@ -68,8 +80,8 @@ never in the client bundle.
 | `ALLOWED_GITHUB_LOGINS` | comma-separated GitHub logins allowed to sign in |
 | `MAINTAINER_GITHUB_LOGINS` | subset of the above that may edit locked legal fields |
 | `PUBLIC_ORIGIN` | `https://admin.shir-amitai.com` |
-| `VERCEL_READ_TOKEN` | optional, read-only; powers the publish status indicator |
-| `SITE_VERCEL_PROJECT_ID` | optional, the website project's id |
+
+There is deliberately no Vercel API token here; see the third rule below.
 
 A missing required variable fails the request with a Hebrew message rather than
 falling back to something insecure.
@@ -87,7 +99,7 @@ falling back to something insecure.
 | `src/git/engine.ts` | save, publish, discard, restore, over an injectable transport |
 | `api/` | auth and the typed content API; the engine runs here |
 
-### Two rules that are not obvious
+### Three rules that are not obvious
 
 **Read content with the site's parsers, not newer ones.** `js-yaml` is pinned
 to the major version Astro depends on. Version 5 rejects `psychotherapy.mdx`
@@ -98,3 +110,11 @@ which 4.x folds. `parser-contract.test.ts` fails if the two ever diverge.
 against the tip reports everything master gained since the draft diverged as if
 the draft had deleted it, which would revert the `images.yml` derivative
 commits. `engine.test.ts` covers that case directly.
+
+**Deployment status comes from GitHub, not from Vercel's API.** Vercel already
+pushes deployment statuses to the repository, so the session token reads them
+against one repo. Vercel has no read-only tokens — the narrowest one available
+can delete projects and read every environment variable in the account, which
+is far too much to render a status line. `deploymentStatus()` returns `unknown`
+rather than throwing, so the indicator degrades to absent if the Deployments
+permission is not granted.

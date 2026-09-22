@@ -66,7 +66,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       case 'start': {
         const draft = await ensureDraft(git);
         const pending = await pendingChanges(git);
-        res.status(200).json({ draft, pending, role: session.role, login: session.login });
+        res.status(200).json({
+          draft,
+          pending,
+          role: session.role,
+          login: session.login,
+          repo: cfg.repo,
+        });
         return;
       }
 
@@ -80,6 +86,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           return;
         }
         res.status(200).json({ path, content: await git.readFile(sha, path) });
+        return;
+      }
+
+      case 'list': {
+        const dir = String(req.query.dir ?? '');
+        assertWritablePath(`${dir.replace(/\/$/, '')}/probe.mdx`);
+        const sha = await git.getRefSha(DRAFT_BRANCH);
+        res.status(200).json({ files: sha ? await git.listDir(sha, dir) : [] });
         return;
       }
 
@@ -130,6 +144,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           message: String(body.message ?? 'שחזור גרסה'),
         });
         res.status(200).json({ sha, pending: await pendingChanges(git) });
+        return;
+      }
+
+      case 'status': {
+        const sha = String(req.query.sha ?? (await git.getRefSha(TARGET_BRANCH)) ?? '');
+        res.status(200).json(sha ? await git.deploymentStatus(sha) : { state: 'unknown' });
         return;
       }
 

@@ -51,6 +51,23 @@ export function imageIds(src: string): string[] {
     .map((n: any) => String(n.resolvedKey[0]));
 }
 
+/**
+ * Remove one image entry, taking the blank line that separated it. The header
+ * comments and every other entry keep their exact bytes.
+ */
+export function removeImage(src: string, id: string): string {
+  const top = parseTOML(src).body[0] as any;
+  const tables = top.body.filter((n: any) => n.type === 'TOMLTable' && n.kind === 'standard');
+  const at = tables.findIndex((t: any) => String(t.resolvedKey[0]) === id);
+  if (at < 0) throw new Error(`no such image: ${id}`);
+
+  const start = tables[at].range[0];
+  const end = at + 1 < tables.length ? tables[at + 1].range[0] : src.length;
+  const joined = src.slice(0, start) + src.slice(end);
+  // Removing a block leaves the blank line that separated it on both sides.
+  return joined.replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '\n');
+}
+
 export function renderRecommendationEntry(entry: RecommendationEntry): string {
   return [
     '[[recommendations]]',

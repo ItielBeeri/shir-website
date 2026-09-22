@@ -55,6 +55,12 @@ export interface Field {
   options?: EnumOption[];
   /** Soft guidance, shown as a counter; never a hard truncation. */
   maxLength?: number;
+  /**
+   * The stored value is the negation of what the switch says. `draft: true`
+   * means hidden, so a switch labelled "shown on the site" must invert or it
+   * does the opposite of what it reads.
+   */
+  invert?: boolean;
 }
 
 export interface FieldGroup {

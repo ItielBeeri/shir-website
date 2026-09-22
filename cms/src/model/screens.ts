@@ -49,6 +49,7 @@ export const screens: Screen[] = [
         label: 'מוצג באתר',
         help: 'כל עוד זה כבוי, הפוסט נשמר אצלך ואינו מופיע באתר',
         type: 'boolean',
+        invert: true,
       },
     ],
   },
