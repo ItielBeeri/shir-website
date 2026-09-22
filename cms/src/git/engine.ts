@@ -16,6 +16,7 @@ import {
   assertWritablePath,
   assertWritablePaths,
 } from './paths.js';
+import { describePath } from '../model/describe.js';
 
 export type ChangeStatus = 'added' | 'modified' | 'removed';
 
@@ -132,23 +133,32 @@ const SUBJECT_LIMIT = 72;
 /**
  * One commit on master, describing everything it carries.
  *
- * The saves are the record of what the owner actually did - "עדכון דף הבית",
- * "הוספת תמונה: …" - and collapsing them into a single generic line throws
- * that away at exactly the moment it becomes the permanent history.
+ * The subject names what actually changed - the pages, not the actions. A
+ * session of fourteen saves that added an image and then deleted it again
+ * changed nothing about that image, and "14 שינויים" for three files counts
+ * keystrokes rather than consequences.
  *
- * Repeats are folded: saving the same page four times is one thing done, not
- * four. Order is oldest first, the order she did them in.
+ * The saves stay in the body, because they are still the record of what she
+ * did: "עדכון דף הבית", "הוספת תמונה: …" remain readable there without the
+ * subject claiming more than happened.
  */
-export function publishMessage(messages: readonly string[]): string {
-  const unique = [...new Set(messages.map((m) => m.split('\n')[0].trim()).filter(Boolean))];
-  if (unique.length === 0) return `${PUBLISH_PREFIX}עדכון תוכן`;
+export function publishMessage(
+  paths: readonly string[],
+  messages: readonly string[] = [],
+): string {
+  const names = [...new Set(paths.map(describePath))];
+  const log = [...new Set(messages.map((m) => m.split('\n')[0].trim()).filter(Boolean))];
+  const body = log.length ? `\n\n${log.map((m) => `- ${m}`).join('\n')}` : '';
 
-  const subject = `${PUBLISH_PREFIX}${unique.join(' · ')}`;
-  if (subject.length <= SUBJECT_LIMIT) return subject;
+  if (names.length === 0) return `${PUBLISH_PREFIX}עדכון תוכן${body}`;
 
-  // Too long for one line: summarise, and keep every message in the body.
-  const body = unique.map((m) => `- ${m}`).join('\n');
-  return `${PUBLISH_PREFIX}${unique.length} שינויים\n\n${body}`;
+  const subject = `${PUBLISH_PREFIX}${names.join(' · ')}`;
+  if (subject.length <= SUBJECT_LIMIT) return `${subject}${body}`;
+
+  // Too long for one line: count them, and list them above the action log.
+  const counted = names.length === 1 ? 'שינוי אחד' : `${names.length} שינויים`;
+  const listed = names.map((n) => `- ${n}`).join('\n');
+  return `${PUBLISH_PREFIX}${counted}\n\n${listed}${body}`;
 }
 
 /** Subjects of the draft's own commits, oldest first. */
@@ -298,7 +308,10 @@ export async function publish(t: GitTransport): Promise<PublishResult> {
   const { master, base, changes, blobs } = await draftChanges(t);
   if (changes.length === 0) throw new GitError('empty', 'nothing to publish');
 
-  const message = publishMessage(await draftMessages(t, base));
+  const message = publishMessage(
+    changes.map((c) => c.path),
+    await draftMessages(t, base),
+  );
 
   // A draft that somehow carries a change outside content is refused whole
   // rather than partially applied.
@@ -322,6 +335,33 @@ export async function publish(t: GitTransport): Promise<PublishResult> {
   await t.updateRef(DRAFT_BRANCH, commit, true);
 
   return { sha: commit, paths: changes };
+}
+
+/**
+ * Paths the draft changed that master has changed too since they parted.
+ *
+ * Publishing applies the draft's copy over master's for exactly these paths.
+ * That is correct, and it is what "publish my work" means - but it is also the
+ * one way the owner can undo somebody else's work without being told. The
+ * draft stays open for as long as she has unpublished edits, so the window is
+ * as long as her slowest piece of writing.
+ *
+ * Its own call rather than part of `pending`, because it costs two blob reads
+ * per changed path and only one screen has any use for the answer.
+ */
+export async function conflictingPaths(t: GitTransport): Promise<string[]> {
+  if (!(await t.getRefSha(DRAFT_BRANCH))) return [];
+  const { master, base, changes } = await draftChanges(t);
+
+  const out: string[] = [];
+  for (const change of changes) {
+    const [atBase, atMaster] = await Promise.all([
+      t.getBlobSha(base, change.path),
+      t.getBlobSha(master, change.path),
+    ]);
+    if (atBase !== atMaster) out.push(change.path);
+  }
+  return out;
 }
 
 /** What is waiting to be published, for the pending-changes tray. */

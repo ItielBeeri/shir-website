@@ -12,20 +12,10 @@ import type { FrontmatterValue } from '../content/frontmatter';
 import { ImageField } from '../components/ImagePicker';
 import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import { useStore } from '../store';
+import { slugFor } from '../lib/slug';
+import { todayInIsrael } from '../lib/today';
 
 const DIR = 'src/content/blog';
-
-/** The filename is the URL, so it is the title with spaces as hyphens. */
-export function slugFor(title: string): string {
-  return title
-    .trim()
-    .replace(/["'`]/g, '')
-    .replace(/[\\/:*?<>|#%{}\[\]]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 80);
-}
 
 export function NewPost({ onCreated }: { onCreated: (file: string) => void }): JSX.Element {
   const store = useStore();
@@ -55,7 +45,7 @@ export function NewPost({ onCreated }: { onCreated: (file: string) => void }): J
         n += 1;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayInIsrael();
       // Every value goes through the encoder rather than into a quoted
       // template: a two-line excerpt written between quotes is a YAML scalar
       // that folds back into one line, and the owner's line break is gone

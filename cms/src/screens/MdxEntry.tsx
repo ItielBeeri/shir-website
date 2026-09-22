@@ -7,14 +7,6 @@
  */
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { api, FriendlyError } from '../api';
-/**
- * The rich-text editor is most of the bundle and is needed only on a screen
- * that has a body to edit, so it arrives when one opens rather than before
- * the landing screen can paint.
- */
-const BodyEditor = lazy(async () => ({
-  default: (await import('../components/BodyEditor')).BodyEditor,
-}));
 import { FieldInput } from '../components/Fields';
 import type { FieldValue } from '../components/Fields';
 import { allBlocks, parseMdx, serializeMdx } from '../content/mdx-edit';
@@ -23,9 +15,18 @@ import type { PmNode } from '../content/pm-convert';
 import { hasField, parseFrontmatter, setField, setFields } from '../content/frontmatter';
 import type { FrontmatterValue } from '../content/frontmatter';
 import { useStore } from '../store';
-import { slugFor } from './NewPost';
+import { slugFor } from '../lib/slug';
 import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import type { Field } from '../model/types';
+
+/**
+ * The rich-text editor is most of the bundle and is needed only on a screen
+ * that has a body to edit, so it arrives when one opens rather than before
+ * the landing screen can paint.
+ */
+const BodyEditor = lazy(async () => ({
+  default: (await import('../components/BodyEditor')).BodyEditor,
+}));
 
 interface Props {
   path: string;

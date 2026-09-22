@@ -14,7 +14,7 @@ import { useStore } from '../store';
 import { findSlot, setValue } from '../content/toml-edit';
 import { reorderArrayTables } from '../content/toml-struct';
 import { parse as parseToml } from 'smol-toml';
-import { screens } from '../model/screens';
+import { describePath } from '../model/describe';
 
 /* ---------------------------------- menu ------------------------------------ */
 
@@ -119,6 +119,9 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
               <input
                 id={`nav-${item.origin}`}
                 type="text"
+                // Ten inputs all labelled "הכיתוב" name nothing; the visible
+                // label stays short and the accessible name says which row.
+                aria-label={`הכיתוב של «${item.label || `פריט ${at + 1}`}»`}
                 value={item.label}
                 onChange={(e) => {
                   const next = items.slice();
@@ -180,33 +183,7 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
 
 /* -------------------------------- describing -------------------------------- */
 
-/** A path the owner never sees, named the way she thinks of it. */
-export function describePath(path: string): string {
-  const screen = screens.find((s) => s.file === path);
-  if (screen) return screen.title;
-  if (path.startsWith('src/content/blog/')) {
-    return `הפוסט «${path.split('/').pop()?.replace(/\.mdx$/, '')}»`;
-  }
-  if (path.startsWith('src/content/therapies/')) {
-    const slug = path.split('/').pop()?.replace(/\.mdx$/, '');
-    const names: Record<string, string> = {
-      psychotherapy: 'פסיכותרפיה',
-      shiatsu: 'טיפול במגע',
-      voice: 'פתיחת קול',
-      workshops: 'סדנאות',
-      ceremonies: 'טקסים',
-    };
-    return `עמוד ${names[slug ?? ''] ?? slug}`;
-  }
-  if (path.startsWith('src/content/about/')) return 'עמוד אודות';
-  if (path.startsWith('public/img/recommendations/')) return 'צילום מסך של המלצה';
-  if (path.startsWith('public/img/_opt/')) return 'גרסאות מוקטנות של תמונות';
-  if (path.startsWith('public/img/')) return 'תמונה';
-  if (path === 'src/content/pages/accessibility.toml') return 'הצהרת נגישות';
-  if (path === 'src/content/pages/terms.toml') return 'תנאי שימוש ופרטיות';
-  if (path === 'src/content/pages/consent.toml') return 'באנר ההסכמה';
-  return path;
-}
+export { describePath } from '../model/describe';
 
 /**
  * The page on the site a content file produces, so a preview can open where

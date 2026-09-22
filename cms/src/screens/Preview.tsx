@@ -45,6 +45,16 @@ const STATUS_WORD: Record<string, string> = {
 const POLL_MS = 6000;
 const FRAME_TIMEOUT_MS = 8000;
 
+/**
+ * How long a build may keep the publish button to itself.
+ *
+ * Waiting for the preview is the right default - publishing something she has
+ * not seen is the thing this screen exists to prevent. But a rate limit, a
+ * paused project or a queued build must not become an inability to publish at
+ * all, so after this the gate opens with the honest caveat instead.
+ */
+const PATIENCE_MS = 90_000;
+
 export function Preview({ onPublished }: { onPublished: (sha: string) => void }): JSX.Element {
   const store = useStore();
   const [state, setState] = useState<State>('queued');
@@ -57,6 +67,9 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   const [discarding, setDiscarding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nudge, setNudge] = useState(0);
+  const [impatient, setImpatient] = useState(false);
+  /** Paths the site itself has changed since this draft started. */
+  const [clashes, setClashes] = useState<string[]>([]);
 
   const stage = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
@@ -72,6 +85,15 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
     observer.observe(el);
     return () => observer.disconnect();
   }, [url]);
+
+  // Asked once, here, because this is the only screen where the answer
+  // changes what she would do.
+  useEffect(() => {
+    void api
+      .conflicts()
+      .then(({ paths }) => setClashes(paths))
+      .catch(() => undefined);
+  }, [store.pending]);
 
   const check = useCallback(async () => {
     try {
@@ -94,6 +116,13 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   }, [check, nudge]);
 
   const waiting = state === 'queued' || state === 'building' || state === 'none';
+  /** Waiting is a reason to hold the button, not a reason to keep it forever. */
+  const blocked = waiting && !impatient;
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setImpatient(true), PATIENCE_MS);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     if (!waiting) return;
@@ -186,6 +215,25 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   return (
     <>
       {error && <p className="banner error">{error}</p>}
+
+      {clashes.length > 0 && (
+        <section className="group is-clash">
+          <h2>שווה לשים לב</h2>
+          <p>
+            {clashes.length === 1
+              ? 'הדבר הבא השתנה גם באתר מאז ששמרת אותו כאן, ופרסום יחזיר את הגרסה שלך:'
+              : 'הדברים הבאים השתנו גם באתר מאז ששמרת אותם כאן, ופרסום יחזיר את הגרסאות שלך:'}
+          </p>
+          <ul className="usage">
+            {clashes.map((path) => (
+              <li key={path}>{describePath(path)}</li>
+            ))}
+          </ul>
+          <p className="muted">
+            אם את לא בטוחה מה השתנה שם, אפשר לבטל את השינוי כאן ולהתחיל מהגרסה שבאתר.
+          </p>
+        </section>
+      )}
 
       <section className="group">
         <h2>מה ישתנה באתר</h2>
@@ -285,10 +333,15 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
       )}
 
       <div className="save-row publish-row">
-        <button className="primary" onClick={publish} disabled={busy || waiting}>
+        <button className="primary" onClick={publish} disabled={busy || blocked}>
           {busy ? 'מפרסם…' : 'פרסמי לאתר'}
         </button>
-        {waiting && <span className="muted">אפשר לפרסם ברגע שהתצוגה מוכנה.</span>}
+        {blocked && <span className="muted">אפשר לפרסם ברגע שהתצוגה מוכנה.</span>}
+        {waiting && impatient && (
+          <span className="muted">
+            הבנייה מתעכבת. אפשר לפרסם בכל זאת, ולבדוק באתר אחרי דקה.
+          </span>
+        )}
         {state === 'failed' && (
           <span className="invalid">הבנייה נכשלה. עדיף לפנות לאיתיאל לפני פרסום.</span>
         )}

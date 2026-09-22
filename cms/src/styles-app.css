@@ -220,7 +220,7 @@
   border-start-start-radius: var(--radius);
   border-start-end-radius: var(--radius);
 }
-.editor-tools button { min-block-size: 38px; padding: 6px 12px; font-size: var(--fs-small); }
+.editor-tools button { min-block-size: var(--tap); padding: 6px 12px; font-size: var(--fs-small); }
 .editor-tools button.is-on { background: var(--accent-soft); border-color: var(--accent); }
 .tools-sep { inline-size: 1px; background: var(--line); margin-inline: 4px; }
 
@@ -472,6 +472,7 @@
 /* Three ways in, because one was not enough: the bar on every screen, the
    drawer, and a card on the landing screen. */
 
+/* Every target is at least 44px (AGENTS.md §10); the bar's were 38. */
 .bar-publish {
   display: inline-flex;
   align-items: center;
@@ -482,7 +483,7 @@
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  min-block-size: 38px;
+  min-block-size: var(--tap);
   white-space: nowrap;
 }
 
@@ -526,7 +527,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  min-block-size: 38px;
+  min-block-size: var(--tap);
   font-size: var(--fs-small);
   font-weight: 600;
   white-space: nowrap;
@@ -590,4 +591,10 @@
   flex-wrap: wrap;
 }
 .draft-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.draft-actions button { font-size: var(--fs-small); padding: 8px 12px; min-block-size: 38px; }
+.draft-actions button { font-size: var(--fs-small); padding: 8px 12px; min-block-size: var(--tap); }
+
+.banner-issues { margin: 8px 0; padding-inline-start: 1.2rem; }
+.banner-issues li { margin-block-end: 4px; }
+
+/* A change that would overwrite one the site made meanwhile. */
+.group.is-clash { border-inline-start: 3px solid var(--danger); }

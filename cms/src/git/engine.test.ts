@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeGit } from './fake-git';
 import {
+  conflictingPaths,
   deleteFiles,
   discardPath,
   ensureDraft,
@@ -279,41 +280,68 @@ describe('pending, discard, restore, history', () => {
 
 describe('the published commit message', () => {
   const subjectOf = (message: string): string => message.split('\n')[0];
+  const HOME = 'src/content/pages/home.toml';
+  const ABOUT = 'src/content/about/about.mdx';
+  const IMAGE = 'public/img/content/a.jpg';
 
-  it('opens with the agreed prefix', () => {
-    expect(publishMessage(['עדכון דף הבית'])).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+  it('opens with the agreed prefix and names what changed', () => {
+    expect(subjectOf(publishMessage([HOME]))).toBe('פרסום ממערכת הניהול: דף הבית');
   });
 
-  it('carries every distinct message, oldest first', () => {
-    const out = publishMessage(['עדכון דף הבית', 'הוספת תמונה', 'עדכון אודות']);
-    expect(out).toContain('עדכון דף הבית');
-    expect(out).toContain('הוספת תמונה');
-    expect(out).toContain('עדכון אודות');
-    expect(out.indexOf('עדכון דף הבית')).toBeLessThan(out.indexOf('הוספת תמונה'));
+  it('names every changed page, not every action taken', () => {
+    const subject = subjectOf(publishMessage([HOME, ABOUT, IMAGE]));
+    expect(subject).toContain('דף הבית');
+    expect(subject).toContain('עמוד אודות');
+    expect(subject).toContain('תמונה');
   });
 
-  it('folds repeats: saving one page four times is one thing done', () => {
-    const out = publishMessage(['עדכון דף הבית', 'עדכון דף הבית', 'עדכון דף הבית']);
-    expect(out).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+  /**
+   * The point of R2-4: fourteen saves that added an image and deleted it
+   * again changed three files, and the subject should say three.
+   */
+  it('counts consequences, not keystrokes', () => {
+    const log = [
+      'עדכון דף הבית',
+      'הוספת תמונה: בדיקה',
+      'מחיקת תמונה: בדיקה',
+      'שחזור דף הבית',
+      'ביטול שחזור',
+      'עדכון דף הבית',
+    ];
+    const subject = subjectOf(publishMessage([HOME], log));
+    expect(subject).toBe('פרסום ממערכת הניהול: דף הבית');
+    expect(subject).not.toContain('6');
+    // The actions are still on the record, in the body.
+    for (const entry of log) expect(publishMessage([HOME], log)).toContain(entry);
+  });
+
+  it('folds a page saved four times into one name', () => {
+    expect(subjectOf(publishMessage([HOME, HOME, HOME]))).toBe('פרסום ממערכת הניהול: דף הבית');
   });
 
   it('keeps the subject readable and moves a long list into the body', () => {
-    const many = Array.from({ length: 8 }, (_, i) => `עדכון של פריט מספר ${i + 1} ברשימה`);
+    const many = Array.from({ length: 8 }, (_, i) => `src/content/blog/פוסט-מספר-${i + 1}.mdx`);
     const out = publishMessage(many);
     expect(subjectOf(out).length).toBeLessThanOrEqual(72);
-    expect(subjectOf(out)).toContain('פרסום ממערכת הניהול:');
     expect(subjectOf(out)).toContain('8 שינויים');
-    for (const m of many) expect(out).toContain(m);
+    for (const path of many) expect(out).toContain(path.split('/').pop()!.replace('.mdx', ''));
     expect(out.split('\n')[1]).toBe('');
   });
 
-  it('uses only the first line of a multi-line save message', () => {
-    expect(publishMessage(['כותרת\n\nגוף ההודעה'])).toBe('פרסום ממערכת הניהול: כותרת');
+  it('says "one change" rather than "1 changes"', () => {
+    const long = ['src/content/blog/' + 'פוסט-עם-שם-ארוך-במיוחד-שלא-נכנס-לשורה'.repeat(2) + '.mdx'];
+    expect(subjectOf(publishMessage(long))).toContain('שינוי אחד');
+  });
+
+  it('uses only the first line of a save message in the body', () => {
+    const out = publishMessage([HOME], ['כותרת' + '\n' + '\n' + 'גוף ההודעה']);
+    expect(out).toContain('- כותרת');
+    expect(out).not.toContain('גוף ההודעה');
   });
 
   it('never produces an empty subject', () => {
     expect(publishMessage([])).toBe('פרסום ממערכת הניהול: עדכון תוכן');
-    expect(publishMessage(['', '   '])).toBe('פרסום ממערכת הניהול: עדכון תוכן');
+    expect(subjectOf(publishMessage([], ['', '   ']))).toBe('פרסום ממערכת הניהול: עדכון תוכן');
   });
 
   it('composes the real master commit from the draft commits', async () => {
@@ -328,7 +356,10 @@ describe('the published commit message', () => {
 
     await publish(git);
     const [head] = await git.listCommits(TARGET_BRANCH, 1);
-    expect(head.message).toBe('פרסום ממערכת הניהול: עדכון דף הבית · הוספת תמונה: שיר בטבע');
+    // The subject names the two files; the body keeps what she did to them.
+    expect(head.message.split('\n')[0]).toBe('פרסום ממערכת הניהול: התמונות שלי · דף הבית');
+    expect(head.message).toContain('- עדכון דף הבית');
+    expect(head.message).toContain('- הוספת תמונה: שיר בטבע');
   });
 
   it('does not sweep in commits that were already on master', async () => {
@@ -341,7 +372,8 @@ describe('the published commit message', () => {
 
     await publish(git);
     const [head] = await git.listCommits(TARGET_BRANCH, 1);
-    expect(head.message).toBe('פרסום ממערכת הניהול: עדכון דף הבית');
+    expect(head.message.split('\n')[0]).toBe('פרסום ממערכת הניהול: דף הבית');
+    expect(head.message).toContain('- עדכון דף הבית');
     expect(head.message).not.toContain('עבודה של איתיאל');
     expect(head.message).not.toContain('initial');
   });
@@ -405,5 +437,62 @@ describe('a path the two branches agree on', () => {
       branch: TARGET_BRANCH,
     });
     expect((await pendingChanges(git)).map((c) => c.path)).toEqual(['src/content/site.toml']);
+  });
+});
+
+/**
+ * The lost-update window a long-lived draft opens: publishing applies her copy
+ * over master's for the paths she touched, which is right, and is also how she
+ * could undo somebody else's work without being told.
+ */
+describe('a path the site changed too', () => {
+  beforeEach(async () => {
+    git = new FakeGit(SEED);
+    await ensureDraft(git);
+  });
+
+  it('is named when both branches moved it', async () => {
+    await saveFiles(git, {
+      message: 'עדכון דף הבית',
+      files: [{ path: 'src/content/pages/home.toml', content: 'שלי', encoding: 'utf-8' }],
+    });
+    await git.commitDirect(
+      TARGET_BRANCH,
+      { 'src/content/pages/home.toml': 'של מישהו אחר' },
+      'work upstream',
+    );
+    expect(await conflictingPaths(git)).toEqual(['src/content/pages/home.toml']);
+  });
+
+  it('is silent when only she moved it', async () => {
+    await saveFiles(git, {
+      message: 'עדכון דף הבית',
+      files: [{ path: 'src/content/pages/home.toml', content: 'שלי', encoding: 'utf-8' }],
+    });
+    await git.commitDirect(TARGET_BRANCH, { 'src/content/site.toml': 'אחר' }, 'elsewhere');
+    expect(await conflictingPaths(git)).toEqual([]);
+  });
+
+  it('is silent when only the site moved it', async () => {
+    await saveFiles(git, {
+      message: 'עדכון אודות',
+      files: [{ path: 'src/content/about/about.mdx', content: 'שלי', encoding: 'utf-8' }],
+    });
+    await git.commitDirect(TARGET_BRANCH, { 'src/content/pages/home.toml': 'אחר' }, 'elsewhere');
+    expect(await conflictingPaths(git)).toEqual([]);
+  });
+
+  it('is silent when the two agree on the new content', async () => {
+    await saveFiles(git, {
+      message: 'עדכון דף הבית',
+      files: [{ path: 'src/content/pages/home.toml', content: 'אותו דבר', encoding: 'utf-8' }],
+    });
+    await git.commitDirect(TARGET_BRANCH, { 'src/content/pages/home.toml': 'אותו דבר' }, 'same');
+    expect(await conflictingPaths(git)).toEqual([]);
+  });
+
+  it('says nothing at all when there is no draft', async () => {
+    const fresh = new FakeGit(SEED);
+    expect(await conflictingPaths(fresh)).toEqual([]);
   });
 });

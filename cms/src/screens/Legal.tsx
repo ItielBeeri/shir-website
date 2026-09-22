@@ -18,7 +18,8 @@ import { ParagraphsInput } from '../components/Fields';
 import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
 import { useStore } from '../store';
 import { CONSENT_PAIR_NOTE, lockForBannerKey, lockForSection } from '../model/locks';
-import { legalProblems, measurementSection } from '../model/legal';
+import { bannerProblems, legalProblems, measurementSection } from '../model/legal';
+import { todayInIsrael } from '../lib/today';
 
 const DOCS = [
   { file: 'src/content/pages/accessibility.toml', title: 'הצהרת נגישות' },
@@ -115,6 +116,20 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
 
   const draft = useDraftKeeper(file, { values, lists }, { dirty, ready: source !== null });
 
+  /**
+   * The balance rules, live. They are the reason a save is refused, so she
+   * reads them beside the field rather than after a round trip that says no.
+   */
+  const bannerIssues = isConsent
+    ? bannerProblems(
+        Object.fromEntries(
+          Object.entries(values)
+            .filter(([key]) => key.startsWith('banner.'))
+            .map(([key, value]) => [key.slice('banner.'.length), value]),
+        ),
+      )
+    : [];
+
   const bannerChanged =
     isConsent && ['banner.title', 'banner.body', 'banner.accept', 'banner.decline'].some(
       (key) => values[key] !== initial[key],
@@ -140,7 +155,7 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
       // The date is part of the document's meaning, not bookkeeping: it is
       // shown to visitors and is what makes the statement current.
       if (!isConsent && dirty) {
-        edits.push({ path: ['meta', 'updated'], value: new Date().toISOString().slice(0, 10) });
+        edits.push({ path: ['meta', 'updated'], value: todayInIsrael() });
       }
 
       next = setValues(next, edits);
@@ -260,11 +275,19 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
       {/* Beside the button: the save is at the foot of a long document. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
+      {bannerIssues.length > 0 && (
+        <ul className="invalid banner-issues">
+          {bannerIssues.map((problem, i) => (
+            <li key={i}>{problem.reason}</li>
+          ))}
+        </ul>
+      )}
+
       <div className="save-row">
         <button
           className="primary"
           onClick={save}
-          disabled={!dirty || busy || (bannerChanged && !paired)}
+          disabled={!dirty || busy || bannerIssues.length > 0 || (bannerChanged && !paired)}
         >
           {busy ? 'שומר…' : 'שמירה'}
         </button>

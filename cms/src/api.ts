@@ -121,6 +121,9 @@ export const api = {
 
   pending: () => call<{ pending: PathChange[] }>('pending', {}),
 
+  /** Paths the site has changed too since this draft was started. */
+  conflicts: () => call<{ paths: string[] }>('conflicts', {}),
+
   list: (dir: string) =>
     call<{ files: string[] }>('list', undefined, `?dir=${encodeURIComponent(dir)}`),
 

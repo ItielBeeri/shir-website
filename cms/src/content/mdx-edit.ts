@@ -53,15 +53,20 @@ const parseBody = (body: string) =>
  */
 function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
   const out: Inline[] = [];
+  const text = (from: number, to: number): Inline => ({
+    type: 'text',
+    value: unescapeInlineText(body.slice(from, to)),
+  });
+
   let cursor = nodes.length ? nodes[0].position.start.offset : contentEnd;
   for (const n of nodes) {
     const start = n.position.start.offset;
     const end = n.position.end.offset;
-    if (start > cursor) out.push({ type: 'text', value: body.slice(cursor, start) });
+    if (start > cursor) out.push(text(cursor, start));
     cursor = end;
     switch (n.type) {
       case 'text':
-        out.push({ type: 'text', value: body.slice(start, end) });
+        out.push(text(start, end));
         break;
       case 'emphasis':
         out.push({
@@ -77,9 +82,24 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
         out.push({ type: 'opaque', source: body.slice(start, end) });
     }
   }
-  if (contentEnd > cursor) out.push({ type: 'text', value: body.slice(cursor, contentEnd) });
+  if (contentEnd > cursor) out.push(text(cursor, contentEnd));
   return out;
 }
+
+/**
+ * The inverse of `escapeInlineText`, applied on the way in.
+ *
+ * Text nodes carry the source slice rather than what the parser read, so that
+ * the trailing spaces CommonMark drops from a line end survive - but the slice
+ * still holds the escapes. Without undoing them here, escaping on the way out
+ * runs over its own output and every save adds another backslash: `\#` becomes
+ * `\\#` becomes `\\\\#`, and the owner's text grows a visible backslash each
+ * time she presses save.
+ */
+/** CommonMark's escapable set - every ASCII punctuation mark, `\` included. */
+const ESCAPED = /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g;
+
+export const unescapeInlineText = (value: string): string => value.replace(ESCAPED, '$1');
 
 /**
  * Neutralise punctuation the markdown and MDX grammars would claim.

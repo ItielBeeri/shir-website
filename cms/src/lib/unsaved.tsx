@@ -18,21 +18,14 @@ let unsaved = false;
 export const hasUnsaved = (): boolean => unsaved;
 
 /**
- * Ask before leaving a screen with unsaved work. A native dialog, because it
- * is the one prompt that cannot be missed, reaches the keyboard for free and
- * needs no Hebrew layout work of its own.
+ * The screen is going away, so the question is answered.
+ *
+ * Clearing it here also means a screen that somehow left the flag set costs
+ * one dialog rather than making the whole app unnavigable.
  */
-export function confirmLeave(): boolean {
-  if (!unsaved) return true;
-  const leaving = window.confirm(
-    'יש כאן שינויים שלא נשמרו. לצאת בלי לשמור? מה שכתבת יישמר בדפדפן ויחכה לך כאן.',
-  );
-  // The screen is going away, so the flag is answered either way. Clearing it
-  // here also means a screen that somehow left it set costs one prompt rather
-  // than making the whole app unnavigable.
-  if (leaving) unsaved = false;
-  return leaving;
-}
+export const releaseUnsaved = (): void => {
+  unsaved = false;
+};
 
 export interface DraftKeeper<T> {
   /** Work from a previous visit that never reached the site, or null. */

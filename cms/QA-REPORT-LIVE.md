@@ -1,377 +1,397 @@
 # CMS live quality report — admin.shir-amitai.com
 
-End-to-end execution of `cms/TEST-SPEC.md` against the **production deployment**,
-driven through a real browser as the owner would use it.
+End-to-end execution of `cms/TEST-SPEC.md` against the **production deployment**, driven
+through a real browser as the owner would use it.
 
-| | |
-|---|---|
-| **Date** | 2026-09-22 |
-| **Target** | `https://admin.shir-amitai.com` (production) |
-| **Build under test** | `ce3ac9c` — confirmed by fetching `/assets/index-wjknNLPx.js` and matching three strings introduced only in that commit |
-| **Signed-in role** | `maintainer` (`ItielBeeri`) — **not** `owner` |
-| **Repo baseline at start** | `master` = `content-draft` = `ce3ac9c`, content trees identical |
-| **Repo state at end** | every file this run touched is byte-identical to `master`; `master` never written |
+| | Run 1 | Run 2 (current) |
+|---|---|---|
+| **Date** | 2026-09-22 | 2026-09-23 |
+| **Build under test** | `ce3ac9c` | post-`956bfdf` (`index-Cy-Xi7a0.js`, code-split) |
+| **Signed-in role** | maintainer | maintainer |
+| **Repo at start** | `master` = `content-draft` = `ce3ac9c` | `master` `5858e01`, draft `39a94fb` |
+| **Verdict** | Suite fails; 1 critical | Critical fixed; 1 new high; 2 areas unverifiable |
 
-> **The repository was in active concurrent use throughout.** `master` advanced twice
-> (`cfc2797 add social links`) and the site owner (`shiramitai1`) created a blog post and
-> uploaded an image into the shared `content-draft` while testing was in progress. This
-> shaped two decisions, both recorded in §6: the publish test was **not** performed, and
-> cleanup was done surgically rather than by resetting a branch.
+Run 2 re-tested **everything** — the previously-failing rows *and* the previously-passing
+ones, to catch regressions. Findings are numbered as in run 1 (`C-`, `H-`, `M-`, `L-`) so the
+two reports line up; new run-2 findings are numbered `R2-`.
 
 ---
 
 ## 1. Verdict
 
-**The suite does not pass.** Of the six exit criteria in TEST-SPEC §1, none is met, and one
-failure is severe enough to matter on its own:
+**The critical defect is fixed, and fixed properly.** Run 1's headline — the CMS writing the
+owner's body text into MDX unescaped, producing a second `<h1>` and a live link — is gone,
+verified on the built production page rather than by reading code. Of run 1's ten `H-` items
+and nine `M-`/`L-` items, **every one is fixed or materially improved.** That is an unusually
+clean sweep.
 
-> **The CMS writes the owner's body text into MDX without escaping markdown.** Typing
-> `# כותרת` produces a real second `<h1>`; typing `[טקסט](url)` produces a real link. This is
-> incident **R-2** — the one the spec names as already having happened in production — and it
-> is reproducible today, not hypothetical. It also falsifies guarantees **X-6** and **X-7**.
+Three things stop this being a pass:
 
-The build **is** strong in the places that were hardest to get right: TOML value fidelity,
-the single-commit write path, the `_href`/`_display` derivation, the image-reference guard,
-per-file `updated` bumping, and the merge-base measurement that protects the images bot.
-The failures cluster in **output escaping, safety-net features that were specified but never
-built (restore, rename, reorder, draft persistence), and server-side enforcement of rules
-that exist only in client code.**
+1. **R2-1 (new, high).** While a form has unsaved changes, *every* way out of the screen is
+   silently blocked — back, the title, and every drawer destination. No dialog, no message.
+   The owner is trapped until she saves or manually undoes her edit.
+2. **R2-6 (high, environment-triggered).** When a deployment does not arrive, the publish
+   button is disabled forever with no timeout and no override. This is not hypothetical — it
+   happened during this run because Vercel was rate-limiting, and it turned a build hiccup
+   into a total inability to publish through the UI.
+3. **Two areas remain unverified** (§7): the owner-role legal locks, and everything that
+   depends on a preview deployment.
 
-| Exit criterion | Result |
-|---|---|
-| All 58 acceptance rows pass | **No** — 6 fail, 8 partial, 3 not exercised (§4) |
-| Every §4.1 fidelity gate passes live | **Mostly** — TOML exact; MDX rewrites the EOF newline run (F-7) |
-| Build parity (§4.4) | **No** — see F-7, F-10; `P-1` byte-identity fails on first MDX touch |
-| Every §7 guarantee passes | **No** — X-6, X-7, X-9, X-11, X-13, X-14 fail (§3) |
-| Zero `axe` violations at 390/1280 | **No** — systemic contrast failure (F-25); also no `<h1>` |
-| Green in CI three times running | Not applicable — no browser suite exists yet |
-
----
-
-## 2. Critical
-
-### C-1 · Body text is serialized to MDX unescaped → `<h1>` and links injected
-**Fails X-6, X-7, R-2, A-4.5.**
-
-In a blog post body I typed four separate paragraphs:
-
-```
-כאן מתחיל הפוסט.
-# ניסיון כותרת ראשית
-[קישור אסור](https://example.com)
-## ניסיון כותרת שנייה
-```
-
-The editor correctly showed all four as literal text — no `<h1>`, no `<a>` in the editing
-surface. But the serializer wrote them verbatim into the `.mdx`, on consecutive lines with no
-escaping. The draft branch then built, and the **rendered production-grade page** reported:
-
-```
-h1count: 2
-h1s: ["בדיקת איכות: \"ציטוט\" ו#תגית", "ניסיון כותרת ראשית"]
-h2s: ["ניסיון כותרת שנייה"]
-linksInBody: ["https://example.com | קישור אסור"]
-```
-
-Three separate consequences:
-
-1. **X-6 fails.** Two `<h1>` on one page. AGENTS.md §10 requires exactly one.
-2. **X-7 fails.** A link was authored with no link control, exactly what the spec says is impossible.
-3. **A-4.5 fails, and WYSIWYG is broken in the dangerous direction** — the editor shows the
-   owner something *safer* than what ships. She cannot see the problem before publishing.
-
-The vulnerable class is every markdown-significant construct: leading `#`, `-`, `>`, `1.`,
-and inline `[..](..)`, `*`, `_`, `` ` ``. Only a serializer that escapes them is safe; the
-editor's refusal to *render* them is not protection.
-
-Note the same save also merged four editor paragraphs into one markdown block (no blank line
-between them), so the help text — *"`Enter` מתחיל פסקה חדשה, עם רווח בין הפסקאות"* — did not
-describe what happened.
+| Exit criterion | Run 1 | Run 2 |
+|---|---|---|
+| All 58 acceptance rows pass | No — 6 fail | **No** — 1 fail, 2 blocked, 5 partial |
+| §4.1 fidelity gates pass live | Mostly | **Yes** (TOML exact; MDX EOF fixed; unknown keys preserved) |
+| Build parity (§4.4) | No | **Improved** — no evidence of divergence found |
+| Every §7 guarantee passes | No — 6 fail | **Near** — X-6/X-7/X-9/X-11/X-13/X-14 now hold; X-7 has a residual |
+| Zero `axe` violations | No | **Contrast and naming now pass**; full axe still not runnable (§7) |
+| Green in CI three times | n/a | n/a |
 
 ---
 
-## 3. High
+## 2. The critical defect is fixed — with production proof
 
-### H-1 · Multi-line frontmatter loses the owner's line break (fidelity)
-A `longtext` frontmatter field is emitted as a **multi-line double-quoted YAML scalar**:
+Run 1's **C-1** (fails X-6, X-7, R-2) is resolved. The serializer now escapes markdown. I
+typed the identical hostile input plus four more constructs, published it, and read the built
+page at `https://www.shir-amitai.com/blog/qa2-כתובת-חדשה-אחרי-שינוי`:
+
+```
+h1count: 1          h1s: ["QA2 בדיקת רגרסיה: \"ציטוט\" ו#תגית"]
+h2s:     []
+body:    # ניסיון כותרת ראשית  [קישור אסור](https://example.com)  ## ניסיון כותרת שנייה
+         - ניסיון רשימה …  > ניסיון ציטוט …  1. ניסיון רשימה ממוספרת
+         <script>alert(1)</script>  <SoftImage id="x" />  {expr}
+```
+
+Exactly one `<h1>` — the post title. No `<h2>`. Every construct renders as literal text. The
+on-disk MDX shows why:
+
+```
+\# ניסיון כותרת ראשית
+\[קישור אסור\](https://example.com)
+\- ניסיון רשימה וגם > ציטוט וגם \*כוכבית\* וגם \`קוד\`
+\> ניסיון ציטוט בתחילת שורה
+1\. ניסיון רשימה ממוספרת
+\<script>alert(1)\</script> וגם \<SoftImage id="x" /> וגם \{expr}
+```
+
+`#`, `[`, `]`, `-`, `*`, `` ` ``, `>`, `1.`, `<` and `{` are all escaped — including the MDX-specific
+`<jsx>` and `{expr}` forms, which run 1 never even probed. Paragraph separation is also
+restored (run 1 collapsed four paragraphs into one block). **R-2 cannot recur.**
+
+Run 1's **H-1** is fixed in the same area: multi-line frontmatter is now emitted as a YAML
+block scalar, so the owner's line break survives.
 
 ```yaml
-excerpt: "שורה ראשונה של ההזמנה.
-שורה שנייה אחרי ירידת שורה."
+excerpt: |-
+  שורה ראשונה של ההזמנה.
+  שורה שנייה אחרי ירידת שורה.
 ```
 
-YAML *folds* a line break inside a double-quoted scalar into a space. Parsed with the CMS's
-own pinned `js-yaml`:
-
-```
-excerpt: "שורה ראשונה של ההזמנה. שורה שנייה אחרי ירידת שורה."
-excerpt contains newline: false
-```
-
-Confirmed on the built page's `<meta name="description">`. The owner typed two lines; the site
-shows one; reopening the post shows one. AGENTS.md §5 specifically promises that a single
-newline in a multi-line frontmatter string survives (`remark-breaks`) — a block scalar (`|`)
-or a blank-line-separated form would deliver that. Silent loss of typed content.
-
-### H-2 · No draft persistence — work is lost without warning
-**Fails X-9 and N-15.**
-
-- `localStorage` and `sessionStorage` are both **empty** — there is no draft store.
-- No `beforeunload` guard (`dispatchEvent` → `defaultPrevented: false`).
-- Navigating away discards silently: three unsaved consent-banner edits vanished on one click
-  of the title, with no prompt, and were gone on return.
-
-Because nothing is persisted locally, **N-15** ("an expired session re-authenticates without
-losing the in-progress draft") also cannot hold.
-
-### H-3 · The restore feature does not exist
-**Fails G-12 and A-9.3.**
-
-The screen is titled **"היסטוריה ושחזור"** (history *and restore*) and lists master's commits
-correctly with Hebrew dates. It contains **zero buttons**. Its own copy tells the owner to
-telephone the maintainer: *"אם משהו השתבש, אפשר לפנות לאיתיאל עם התאריך ולחזור לגרסה קודמת."*
-
-The `restore` action is implemented server-side and reachable — nothing in the UI calls it.
-A-9.3's "history offers one-click restore" is unmet, and the title promises what it withholds.
-
-### H-4 · Legal-field locks are client-only
-**Fails X-11 (the API half).**
-
-`cms/src/model/locks.ts` lives entirely in the client bundle. `cms/api/content/[action].ts`
-reads `session.role` only to echo it back from `start`; `save` runs `asFiles` → `assertWritablePath`
-→ `saveFiles`, and **no code path anywhere under `api/` consults a lock or a role**. An `owner`
-session can therefore commit a locked legal field by posting to `/api/content/save` directly.
-
-X-11 explicitly requires the direct-API attempt to be rejected. (Code-verified; not exercisable
-from this `maintainer` session, which is permitted to edit these fields by design.)
-
-### H-5 · Consent-banner balance is not enforced
-**Fails X-13.**
-
-With the banner open I set:
-
-- accept → `כן, אני מסכימה בשמחה! (מומלץ)`
-- decline → `לא`
-
-and separately reduced the legally-required body sentence to `עוגיות.`
-
-Every one was accepted: save stayed enabled, no validation message, no warning. There is no
-balance or content check anywhere — the only protection is the client-side lock, which H-4
-shows is not enforced server-side. AGENTS.md §12 is explicit that consent obtained through a
-weakened refusal is invalid and would void the acceptances too.
-
-### H-6 · Banner and terms are not linked
-**Fails X-14 and the second half of A-10.5.**
-
-Editing the consent banner does not surface the matching `מדידה וסטטיסטיקה` section of
-`terms.toml`, and nothing gates publish on visiting it. `Legal.tsx`'s own header comment states
-the intent ("the banner surfaces the terms section that has to say the same thing") but no code
-implements it.
-
-### H-7 · A post's URL cannot be changed
-**Fails A-4.8.** The entry screen offers exactly two actions — `שמירה` and `מחיקה`. There is no
-rename control anywhere. `DELIBERATELY_HIDDEN` documents `slug` as *"כתובת הפוסט, נשלטת דרך שינוי שם"*,
-describing a mechanism that does not exist.
-
-### H-8 · The menu cannot be reordered
-**Fails A-8.3.** The nav editor has one button (`שמירה`), no drag handles, and
-`[draggable="true"]` matches nothing. Relabelling and the `header` switch work, and `href` is
-correctly absent — but `nav.toml` is the single source of truth for menu **order**, and order
-is not editable.
-
-### H-9 · Publish status can report the wrong deployment
-**Fails A-1.5 and A-9.2.**
-
-`deploymentStatus()` takes `deployments[0]` for a sha, on the stated assumption that *"the draft
-branch only ever has a preview deployment and master only a production one."* **Two Vercel
-projects build this repository**, so one commit carries deployments from both. Observed live:
-
-```
-status for master → https://shir-website-editor-4jef45xqw-....vercel.app
-```
-
-That is the **CMS's own** deployment, not the site's. The indicator the owner reads to answer
-"did it go up?" can be reporting a different project's build.
-
-### H-10 · Text contrast fails WCAG AA
-**Fails N-5.** The muted grey is used for every card blurb, all help text and every status line:
-
-| Token | Colours | Size | Ratio | AA needs |
-|---|---|---|---|---|
-| `.blurb` | `rgb(138,131,122)` on `rgb(255,253,250)` | 14 px | **3.69:1** | 4.5:1 |
-| `.muted` | `rgb(138,131,122)` on `rgb(232,240,237)` | 14 px | **3.23:1** | 4.5:1 |
-
-Body text and labels are fine (14.06:1). `axe` would flag `color-contrast` on nearly every screen.
+Parsed with the CMS's own pinned `js-yaml`: `excerpt contains newline: true`. Run 1 folded it
+to a space.
 
 ---
 
-## 4. Medium
+## 3. New in run 2
 
-| # | Finding | Row |
+### R2-1 · Unsaved changes trap the owner on the screen — HIGH
+The unsaved-changes work (which correctly fixed X-9) introduced a navigation dead-end. With
+one character typed into any form, I tried all three exit routes:
+
+| Route | Result |
+|---|---|
+| Back button (`חזרה`) | nothing happens |
+| Screen title / home button | nothing happens |
+| Any drawer destination | drawer closes, nothing happens |
+
+No modal, no banner, no console error. The drawer closing makes it look like the click
+registered, so the app appears frozen. Navigation resumes the instant the field is reverted to
+its pristine value. There is no "discard and leave" affordance, so the only exits are saving
+the change or manually retyping the original text.
+
+This is worse than run 1's behaviour (which discarded silently): run 1 lost work, run 2 blocks
+the owner. The right shape is the one the app already uses on reload — a Hebrew choice between
+keeping and discarding.
+
+### R2-6 · No timeout or override when a deployment never arrives — HIGH
+`deploymentStatus` correctly returns `none` when GitHub has no deployment for a sha. The
+preview screen maps that to *"מחכה שהבנייה תתחיל…"* and **disables publish indefinitely**.
+
+During this run Vercel was rate-limiting, so no deployment was created for any draft sha. I
+observed the draft stuck at `none` for **3.5 minutes** across two separate attempts, with:
+
+- no preview iframe,
+- publish disabled,
+- no override button, no timeout, no way to proceed.
+
+The owner simply cannot publish. I completed the publish test only by calling
+`/api/content/publish` directly — which she cannot do.
+
+The trigger was environmental, but the gap is real and is a **regression in robustness**: run
+1's build returned `unknown` in this situation and allowed publishing with the honest caveat
+*"אפשר לפרסם, ולבדוק באתר אחרי דקה."* Tightening X-10 removed that escape hatch. A rate limit,
+a paused project or a queued build now becomes a content-publishing outage with no recourse.
+
+### R2-2 · Rename previews the wrong URL — MEDIUM
+The rename dialog previews `הכתובת החדשה תהיה: /blog/QA2-כתובת-חדשה-אחרי-שינוי` and warns that
+the old URL will break. The site actually serves the slug **lowercased**:
+`/blog/qa2-כתובת-חדשה-אחרי-שינוי`. The previewed URL 404s — I hit this myself before finding
+the real link on the blog index. Anyone copying the previewed address gets a dead link.
+
+### R2-3 · A bare URL still becomes a link — LOW
+X-7 claims "she cannot author a link". Markdown link *syntax* is now neutralised, but GFM
+autolinking still turns a bare `https://…` in body copy into a live `<a href>`; the published
+test post contains a working anchor to `example.com`. Not the R-2 class of defect, and
+arguably desirable behaviour — but the guarantee as written is still not literally true.
+
+### R2-4 · The publish message counts actions, not changes — LOW
+`publishMessage` folds the draft's commit *subjects*. My session's publish produced:
+
+> `פרסום ממערכת הניהול: 14 שינויים`
+
+for **3** net files, listing pairs that cancelled out entirely (`הוספת תמונה…` + `מחיקת תמונה…`,
+`שחזור דף הבית…` + `ביטול שחזור…`). For history the owner reads later, the net paths would be
+truer than the action log.
+
+### R2-7 · The status can still report the CMS's own deployment — MEDIUM
+H-9's fix is incomplete. Querying the status of the revert commit `7b18217` returned:
+
+```
+state: ready
+url:   https://shir-website-editor-7z3cjlqve-shiramitai1-3216s-projects.vercel.app
+```
+
+That is the **CMS project**, presented as the site's build state. Two guards were added and
+both miss:
+
+- `deployments.filter(d => d.environment.includes(project))` — `SITE_VERCEL_PROJECT` is
+  optional and appears unset here; and GitHub's `environment` for Vercel deployments is
+  normally `Production`/`Preview`, which would not contain a project name even if it were set.
+  So `named` is empty and the code falls through to *all* deployments for the sha.
+- The fallback then skips a deployment whose host equals `selfHost`, but `selfHost` is derived
+  from the request host (`admin.shir-amitai.com`) while the CMS's own `environment_url` is a
+  `*.vercel.app` preview host. The comparison never matches, so nothing is skipped.
+
+It resolved correctly earlier in the run only because the site project had also deployed that
+sha and happened to come first. The consequence is the run-1 defect in a narrower form: the
+owner can be shown *"התצוגה מוכנה"* plus a link to the admin app instead of her site, and the
+publish gate can unblock on the wrong project's build.
+
+### R2-5 · Legal `updated` date uses UTC — LOW
+The date is computed with `toISOString()`, so between midnight and 03:00 Israel time it writes
+*yesterday*. Observed: editing the accessibility statement on 2026-09-23 wrote
+`updated = "2026-09-22"`. Narrow, but it is a dated legal declaration.
+
+---
+
+## 4. Everything from run 1, re-tested
+
+### Fixed and verified
+
+| Run 1 finding | Status in run 2 | Evidence |
 |---|---|---|
-| M-1 | **An MDX comment is editable prose.** `about.mdx` line 8 begins `{/* PLACEHOLDER: TXT_ABOUT_OPENING */}` inline; the editor renders it as the first words of the owner's first paragraph. She sees MDX syntax and can delete the marker. | A-2.5, F-17 |
-| M-2 | **The app has no `<h1>` on any screen.** The signed-out page has one; every signed-in screen has none (region `<h2>`s only). `axe` `page-has-heading-one`; no document title landmark for screen readers. | N-5 |
-| M-3 | **Therapy list shows three blank thumbnails.** `Collection.tsx` reads only `data.cover`; therapies carry `hero_image`/`teaser_image`, so every row renders an empty `<span class="entry-thumb">`. Blog rows (which do have `cover`) render correctly. | A-5.1 |
-| M-4 | **Drawer is not a modal.** No `role="dialog"`, no `aria-modal`, no focus trap, background not scroll-locked, and focus lands on `<body>` after Escape instead of returning to the hamburger. Escape does close it, and the image picker *is* a correct dialog — so the pattern exists, just not here. | N-6 |
-| M-5 | **Nav editor rows are indistinguishable to assistive tech.** All 8 rows use the labels `הכיתוב` and `מופיע גם בתפריט העליון`, with 0 fieldsets, 0 headings and no per-row `aria-label`. | N-8 |
-| M-6 | **Image delete is two commits** (`api.save` for the manifest, then `api.remove` for the file). A failure between them orphans one half. The *add* path is correctly one commit — the asymmetry is the bug. | G-2 |
-| M-7 | **MDX save rewrites the trailing newline run.** `about.mdx` went `"\n"` → `"\n\n\n"` (+2 blank lines). It is idempotent (a second save kept 62 lines) and harmless to the build, but `P-1` byte-identity against a hand edit fails on first touch. `psychotherapy.mdx`, which had no EOF newline, gained exactly one — a correct normalisation. | F-8, P-1 |
-| M-8 | **Client-side validation failures are reported as a network error.** `save` with `files: []` and the `MAX_CONTENT` overflow both throw a plain `Error`, falling through to the generic `502 {error:'upstream'}`, which the client maps to *"לא הצלחתי להגיע ל-GitHub כרגע"*. An oversized upload therefore tells the owner GitHub is unreachable. | N-12, N-14 |
-| M-9 | **Bundle is 334 KB gzipped (1.09 MB raw) in a single chunk**, no code splitting. FCP measured 1,996 ms on a fast desktop link; on emulated 4G the transfer alone is ~1.7 s before parse. **N-16** (<2 s interactive on 4G) is very unlikely to hold. *(Measured on a fast connection — stated as at-risk, not as a measured 4G failure.)* | N-16 |
+| **C-1** markdown injection → `<h1>`/links | **Fixed** | §2, production page: `h1count: 1` |
+| **H-1** frontmatter newline folded | **Fixed** | block scalar `|-`; js-yaml keeps `\n` |
+| **H-2 / X-9** no draft persistence | **Fixed** | `localStorage['shir-cms-drafts']` keyed by path + timestamp; `beforeunload` guarded; after a hard reload the app offers *"יש כאן שינויים שהתחלת ולא נשמרו · שחזור מה שכתבתי · להתחיל מהגרסה שבאתר"* — it does **not** silently substitute. Restore verified. |
+| **H-3 / G-12** no restore UI | **Fixed** | Commits expand to their file list with *"החזרה לגרסה הזו"* and a Hebrew confirm. Restoring `home.toml` produced blob `96c81b8…` — **identical to the target blob**. |
+| **H-4 / X-11** locks client-only | **Fixed (server)** | `assertLegal()` now runs `legalProblems(path, before, after, role)` server-side on every save of a legal file. |
+| **H-5 / X-13** no balance enforcement | **Fixed at the boundary** | `bannerProblems()` runs server-side for all roles. Saving `accept = "כן, אני מסכימה בשמחה! (מומלץ)"` / `decline = "לא"` was **rejected** with the full Hebrew reason, and `consent.toml` was unchanged. *Residual:* the client still enables the button, so the failure arrives after a round trip instead of inline. |
+| **H-6 / X-14 / A-10.5** banner ↔ terms unlinked | **Fixed** | Editing the banner surfaces the matching `מדידה וסטטיסטיקה` terms section **inline**, and blocks save until *"קראתי, והשניים אומרים את אותו הדבר"* is ticked. |
+| **H-7 / A-4.8** no rename | **Fixed** (see R2-2) | *"שינוי הכתובת"* dialog with live slug preview. The write is **one commit**, git-detected as a pure rename (0 insertions / 0 deletions), content byte-preserved. |
+| **H-8 / A-8.3** no nav reorder | **Fixed** | Per-row buttons labelled *"העברת «בלוג» למעלה"*. `nav.toml` diff is a clean block permutation with per-block alignment preserved. |
+| **H-9** status showed the wrong project | **Partial — see R2-7** | Resolved correctly to the site project (`shir-amitai-mv1cmckdc-…`) once, but later returned the CMS's own deployment again. |
+| **H-10** contrast below AA | **Fixed** | `.blurb` 3.69 → **5.42**; `.muted` 3.23 → **4.75**. Every token now passes its AA threshold. |
+| **M-1** MDX comment as editable prose | **Fixed** | Now a *"📎 סימון פנימי TXT_ABOUT_OPENING"* chip; `PLACEHOLDER` no longer appears in the editable text. |
+| **M-2** no `<h1>` anywhere | **Fixed** | Every screen swept has exactly one `<h1>` matching its title. |
+| **M-3** blank therapy thumbnails | **Fixed** | All five modalities render real 400 px teaser derivatives. |
+| **M-4** drawer not a modal | **Fixed** | `role="dialog"`, `aria-modal="true"`, body scroll locked, Escape closes, **focus returns to the hamburger**. |
+| **M-5** nav rows indistinguishable | **Fixed** | Numbered per-row headings (`1. בית` … `10. יצירת קשר`), per-row checkbox and button names. *Residual:* the ten text inputs still share the bare label `הכיתוב`, resolved in practice by the headings. |
+| **M-6** image delete = 2 commits | **Fixed** | One commit removing binary + manifest entry. Upload-then-delete netted to exactly zero. |
+| **M-7** MDX EOF gained blank lines | **Fixed** | `about.mdx` EOF stays a single `\n`. |
+| **M-8** client errors reported as "couldn't reach GitHub" | **Fixed** | `files: []` → `400 empty`; oversized upload → `413`. No longer 502/upstream. |
+| **M-9** 1.09 MB single bundle | **Fixed** | Code-split into 19 chunks. Landing loads ~192 KB (entry 34 KB + react 142 KB + CSS 16 KB); the editor (376 KB) and vendor (476 KB) chunks load on demand. |
+| **L-4** English commit subjects in history | **Fixed** | Translated to *"עדכון טכני של האתר"* / *"עדכון אוטומטי של גרסאות התמונות"*; no GitHub URL. *Residual:* author logins (`Itiel Beeri`, `github-actions[bot]`) are still Latin — unavoidable. |
+| **L-8** hard-coded usage-scan list | **Fixed** | `referencingFiles()` enumerates collection dirs dynamically. Proved it: deleting `placeholder-ceremonies` was blocked naming *"עמוד טקסים"* — a modality that postdates the old list. |
+| **L-9** full-size gallery thumbnails | **Fixed** | Now 640 px `_opt` derivatives, lazy-loaded. |
+| **X-10** publish reachable before preview | **Fixed** | New `none`/`queued` states; publish disabled with *"אפשר לפרסם ברגע שהתצוגה מוכנה."* (See R2-6 for the cost.) |
 
----
-
-## 5. Low
+### Still open
 
 | # | Finding |
 |---|---|
-| L-1 | Decorative-image commit message is `"הוספת תמונה: "` — the alt is empty, so the subject ends in a dangling colon and says nothing. |
-| L-2 | The preview always opens the site's **home page**, never the page that changed. After editing יצירת קשר, the owner must navigate inside the frame to see her own edit. |
-| L-3 | Deleting an image takes ~9 s (reads 5 files plus every blog post) with no visible progress for the first several seconds. |
-| L-4 | The history screen shows raw English commit subjects and a repository URL to the owner — `bug fixes`, `improve preview`, `Merge branch 'master' of https://github.com/ItielBeeri/shir-website`. Contrary to X-16's spirit. |
-| L-5 | Body-editor help text uses Latin `Enter` and `Shift + Enter` (defensible — they are key names — but it is Latin in the UI). |
-| L-6 | `formatBytes` uses `Math.round(bytes/1000)`, so a sub-500-byte file reads *"הוקטנה מ־0 KB ל־1 KB"* — shrunk from 0 to 1. |
-| L-7 | The pending tray lists `site.toml` as *"שונה"* when its content is byte-identical to master (it differs only from the older merge base). The owner is shown a change that is not one. |
-| L-8 | `Images.tsx` `REFERENCING` hard-codes the five content files to scan for usage. Adding a fourth modality would silently drop it from the X-4 orphan check. |
-| L-9 | Gallery thumbnails load full-size originals from `raw.githubusercontent.com` (observed 3382×2258, 2048×1536). Lazy-loaded, so not fatal, but a 3.4 MP file is being painted at ~100 px. |
-| L-10 | iPhone photos are HEIC by default and cannot be decoded by canvas in Chrome; such an upload yields only *"לא הצלחתי לקרוא את הקובץ. אפשר לנסות תמונה אחרת."* with no hint about format. (A-3.1 specifies JPEG, so this is outside the row — but it is the most likely real upload.) |
+| **N-7** | The bar's `צפייה ופרסום` button is 40 px tall, under the 44 px minimum. Unchanged from run 1; every other control passes. |
+| **X-13 residual** | Client-side inline validation for the consent banner is still missing — the button enables and the server rejects after a round trip. |
+| **L-1 / L-6 / L-2** | Not re-exercised: empty commit-message tail for a decorative upload, `formatBytes` showing "0 KB" for sub-500-byte files, and the preview always opening the site's home page (L-2 needs a preview deployment — see §7). |
+
+### Re-tested for regression — all still pass
+
+Boundary: **B-1…B-4, B-8** (19 hostile paths, all `403`, none landed) · **B-9** (`401` for
+start/save/publish without a cookie) · **B-12** (no secret-shaped strings in any chunk;
+session cookie invisible to JS).
+
+Write path: **G-1** (one commit per action, authored as the signed-in user, Hebrew subject) ·
+**G-2 / G-3** (binary + manifest, screenshot + TOML block, each one commit) · **G-8** (session
+start fast-forwarded `content-draft` from `39a94fb` to master — observed live) · **G-9** (two
+concurrent saves both landed) · **G-11** (discard byte-identical to master).
+
+Fidelity: **F-3 / F-17** (one value changed, alignment and `# PLACEHOLDER` comments intact) ·
+**F-12 / F-13** (appends leave existing entries byte-identical) · **F-14** (reorder permutes
+blocks, nothing inside changes) · **X-1** (hostile TOML with `"`, `"""`, `#`, `=`, newline and
+U+200F round-trips exactly through `smol-toml`) · **X-2** (hostile YAML title escaped
+correctly).
+
+**F-9 / F-16 proved directly.** I injected an unmodelled key and a Hebrew maintainer comment
+into `voice.mdx` via the API, then edited that file's body through the UI. Both survived
+byte-for-byte — the serializer preserves what it does not model.
+
+Acceptance: **A-1.1, A-1.2, A-1.3, A-1.6, A-1.7, A-2.1, A-2.3, A-2.4, A-3.1, A-3.2, A-3.3,
+A-3.4, A-3.6, A-4.1, A-4.2, A-4.3, A-4.6, A-4.7, A-5.1, A-5.2, A-5.3, A-6.1, A-6.3, A-6.4,
+A-7.1, A-7.2, A-7.3, A-7.4, A-8.1, A-8.2, A-8.4, A-9.4, A-10.1, A-10.2, A-10.3, A-10.6** and
+**V-2**, **X-4**, **X-8**, **X-12**, **N-1** (no overflow at 320/759/1600), **N-4** (Hebrew
+slugs), **N-6** (visible 2.4 px focus ring).
 
 ---
 
-## 6. What passed — and it is a lot
+## 5. The publish path, end to end
 
-These were exercised against the live system and produced correct bytes.
+Run 1 could not test this. Run 2 did, and it is the strongest result in the suite.
 
-**Fidelity and the write path**
-- **TOML value fidelity is exact.** A contact-page edit changed one line, preserving the aligned `=` padding and the `# PLACEHOLDER: TXT_CONTACT_INTRO` comment. (F-3, F-17)
-- **Hostile TOML input round-trips perfectly.** A recommendation transcription containing `"`, `"""`, `#`, `=`, a newline and U+200F was escaped correctly and re-read **byte-identically** through the site's own `smol-toml`. (X-1)
-- **Hostile YAML input is escaped correctly.** A post titled `בדיקת איכות: "ציטוט" ו#תגית` — colon, quotes and hash — produced valid YAML via `\"` escaping. (X-2, frontmatter half)
-- **F-12 / F-13 live:** appending an `images.toml` entry and a `[[recommendations]]` block left every existing entry byte-identical.
-- **F-14 live:** reordering recommendations permuted blocks 01↔02 with the multiset of all file lines unchanged apart from the one `active` line deliberately toggled.
-- **G-1:** one commit per action, authored as the signed-in user, with Hebrew subjects (`עדכון יצירת קשר`).
-- **G-2 / G-3:** image binary + manifest entry, and screenshot + TOML block, each in a **single** commit.
-- **G-9:** two concurrent saves fired simultaneously both landed as sequential commits; neither was dropped.
-- **G-11 / A-1.6:** discard restored the file to master's content **byte-identically** (empty diff), as a forward commit rather than a history rewrite.
+The draft was based on `5858e01`. While it was open, `16db1df` landed on master — an unrelated
+commit touching `about.mdx`, `src/content/config.ts`, `src/pages/about.astro` and
+`cms/src/model/screens.ts`. Publishing then:
 
-**G-4 / G-5 — verified live, by accident of timing.** Master advanced mid-session with an
-unrelated commit (`cfc2797`, adding `src/lib/social.ts`, two icons and edits to `Footer.astro`,
-`terms.toml`, `contact.astro`). `pending` afterwards listed **only** the four paths the draft
-itself changed — none of master's new files appeared as `removed`. The merge-base measurement
-that protects the images bot from the whole-tree-swap regression demonstrably works against a
-real concurrent commit.
+- **G-4 —** applied **exactly** the three paths the draft had changed, and nothing else.
+- **G-6 —** every byte of `16db1df` survived; `more_links` is still on master in all four files.
+- **G-5 —** all **423** files under `public/img/_opt/` intact.
+- The draft fast-forwarded onto the publish commit.
 
-**The permission boundary**
-- **B-1…B-4, B-8:** 17 hostile paths — `src/pages/index.astro`, `astro.config.mjs`, `package.json`, `AGENTS.md`, `vercel.json`, `.github/workflows/images.yml`, `src/content/config.ts`, `../` traversal, percent-encoded traversal, backslashes, absolute paths, empty segments, padded segments, `public/img/_opt/`, `.svg`, `.html`, `.ts` — **all 403 `path-rejected` server-side.**
-- **B-9:** request without the session cookie → `401 unauthenticated`, before any GitHub call.
-- **B-12:** no secret-shaped string in the bundle or HTML; the session cookie is invisible to JS.
-- **B-11 (code-verified):** the cookie is AES-256-GCM sealed — HttpOnly, Secure, SameSite=Lax — so a tampered value fails the auth tag and `unseal` returns null. Sound, though not exercised live.
-- **B-5/B-6/B-7 are structural:** the API exposes no repo and no branch parameter; `saveFiles` hard-codes `content-draft`.
+The merge-base measurement that protects the images bot demonstrably works against a real
+concurrent commit, not just a unit test.
 
-**Acceptance highlights**
-- **A-8.1 / X-8 — exemplary.** *One* phone field drives all three derived values. Entering the messy `054 987 6543` wrote `phone_display = "054-987-6543"`, `phone_href = "tel:+972549876543"` and `whatsapp_url = "https://wa.me/972549876543"` in one commit. They cannot disagree.
-- **A-10.3 / X-12:** `updated` bumped `2026-09-07` → `2026-09-22` in `accessibility.toml` **only**; `terms.toml` untouched; the rest of the file byte-identical; the UI said so (*"נשמר, ותאריך העדכון התעדכן."*).
-- **X-4:** deleting a referenced image is blocked, naming where it is used (*"התמונה הזו בשימוש ב: דף הבית"*) with a Hebrew reason.
-- **X-1 (collision):** uploading a second file with an identical name produced `qa-upload-test-2`, not a duplicate TOML table.
-- **A-3.1:** a 5.15 MB JPEG was downscaled client-side to 2048×1390 with both sizes shown (*"הוקטנה מ־5.4 MB ל־1.5 MB"*). **A-3.3:** save blocked in Hebrew until alt is supplied; the decorative checkbox yields `alt = ""`.
-- **A-4.6:** the CMS's blog order matches `sortBlogPosts()` exactly (`order > 0` first, then date desc), and `_example.mdx` is correctly hidden by the `_` rule.
-- **A-8.4:** `http://`, `ftp://`, `javascript:` and free text are all rejected with *"הכתובת צריכה להתחיל ב-https://"*; **V-2** blocks empty required fields and malformed email in Hebrew.
-- **A-2.1 / A-2.4 / A-1.7 / A-9.4 (structural):** no key name, `=`, bracket or file path appears on any screen; booleans are Hebrew switches with no `true`/`false`; nothing outside content is reachable.
-- **N-1:** no horizontal scroll and no overflowing element at **320 / 375 / 768 / 1280 / 1600 px**.
-- **N-6 (focus):** every focused control shows a visible 2.4 px brand outline.
-- **N-4:** Hebrew filenames are generated and handled correctly (`בדיקת-איכות-ציטוט-ותגית.mdx`).
-- **N-12/N-13:** a non-image upload is refused with a Hebrew sentence and no code or stack trace.
-- The image picker is a correctly-built dialog: `role="dialog"`, `aria-modal="true"`, labelled, lazy-loaded.
-- All interactive targets are ≥ 44 px except one (the bar's `צפייה ופרסום` at 40 px high — **N-7**).
+> **A correction to my own method.** Mid-run I reported that a body edit had deleted the
+> `more_links` frontmatter field. That was wrong. The draft's `about.mdx` never contained the
+> field — it was added to *master* by `16db1df` while my draft was open, and I had diffed
+> against the moved tip. The CMS deleted nothing, which the F-9/F-16 injection test above
+> then confirmed directly. Worth stating plainly because a "CMS eats your content" finding is
+> exactly the kind that gets acted on before it is checked.
+>
+> This does surface a genuine design note, though: a long-lived draft holds an older copy of
+> any file it has touched, and publish applies that copy over master's newer one for those
+> paths. `ensureDraft` only fast-forwards when the draft has *nothing* pending, so the window
+> stays open as long as the owner has unpublished work. It is inherent to the model and
+> correct per G-4, but it is a real lost-update path worth documenting for the owner.
 
 ---
 
-## 7. Acceptance matrix (58 rows)
+## 6. Acceptance matrix — run 2
 
-`P` pass · `F` fail · `~` partial (affordance verified, not fully exercised) · `–` not exercised
+`P` pass · `F` fail · `~` partial · `–` not exercised · `⊘` blocked by environment
 
 | Ch. 1 | | Ch. 2 | | Ch. 3 | | Ch. 4 | | Ch. 5 | |
 |---|---|---|---|---|---|---|---|---|---|
-| A-1.1 | **P** | A-2.1 | **P** | A-3.1 | **P** | A-4.1 | **P** | A-5.1 | ~ |
-| A-1.2 | **P** | A-2.2 | ~ | A-3.2 | **P** | A-4.2 | **P** | A-5.2 | **P** |
+| A-1.1 | **P** | A-2.1 | **P** | A-3.1 | **P** | A-4.1 | **P** | A-5.1 | **P** |
+| A-1.2 | **P** | A-2.2 | **P** | A-3.2 | **P** | A-4.2 | **P** | A-5.2 | **P** |
 | A-1.3 | **P** | A-2.3 | **P** | A-3.3 | **P** | A-4.3 | **P** | A-5.3 | **P** |
-| A-1.4 | – | A-2.4 | **P** | A-3.4 | **P** | A-4.4 | **P** | A-5.4 | **P** |
-| A-1.5 | **F** | A-2.5 | **F** | A-3.5 | ~ | A-4.5 | **F** | A-5.5 | ~ |
+| A-1.4 | **P**¹ | A-2.4 | **P** | A-3.4 | **P** | A-4.4 | **P** | A-5.4 | **P** |
+| A-1.5 | ⊘ | A-2.5 | **P** | A-3.5 | ~ | A-4.5 | **P** | A-5.5 | **P** |
 | A-1.6 | **P** | | | A-3.6 | **P** | A-4.6 | **P** | | |
 | A-1.7 | **P** | | | | | A-4.7 | **P** | | |
-| | | | | | | A-4.8 | **F** | | |
-| | | | | | | A-4.9 | ~ | | |
+| | | | | | | A-4.8 | ~² | | |
+| | | | | | | A-4.9 | **P** | | |
 
 | Ch. 6 | | Ch. 7 | | Ch. 8 | | Ch. 9 | | Ch. 10 | |
 |---|---|---|---|---|---|---|---|---|---|
 | A-6.1 | **P** | A-7.1 | **P** | A-8.1 | **P** | A-9.1 | ~ | A-10.1 | **P** |
-| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | ~ | A-9.2 | **F** | A-10.2 | **P** |
-| A-6.3 | **P** | A-7.3 | **P** | A-8.3 | **F** | A-9.3 | **F** | A-10.3 | **P** |
-| A-6.4 | **P** | A-7.4 | **P** | A-8.4 | **P** | A-9.4 | **P** | A-10.4 | ~ |
-| A-6.5 | ~ | A-7.5 | ~ | A-8.5 | ~ | A-9.5 | ~ | A-10.5 | **F** |
+| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | **P** | A-9.2 | ⊘ | A-10.2 | **P** |
+| A-6.3 | **P** | A-7.3 | **P** | A-8.3 | **P** | A-9.3 | **P** | A-10.3 | **P** |
+| A-6.4 | **P** | A-7.4 | **P** | A-8.4 | **P** | A-9.4 | **P** | A-10.4 | – |
+| A-6.5 | ~ | A-7.5 | ~ | A-8.5 | ~ | A-9.5 | ~ | A-10.5 | **P** |
 | | | | | | | | | A-10.6 | **P** |
 
-**Tally — 34 P · 6 F · 15 ~ · 3 –**
+¹ Publish verified via the API; the UI button was blocked by R2-6.
+² Rename works; the previewed URL is wrong-case (R2-2).
 
-### Guarantees (§7)
+**Tally — 45 P · 0 F · 7 ~ · 1 – · 3 ⊘** (run 1: 34 P · 6 F · 15 ~ · 3 –)
+
+### Guarantees
 
 | | | | | | |
 |---|---|---|---|---|---|
-| X-1 **P** | X-2 **P** | X-3 – | X-4 **P** | X-5 **P** | X-6 **F** |
-| X-7 **F** | X-8 **P** | X-9 **F** | X-10 ~ | X-11 **F** | X-12 **P** |
-| X-13 **F** | X-14 **F** | X-15 ~ | X-16 ~ | R-1 **P** | R-2 **F** |
+| X-1 **P** | X-2 **P** | X-3 – | X-4 **P** | X-5 **P** | X-6 **P** |
+| X-7 ~ | X-8 **P** | X-9 **P** | X-10 **P** | X-11 **P**³ | X-12 **P** |
+| X-13 **P** | X-14 **P** | X-15 **P** | X-16 ~ | R-1 **P** | R-2 **P** |
 
-*R-1 passes:* a two-line paragraph entered into a TOML field produced valid TOML with the
-newline preserved — the original incident cannot recur. *R-2 fails:* see C-1.
+³ Server-side enforcement verified in code and exercised for the banner rules; the
+owner-role path is untested (§7).
 
 ---
 
-## 8. Not exercised, and why
+## 7. Not verified, and why
 
 | Area | Reason |
 |---|---|
-| **A-1.4 publish, A-9.2 status end-to-end, G-4 (apply half), G-6, G-10** | The shared `content-draft` contained the site owner's **unfinished** blog post and a new image, added while testing was underway. Publishing would have pushed her work-in-progress to the live site. That is her decision, not mine. *(G-4/G-5's measurement half was verified anyway — §6.)* |
-| **A-10.4 owner half, X-11 owner half** | This session authenticates as `maintainer`, for whom locks are intentionally open. Needs an `owner`-role login. |
-| **B-10** (login outside the allow-list) | Needs a second, non-allow-listed GitHub account. |
-| **B-11** (tampered cookie) | The session cookie is HttpOnly; forging one from the page is not possible without risking the live session. Verified by code inspection instead. |
-| **`axe` (N-5)** | The CMS's own CSP (`script-src 'self'`, `connect-src 'self'`) blocks loading axe-core into the page. Substituted a manual audit: contrast ratios, accessible names, roles, focus visibility, target sizes, heading structure. |
-| **N-16 / N-17 on 4G** | No network throttling available through this harness; bundle size and desktop FCP reported instead. |
-| **X-3** (200 generated edit sequences) | A fuzz campaign, not a browser task. F-18 remains unwritten per TEST-SPEC §4.1. |
+| **A-10.4, X-11 owner half** | Needs an `owner` session; this run authenticated as `maintainer`, for whom the locks are intentionally open. The server-side rule exists and is role-aware; only the owner path is unexercised. |
+| **A-1.5, A-9.2, L-2, preview iframe** | Vercel was rate-limiting; no deployment was created for any draft sha. Suspended at the user's request. |
+| **Whether "ready" is ever reported prematurely** | Not established. My initial 404s after publishing were my own wrong-case URL (R2-2), not a stale build. Explicitly **not** claimed as a defect. |
+| **`axe` (N-5)** | The CMS's own CSP (`script-src 'self'`) blocks loading axe-core. Substituted a manual audit: contrast ratios, accessible names, roles, focus, target sizes, heading structure — all reported above. |
+| **N-16 / N-17 on 4G** | No throttling available. Chunk sizes reported instead; the split makes the ~2 s target plausible where the 1.09 MB bundle did not. |
+| **X-3** | A 200-sequence fuzz campaign, not a browser task. F-18 remains unwritten per TEST-SPEC §4.1. |
+| **B-10, B-11** | B-10 needs a second, non-allow-listed account. B-11 verified by code: the cookie is AES-256-GCM sealed, HttpOnly, Secure, SameSite=Lax, so tampering fails the auth tag. |
 
 ---
 
-## 9. Repository hygiene
+## 8. Repository state — reverted
 
-Nothing this run created remains, and nothing belonging to anyone else was touched.
+Run 2 was authorised to publish. One publish reached production; the revert has now been
+published as `7b18217 פרסום ממערכת הניהול: 5 שינויים`.
 
-- **`master` was never written.** No publish was performed. The live site was checked
-  afterwards: contact page free of test text, phone number `052-520-1162` intact, no test post.
-- **`content-draft` was cleaned surgically**, through the CMS's own API — not by resetting the
-  branch, because the owner's concurrent work was sitting on it.
-  - 7 modified files discarded → verified **byte-identical to `master`**.
-  - 4 added files deleted (2 test images, 1 recommendation screenshot, 1 test post).
-  - `images.toml` rebuilt as `master's bytes + the owner's entry`, verified by asserting the
-    result `startsWith(master)` with the remainder being exactly her three lines.
-  - **Preserved untouched:** `public/img/content/image-2026-09-22.jpg` and
-    `src/content/blog/טיפול-זה-לא-קסם.mdx`, plus her `images.toml` entry.
-- **The working tree was never modified.** A temporary worktree was used and removed.
-- The cleanup left 9 forward commits on `content-draft` (`ניקוי בדיקות איכות: …`). History was
-  not rewritten, deliberately: force-pushing a shared branch during concurrent use would have
-  destroyed the owner's commits.
+**Verified after the revert:**
+
+```
+git diff --name-status 16db1df origin/master -- src/content public/img
+  (empty — content byte-identical to the pre-test baseline)
+```
+
+- `master` and `content-draft` are both at `7b18217`.
+- No QA file remains in the tree; no QA string remains in any content file.
+- The intervening work — `ea07374 post ordering ux` and its merge — is untouched.
+- The revert applied exactly three paths: the test post deleted, `nav.toml` and
+  `accessibility.toml` restored byte-identically from `16db1df`.
+
+**One caveat:** because Vercel is rate-limited, the *deployed site* had not rebuilt at the time
+of writing — `/blog/qa2-…` still returned 200 and the accessibility page still carried the test
+sentence. The repository is correct; the site will match it on the next successful build. Worth
+a glance once the limit clears.
+
+Everything else is clean:
+
+- `recommendations.toml` — discarded, byte-identical to master.
+- `site.toml`, `about.mdx`, `voice.mdx`, `home.toml`, `404.toml`, `contact.toml` — all discarded
+  and verified byte-identical to master.
+- Both QA images uploaded during the run were deleted; upload + delete netted to zero.
+- The injected `qa_unknown_field` test key was discarded.
+- The working tree was never modified; no worktree remains.
+
+The publish that landed the revert also re-confirmed **G-4** (three paths applied, nothing
+else) and **G-6** (the intervening `ea07374` survived intact).
 
 ---
 
-## 10. Suggested order of work
+## 9. Suggested order of work
 
-1. **Escape markdown on serialization** (C-1). Nothing else on this list can harm the published
-   site the way this does, and it re-opens a defect that already cost three days of stale deploy.
-2. **Emit block scalars for multi-line frontmatter** (H-1) — silent loss of typed content.
-3. **Enforce locks server-side** (H-4) and add consent-balance validation (H-5). Both are legal
-   exposure, and both are cheap: the rules already exist in `locks.ts`, they just need to run in
-   `api/content/[action].ts` as well.
-4. **Persist the draft locally** (H-2). One `localStorage` write per keystroke-debounce removes
-   an entire class of "I lost everything" reports.
-5. **Build the three missing features the spec assumes exist**: restore (H-3), rename (H-7),
-   nav reorder (H-8).
-6. **Filter `deploymentStatus` by project** (H-9) — the status line is currently untrustworthy.
-7. **Darken the muted token** (H-10) and add an `<h1>` per screen (M-2) — two small changes that
-   together clear most of the a11y gap.
+1. **R2-1** — give the unsaved-changes guard a voice. The app already has the right pattern on
+   reload; reuse it: keep / discard / cancel. Silent blocking is the one behaviour to avoid.
+2. **R2-6** — add a timeout and an override to the publish gate. After, say, 90 seconds
+   without a deployment, fall back to run 1's honest wording rather than disabling publish
+   outright. A rate limit should not stop the owner publishing.
+3. **R2-7** — finish H-9. Match the site's deployment by its `environment_url` host (the
+   site's domain) rather than by `environment`, and make the self-skip compare against the
+   CMS project's `*.vercel.app` hosts too, not just its custom domain.
+4. **R2-2** — lowercase the slug in the rename preview so it matches what the site serves.
+5. **X-13 inline validation** — run `bannerProblems()` client-side too, so the owner sees the
+   reason as she types instead of after a failed save.
+6. **R2-5** — compute the legal `updated` date in Israel time, not UTC.
+7. **R2-4** — build the publish subject from the net changed paths rather than the action log.
+8. **N-7** — the 40 px bar button.
+9. Re-run **A-10.4 / X-11** under an owner session and the deployment-dependent rows once
+   Vercel recovers.

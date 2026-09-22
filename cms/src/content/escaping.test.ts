@@ -1,0 +1,105 @@
+/**
+ * Escaping has to be its own inverse across a save.
+ *
+ * A text node carries the source slice, escapes and all, because the trailing
+ * spaces CommonMark drops from a line end have to survive. An escaper that
+ * then ran over its own output added a backslash on every save - `\#` became
+ * `\\#` became `\\\\#` - and the owner watched her words grow slashes. These
+ * are the gates that say it settles after the first save and stays settled.
+ */
+import { describe, expect, it } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  allBlocks,
+  blockToMarkdown,
+  escapeInlineText,
+  parseMdx,
+  serializeMdx,
+  unescapeInlineText,
+} from './mdx-edit';
+
+const CONTENT = join(__dirname, '../../../src/content');
+const files = [
+  join(CONTENT, 'about/about.mdx'),
+  ...readdirSync(join(CONTENT, 'therapies')).map((f) => join(CONTENT, 'therapies', f)),
+  ...readdirSync(join(CONTENT, 'blog')).map((f) => join(CONTENT, 'blog', f)),
+];
+
+/** One save: read the file and write every block back. */
+const rewrite = (src: string): string => {
+  const doc = parseMdx(src);
+  return serializeMdx(doc, allBlocks(doc));
+};
+
+/** The paragraph a save would write for text typed into the editor. */
+const typedAs = (value: string): string =>
+  blockToMarkdown({ kind: 'paragraph', source: '', inline: [{ type: 'text', value }] });
+
+/** What the editor reads back out of a document. */
+const readBack = (mdx: string): string => {
+  const doc = parseMdx(mdx);
+  return doc.segments
+    .flatMap((s) => (s.type === 'block' && s.block.kind === 'paragraph' ? s.block.inline : []))
+    .map((n) => ('value' in n ? n.value : ''))
+    .join('');
+};
+
+describe('escape and unescape are inverses', () => {
+  const samples = [
+    'טקסט רגיל',
+    '# סולמית בתחילת שורה',
+    '[סוגריים](כתובת)',
+    'נתיב C:\\temp\\x',
+    'כוכבית*באמצע',
+    'גרש הפוך \\ לבד',
+    'קוד `כאן`',
+    'ביטוי {expr} וגם <tag>',
+    'ישות &amp; באמצע',
+    '*',
+  ];
+
+  it.each(samples)('%s survives a round trip through the escaper', (value) => {
+    expect(unescapeInlineText(escapeInlineText(value))).toBe(value);
+  });
+
+  it('is stable when applied to its own output', (): void => {
+    for (const value of samples) {
+      const once = escapeInlineText(value);
+      expect(escapeInlineText(unescapeInlineText(once))).toBe(once);
+    }
+  });
+});
+
+describe('a second save changes nothing the first save did not', () => {
+  it.each(files.map((f) => [f.split(/[\\/]/).pop() as string, f]))('%s', (_name, file) => {
+    const once = rewrite(readFileSync(file, 'utf8'));
+    expect(rewrite(once)).toBe(once);
+  });
+
+  it('settles after the first save for text that needed escaping', () => {
+    const hostile = [
+      '# ניסיון כותרת',
+      '[קישור](url)',
+      'נתיב C:\\temp',
+      '1. פריט',
+      'קוד `כאן`',
+      '<tag> וגם {expr}',
+    ].join('\n\n');
+    const first = `---\nt: 1\n---\n\n${typedAs(hostile)}\n`;
+    expect(rewrite(first)).toBe(first);
+    expect(rewrite(rewrite(first))).toBe(first);
+  });
+
+  it('reads back exactly what was typed, not what was written', () => {
+    const typed = 'נתיב C:\\temp וגם # סולמית וגם [סוגריים]';
+    expect(readBack(`---\nt: 1\n---\n\n${typedAs(typed)}\n`)).toBe(typed);
+  });
+
+  it('does not grow a backslash on a file that already carries escapes', () => {
+    const src = `---\nt: 1\n---\n\n\\# לא כותרת\n\n\\[לא קישור\\](כתובת)\n`;
+    expect(rewrite(src)).toBe(src);
+    expect(rewrite(rewrite(src))).toBe(src);
+    expect(readBack(src)).toContain('# לא כותרת');
+  });
+});

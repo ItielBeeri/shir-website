@@ -327,7 +327,7 @@ requires it to fail. A guarantee with no failing-path test is marketing.
 | X-4 | She cannot orphan an image reference | Delete is blocked while referenced; the blocking list is correct |
 | X-5 | She cannot author a dangling screenshot path | The path is derived, never entered |
 | X-6 | She cannot author a second `<h1>` | No h1 control exists; every built page has exactly one `<h1>` |
-| X-7 | She cannot author a link | No link control; no `](` appears in authored body copy |
+| X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks — that is GFM, inherited from the site's own pipeline, and escaping it would break the byte-identity round trip on every file that already contains one. If unstyled links in body copy are unwanted, the fix belongs in `.prose` on the site, not here |
 | X-8 | She cannot desynchronise `_href` from `_display` | Property-based: for any phone input, both derive from one source |
 | X-9 | She cannot lose work | Kill the tab mid-edit → the draft is restored on reopen |
 | X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready |

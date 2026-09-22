@@ -4,7 +4,7 @@
  * passed through `assertWritablePath`.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { config, selfOrigin } from '../_lib/env.js';
+import { config, selfOrigin, selfProject } from '../_lib/env.js';
 import { GitHubTransport, refreshTokens } from '../_lib/github.js';
 import {
   SESSION_COOKIE,
@@ -16,6 +16,7 @@ import {
 } from '../_lib/session.js';
 import type { Session } from '../_lib/session.js';
 import {
+  conflictingPaths,
   deleteFiles,
   discardPath,
   ensureDraft,
@@ -172,6 +173,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
       }
 
+      case 'conflicts': {
+        res.status(200).json({ paths: await conflictingPaths(git) });
+        return;
+      }
+
       case 'discard': {
         const sha = await discardPath(git, {
           path: String(body.path ?? ''),
@@ -216,7 +222,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           selfHost = undefined;
         }
         res.status(200).json(
-          await git.deploymentStatus(sha, { project: cfg.siteProject, selfHost }),
+          await git.deploymentStatus(sha, {
+            site: cfg.siteProject,
+            self: selfProject(),
+            selfHost,
+          }),
         );
         return;
       }

@@ -29,8 +29,12 @@ const mdxFiles = (): string[] => [
 const files = mdxFiles();
 
 describe('mdx-edit', () => {
+  // A count was a tripwire for a broken glob; it became a chore that failed
+  // every time the site gained a page, which is not what it was watching for.
   it('finds every mdx file', () => {
-    expect(files.length).toBe(12);
+    expect(files.length).toBeGreaterThan(5);
+    expect(new Set(files).size).toBe(files.length);
+    expect(files.some((f) => f.endsWith('about.mdx'))).toBe(true);
   });
 
   describe.each(files.map((f) => [f.split(/[\\/]/).pop() as string, f]))('%s', (_name, file) => {
@@ -60,12 +64,24 @@ describe('mdx-edit', () => {
       expect(serializeMdx(doc, new Set(editableBlocks(doc)))).toBe(src);
     });
 
+    // Link syntax in the source may be escaped text; only the parser can say
+    // whether the page actually has a link on it.
     it('offers no h1 and no links', () => {
       for (const seg of doc.segments) {
         if (seg.type !== 'block') continue;
         if (seg.block.kind === 'heading') expect(seg.block.depth).toBeGreaterThanOrEqual(2);
       }
-      expect(src).not.toMatch(/\]\(https?:\/\//);
+      const tree = fromMarkdown(src.slice(doc.frontmatter.length), {
+        extensions: [mdxjs()],
+        mdastExtensions: [mdxFromMarkdown()],
+      });
+      const links: string[] = [];
+      const walk = (node: any): void => {
+        if (node.type === 'link' || node.type === 'linkReference') links.push(node.url ?? '');
+        (node.children ?? []).forEach(walk);
+      };
+      walk(tree);
+      expect(links, `${_name} has links`).toEqual([]);
     });
   });
 

@@ -8,6 +8,8 @@
  * already seen.
  */
 import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../src/git/engine.js';
+import { chooseDeployment } from './deployments.js';
+import type { DeploymentCandidate, ProjectIdentity } from './deployments.js';
 
 const API = 'https://api.github.com';
 
@@ -32,14 +34,6 @@ const mapDeployState = (state: string): DeploymentStatus['state'] => {
   if (state === 'queued') return 'queued';
   if (state === 'in_progress' || state === 'pending') return 'building';
   return 'unknown';
-};
-
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url).host;
-  } catch {
-    return '';
-  }
 };
 
 export class GitHubError extends Error {
@@ -245,10 +239,7 @@ export class GitHubTransport implements GitTransport {
    * site's Vercel project; failing that, the one thing known for certain is
    * which deployment is our own, and that one is skipped.
    */
-  async deploymentStatus(
-    sha: string,
-    options: { project?: string; selfHost?: string } = {},
-  ): Promise<DeploymentStatus> {
+  async deploymentStatus(sha: string, who: ProjectIdentity = {}): Promise<DeploymentStatus> {
     try {
       const deployments = await this.call<Array<{
         id: number;
@@ -257,31 +248,38 @@ export class GitHubTransport implements GitTransport {
       }> | null>(`/deployments?sha=${encodeURIComponent(sha)}&per_page=20`);
       if (!deployments?.length) return { state: 'none' };
 
-      const named = options.project
-        ? deployments.filter((d) => d.environment.includes(options.project as string))
-        : [];
-      // Newest first, as GitHub returns them.
-      for (const deployment of named.length ? named : deployments) {
+      // Newest first, as GitHub returns them. Each one's latest status is what
+      // carries the URL, and the URL is what says whose deployment it is.
+      const candidates: DeploymentCandidate[] = [];
+      for (const deployment of deployments) {
         const statuses = await this.call<Array<{
           state: string;
           environment_url?: string;
           created_at: string;
         }> | null>(`/deployments/${deployment.id}/statuses?per_page=1`);
-
         const latest = statuses?.[0];
-        const host = latest?.environment_url ? hostOf(latest.environment_url) : '';
-        if (!named.length && options.selfHost && host && host === options.selfHost) continue;
-
-        // A deployment with no status yet has been created but not started.
-        if (!latest) return { state: 'queued', startedAt: deployment.created_at };
-        return {
-          state: mapDeployState(latest.state),
-          url: latest.environment_url,
-          startedAt: deployment.created_at,
-          updatedAt: latest.created_at,
-        };
+        candidates.push({
+          environment: deployment.environment,
+          createdAt: deployment.created_at,
+          status: latest
+            ? {
+                state: latest.state,
+                environmentUrl: latest.environment_url,
+                createdAt: latest.created_at,
+              }
+            : null,
+        });
       }
-      return { state: 'unknown' };
+
+      const { pick, starting } = chooseDeployment(candidates, who);
+      if (!pick) return { state: starting ? 'queued' : 'unknown' };
+      if (!pick.status) return { state: 'queued', startedAt: pick.createdAt };
+      return {
+        state: mapDeployState(pick.status.state),
+        url: pick.status.environmentUrl,
+        startedAt: pick.createdAt,
+        updatedAt: pick.status.createdAt,
+      };
     } catch {
       return { state: 'unknown' };
     }

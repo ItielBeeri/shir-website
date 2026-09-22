@@ -54,6 +54,21 @@ export type Role = 'owner' | 'maintainer';
 export const roleFor = (login: string, cfg: Config): Role =>
   cfg.maintainerLogins.includes(login.toLowerCase()) ? 'maintainer' : 'owner';
 
+/**
+ * This deployment's own Vercel project slug.
+ *
+ * `VERCEL_BRANCH_URL` is `<project>-git-<branch>-<scope>.vercel.app`, so the
+ * slug is everything before `-git-`. It is how the editor recognises its own
+ * deployments among a commit's, which is what stops it reporting its own build
+ * as the site's.
+ */
+export function selfProject(): string | undefined {
+  const label = (process.env.VERCEL_BRANCH_URL ?? '').split('.')[0];
+  const at = label.indexOf('-git-');
+  if (at > 0) return label.slice(0, at);
+  return process.env.VERCEL_PROJECT_NAME || undefined;
+}
+
 /** The origin this deployment is reachable at, for the OAuth redirect. */
 export function selfOrigin(host: string | undefined): string {
   const configured = process.env.PUBLIC_ORIGIN;

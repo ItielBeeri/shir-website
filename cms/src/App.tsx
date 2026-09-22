@@ -14,7 +14,7 @@ import { screens, screenById } from './model/screens';
 import type { Route, Stack } from './routes';
 import { back as popStack, canGoBack, current, initialStack, jump as jumpTo, push, replaceTop } from './routes';
 import { Deploy } from './screens/Deploy';
-import { confirmLeave } from './lib/unsaved';
+import { hasUnsaved, releaseUnsaved } from './lib/unsaved';
 
 /**
  * One chunk per screen. The landing screen is a grid of buttons and should not
@@ -135,6 +135,8 @@ function Workspace(): JSX.Element {
   const [drawer, setDrawer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Where she was going when the unsaved-changes question interrupted. */
+  const [leaving, setLeaving] = useState<(() => void) | null>(null);
 
   const route = current(stack);
   const clear = (): void => {
@@ -143,65 +145,113 @@ function Workspace(): JSX.Element {
   };
 
   /**
-   * Every way out of a screen asks first when there is unsaved work. The
-   * editing screens keep a copy in the browser either way, but a question at
-   * the moment she would lose it is a choice, and a banner on her return is
-   * only a consolation.
+   * Every way out of a screen asks first when there is unsaved work.
+   *
+   * The question is asked in the app's own dialog rather than the browser's.
+   * A native `confirm` is suppressed in enough contexts that the answer can be
+   * "no" without anything appearing on screen - and then every exit silently
+   * does nothing and the app looks frozen, which is worse than losing the
+   * edit. This one is always visible, and always offers a way out.
    */
-  const go = useCallback((next: Route) => {
-    if (!confirmLeave()) return;
-    clear();
-    setStack((prev) => push(prev, next));
+  const guard = useCallback((proceed: () => void) => {
+    if (!hasUnsaved()) {
+      proceed();
+      return;
+    }
+    setLeaving(() => proceed);
   }, []);
+
+  const go = useCallback(
+    (next: Route) =>
+      guard(() => {
+        clear();
+        setStack((prev) => push(prev, next));
+      }),
+    [guard],
+  );
 
   /** Somewhere unrelated - the drawer. Back from there means home. */
-  const jump = useCallback((next: Route) => {
-    if (!confirmLeave()) return;
-    clear();
-    setStack(jumpTo(next));
-  }, []);
+  const jump = useCallback(
+    (next: Route) =>
+      guard(() => {
+        clear();
+        setStack(jumpTo(next));
+      }),
+    [guard],
+  );
 
-  const back = useCallback(() => {
-    if (confirmLeave()) setStack(popStack);
-  }, []);
-  const home = useCallback(() => {
-    if (confirmLeave()) setStack(initialStack());
-  }, []);
+  const back = useCallback(() => guard(() => setStack(popStack)), [guard]);
+  const home = useCallback(() => guard(() => setStack(initialStack())), [guard]);
   const replace = useCallback((next: Route) => setStack((prev) => replaceTop(prev, next)), []);
 
   const saved = (): void => setNotice('נשמר. עוד לא פורסם לאתר.');
 
   return (
-    <Shell
-      route={route}
-      canGoBack={canGoBack(stack)}
-      onBack={back}
-      onHome={home}
-      onGo={go}
-      onJump={jump}
-      drawerOpen={drawer}
-      setDrawerOpen={setDrawer}
-    >
-      {notice && <p className="banner">{notice}</p>}
-      {error && <p className="banner error">{error}</p>}
-      <Suspense fallback={<p className="muted">רגע, טוען…</p>}>
-      <Screen
+    <>
+      <Shell
         route={route}
-        go={go}
-        jump={jump}
-        replace={replace}
-        back={back}
-        saved={saved}
-        published={(sha) => {
-          // Straight to the screen that watches it land, rather than a line of
-          // reassurance she would have to verify herself.
-          store.watchDeploy(sha);
-          clear();
-          setStack([...initialStack(), { kind: 'deploy' }]);
-        }}
-      />
-      </Suspense>
-    </Shell>
+        canGoBack={canGoBack(stack)}
+        onBack={back}
+        onHome={home}
+        onGo={go}
+        onJump={jump}
+        drawerOpen={drawer}
+        setDrawerOpen={setDrawer}
+      >
+        {notice && <p className="banner">{notice}</p>}
+        {error && <p className="banner error">{error}</p>}
+        <Suspense fallback={<p className="muted">רגע, טוען…</p>}>
+          <Screen
+            route={route}
+            go={go}
+            jump={jump}
+            replace={replace}
+            back={back}
+            saved={saved}
+            published={(sha) => {
+              // Straight to the screen that watches it land, rather than a
+              // line of reassurance she would have to verify herself.
+              store.watchDeploy(sha);
+              clear();
+              setStack([...initialStack(), { kind: 'deploy' }]);
+            }}
+          />
+        </Suspense>
+      </Shell>
+
+      {leaving && (
+        <div className="modal-backdrop" onClick={() => setLeaving(null)}>
+          <div
+            className="modal is-small"
+            role="dialog"
+            aria-modal="true"
+            aria-label="שינויים שלא נשמרו"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>יש כאן שינויים שלא נשמרו</h2>
+            <p className="muted">
+              אם תצאי עכשיו הם לא יעלו לאתר. מה שכתבת נשמר בדפדפן ויחכה לך כאן כשתחזרי.
+            </p>
+            <div className="modal-actions">
+              <button className="primary" onClick={() => setLeaving(null)}>
+                חזרה לעריכה
+              </button>
+              <button
+                className="ghost"
+                onClick={() => {
+                  releaseUnsaved();
+                  const proceed = leaving;
+                  setLeaving(null);
+                  proceed();
+                }}
+              >
+                יציאה בלי לשמור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
