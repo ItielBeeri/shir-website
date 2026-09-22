@@ -122,6 +122,12 @@ export const screens: Screen[] = [
       { key: 'title', label: 'הכותרת', type: 'text', required: true },
       { key: 'intro', label: 'שורת הפתיחה', type: 'longtext', required: true },
       { key: 'portrait_image', label: 'תמונת הפורטרט', type: 'image', required: true },
+      {
+        key: 'more_links',
+        label: 'משפט הקישורים שבסוף העמוד',
+        help: 'במקום {קישורים} יופיעו כל הקישורים מפרטי האתר. משפט ריק - לא מוצג',
+        type: 'text',
+      },
     ],
   },
   {

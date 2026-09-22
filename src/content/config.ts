@@ -34,6 +34,7 @@ const about = defineCollection({
     title:          z.string(),
     intro:          z.string(),
     portrait_image: z.string(),
+    more_links:     z.string().default(''),
   }),
 });
 

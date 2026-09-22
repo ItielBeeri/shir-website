@@ -8,10 +8,26 @@ import SectionHeading from '../components/ui/SectionHeading.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
 import { getCollection, render } from 'astro:content';
+import { z } from 'zod';
+import { loadToml } from '../lib/content';
+import { socialLinks, socialSchema } from '../lib/social';
 
 const [aboutEntry] = await getCollection('about');
-const { title, intro, portrait_image } = aboutEntry.data;
+const { title, intro, portrait_image, more_links } = aboutEntry.data;
 const { Content } = await render(aboutEntry);
+
+const site = loadToml('site.toml', z.object({ social: socialSchema }));
+const social = socialLinks(site.social);
+// A missing placeholder still lists the links, after the sentence.
+const [linksBefore, linksAfter = ''] = more_links.includes('{קישורים}')
+  ? more_links.split('{קישורים}', 2)
+  : [`${more_links} `, ''];
+// ListFormat supplies the Hebrew joiners (", " and " ו") so the list grows
+// with site.toml rather than with this file.
+let linkIndex = 0;
+const linkParts = new Intl.ListFormat('he', { type: 'conjunction' })
+  .formatToParts(social.map((link) => link.label))
+  .map((part) => (part.type === 'element' ? { link: social[linkIndex++] } : { text: part.value }));
 
 const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 ---
@@ -43,6 +59,12 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
           <p class="about-intro-paragraph">{intro}</p>
         </div>
         <Content components={{ SoftImage }} />
+        {more_links.trim() && (
+          <!-- One line: whitespace between these expressions would render as spaces inside the sentence. -->
+          <p class="about-more-links">{linksBefore}{linkParts.map((part) => part.link ? (
+            <a href={part.link.href} target="_blank" rel="noopener" aria-label={`${part.link.label} - נפתח בטאב חדש`} data-an-event="outbound_click" data-an-cta-label={part.link.event} data-an-placement="about_text">{part.link.label}</a>
+          ) : part.text)}{linksAfter}</p>
+        )}
       </div>
     </section>
 
@@ -207,6 +229,17 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
   .prose :global(ul) {
     padding-inline-start: 1.5rem;
     margin-block-end: 1.25rem;
+  }
+
+  /* Inline links need a mark beyond colour (WCAG 1.4.1): they inherit it. */
+  .about-more-links a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .about-more-links a:hover {
+    color: var(--color-ink);
   }
 
   .prose :global(li) {
