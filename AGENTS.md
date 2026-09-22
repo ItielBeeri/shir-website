@@ -33,34 +33,25 @@ Static website for **שיר אמיתי**, a holistic therapist (פסיכותרפ
 
 ```
 src/
-├── components/
-│   ├── layout/    # BaseLayout, Header, Footer, ContactPill, BackgroundField, MotionToggle
-│   ├── ui/        # GlassCard, SoftImage, SectionHeading, ScrollReveal, ParallaxLayer,
-│   │              #   BreathDivider, CTAButton, Icon, RecommendationText
-│   ├── home/      # IdentitySection, TherapyTeaser, BlogTeaser, RecommendationsSection
-│   ├── therapy/   # TherapyPage - shared template for all three modalities
-│   └── legal/     # LegalPage - shared template for accessibility + terms
+├── components/    # layout/ · ui/ · home/ · therapy/ (TherapyPage) · legal/ (LegalPage)
 ├── icons/         # optimized single-color SVGs (astro-icon iconDir)
 ├── content/       # see §5
 ├── lib/           # content.ts (TOML loader), seo.ts, blog.ts, recommendations.ts,
 │                  #   screenshots.ts, images.ts (derivative manifest)
-├── pages/         # index, about, contact, 404, recommendations, accessibility, terms,
-│                  #   psychotherapy, shiatsu, voice, blog/index, blog/[slug]
+├── pages/         # one per route; therapy and legal pages are thin wrappers
 └── scripts/       # lenis-init.ts, scroll-reveal.ts, parallax.ts, home-scroll.ts
 public/
 ├── global.css     # THE stylesheet - see §4.1
 ├── fonts/         # self-hosted Heebo (hebrew + latin subsets)
 └── img/           # bg/ · content/ · recommendations/ · og-default.jpg
     └── _opt/      # GENERATED derivatives + manifest.json (§6.1)
+cms/               # the owner's editing surface - see §13
 scripts/optimize-images.mjs · .github/workflows/images.yml    # both §6.1
 ```
 
-Root: `astro.config.mjs`, `tsconfig.json` (`@/*` → `src/*`), `package.json`, `pnpm-lock.yaml` (committed), `.nvmrc`, `vercel.json` (cache headers only - §10.1).
+Root: `astro.config.mjs`, `tsconfig.json` (`@/*` → `src/*`), `package.json`, `pnpm-lock.yaml` (committed), `.nvmrc`, `vercel.json` (§10.1).
 
-Not part of the build:
-- `editor-guide/` - a standalone Hebrew HTML guide teaching Shir to edit content through the GitHub web editor. **Update it whenever you change the shape of something an owner edits** (TOML keys, frontmatter fields, folder layout).
-- `log/` - the original design spec and brief, kept as a historical record of intent. A record of intent, not a description of the current code, and wrong in places (§6.1).
-- `coming-soon-page/` - the retired placeholder landing page.
+Not part of the site build: `log/` (design spec, a record of intent and wrong in places - §6.1), `editor-guide/` (the retired vscode.dev guide, kept as fallback until §13 ships), `coming-soon-page/`.
 
 ## 3. Getting started
 
@@ -184,7 +175,7 @@ The site publishes a formal **הצהרת נגישות** at `/accessibility` (req
 
 ### 10.1 Caching
 
-`vercel.json` holds cache headers and nothing else. It grants `immutable` to `/img/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
+`vercel.json` holds cache headers, plus the `ignoreCommand` that keeps `cms/` commits from redeploying the site (§13). It grants `immutable` to `/img/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
 
 ## 11. Stop and ask
 
@@ -197,3 +188,11 @@ Two layers, gated differently because the law treats them differently. **Vercel 
 **`consent.ts` pushes `arguments`, not a rest array.** `gtag.js` identifies its commands by Arguments type and silently discards anything else, so the tidier `(...args) => dataLayer.push(args)` loads the tag, queues every call and records nothing at all. Do not modernize it.
 
 **Instrumentation is declarative** - `data-an-event` plus `data-an-*` parameters, read by one delegated capture-phase listener in `analytics.ts` (capture, because the drawer stops propagation on link clicks); `CTAButton` takes an `analytics` prop. Callers name their own `placement`: the same three contact links appear in eight places, and the pill's fan-out and collapsed trigger must stay `pill` and `pill_trigger` or WhatsApp double-counts. **Changing what is measured is a legal change** - update `pages/consent.toml` (the banner is the first layer of disclosure), the "מדידה וסטטיסטיקה" section of `terms.toml`, and both `updated` dates. The banner's two buttons stay identical in weight and wording: consent obtained through a weakened refusal is invalid, and that would void the acceptances too.
+
+## 13. The editing surface
+
+`cms/` is how the owner edits this site - a Vite app on its own Vercel project at `admin.shir-amitai.com`, with its own `package.json` and lockfile. **Deliberately not a pnpm workspace member**: a workspace root re-resolves and re-hoists the site's dependency tree, and the budgets in §10 are measured against the current one. §1 constraint 4 (static output, no server functions) describes the site; `cms/` is a different deployment and has them.
+
+It commits to `content-draft`, previews, then applies only the paths it changed onto `master` - never a whole-tree swap, which would revert the `images.yml` bot. Its server-side proxy is the permission model: writes outside `src/content/**` and `public/img/**` are rejected there, so §1.7-style "don't touch" rules need no owner discipline.
+
+**Anything owner-editable that changes shape - a TOML key, a frontmatter field, a folder layout, a `.prose` rule - must update `cms/` in the same commit**, or the editor writes content the site no longer renders. Its rich-text editor may only offer constructs `.prose` styles: h2, h3, `ul`, `ol`, the three emphasis marks and `SoftImage`. No `h1` (the page template owns it), no links, no fourth level.
