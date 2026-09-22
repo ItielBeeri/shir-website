@@ -47,6 +47,32 @@
     ],
     "digest": "4ab4a45d9e62f986"
   },
+  "/img/content/placeholder-workshops.jpg": {
+    "key": "content/placeholder-workshops",
+    "width": 1365,
+    "height": 1365,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1365
+    ],
+    "digest": "38a644eebe721ab0"
+  },
+  "/img/content/placeholder-ceremonies.jpg": {
+    "key": "content/placeholder-ceremonies",
+    "width": 1365,
+    "height": 1365,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1365
+    ],
+    "digest": "b5e4bba23d60db74"
+  },
   "/img/content/shiatsu-2.jpeg": {
     "key": "content/shiatsu-2",
     "width": 3382,
@@ -194,6 +220,32 @@
       2048
     ],
     "digest": "0b1862f5c77cc9d5"
+  },
+  "/img/content/workshops-1.jpg": {
+    "key": "content/workshops-1",
+    "width": 1365,
+    "height": 1365,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1365
+    ],
+    "digest": "eaf8ec74e7f155ce"
+  },
+  "/img/content/ceremonies-1.jpg": {
+    "key": "content/ceremonies-1",
+    "width": 1365,
+    "height": 1365,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1365
+    ],
+    "digest": "629556ad2612c695"
   },
   "/img/bg/background.jpg": {
     "key": "bg/background",

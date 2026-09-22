@@ -124,6 +124,8 @@ describe('content model', () => {
       'src/content/therapies/psychotherapy.mdx',
       'src/content/therapies/shiatsu.mdx',
       'src/content/therapies/voice.mdx',
+      'src/content/therapies/workshops.mdx',
+      'src/content/therapies/ceremonies.mdx',
       'src/content/pages/home.toml',
     ];
     for (const file of files) {

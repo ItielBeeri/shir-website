@@ -30,7 +30,7 @@ const files = mdxFiles();
 
 describe('mdx-edit', () => {
   it('finds every mdx file', () => {
-    expect(files.length).toBe(8);
+    expect(files.length).toBe(12);
   });
 
   describe.each(files.map((f) => [f.split(/[\\/]/).pop() as string, f]))('%s', (_name, file) => {

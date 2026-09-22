@@ -127,7 +127,7 @@ export const screens: Screen[] = [
   {
     id: 'therapies',
     title: 'עמודי הטיפולים',
-    blurb: 'פסיכותרפיה · טיפול במגע · פתיחת קול',
+    blurb: 'פסיכותרפיה · טיפול במגע · פתיחת קול · סדנאות · טקסים',
     icon: 'leaf',
     kind: 'collection',
     dir: `${CONTENT}/therapies`,

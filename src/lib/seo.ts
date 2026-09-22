@@ -29,7 +29,7 @@ export function personSchema() {
     '@type': 'Person',
     name: PERSON_NAME,
     url: SITE_URL,
-    jobTitle: 'פסיכותרפיסטית גופנית, מטפלת שיאצו ומנחת פתיחת קול',
+    jobTitle: 'פסיכותרפיסטית גופנית, מטפלת שיאצו, מנחת פתיחת קול, סדנאות וטקסים',
     address: {
       '@type': 'PostalAddress',
       addressLocality: LOCATION,

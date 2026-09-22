@@ -111,4 +111,6 @@ export const THERAPY_OPTIONS: EnumOption[] = [
   { value: 'psychotherapy', label: 'פסיכותרפיה' },
   { value: 'shiatsu', label: 'טיפול במגע' },
   { value: 'voice', label: 'פתיחת קול' },
+  { value: 'workshops', label: 'סדנאות' },
+  { value: 'ceremonies', label: 'טקסים' },
 ];

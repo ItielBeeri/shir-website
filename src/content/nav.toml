@@ -29,6 +29,16 @@ href  = "/voice"
 theme = "voice"
 
 [[items]]
+label = "סדנאות"
+href  = "/workshops"
+theme = "workshops"
+
+[[items]]
+label = "טקסים"
+href  = "/ceremonies"
+theme = "ceremonies"
+
+[[items]]
 label  = "המלצות"
 href   = "/recommendations"
 header = false

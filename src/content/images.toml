@@ -17,6 +17,14 @@ alt  = "איור אבסטרקטי המרמז על מגע מרפא וגוף"
 file = "/img/content/placeholder-voice.jpg"
 alt  = "איור אבסטרקטי המרמז על קול ונשימה"
 
+[placeholder-workshops]
+file = "/img/content/placeholder-workshops.jpg"
+alt  = "איור אבסטרקטי של מעגל נוכחויות סביב מרכז משותף"
+
+[placeholder-ceremonies]
+file = "/img/content/placeholder-ceremonies.jpg"
+alt  = "איור אבסטרקטי של מדורה בקרחת יער"
+
 [placeholder-blog-cover]
 file = "/img/content/shiatsu-2.jpeg"
 alt  = "תמונת כיסוי לפוסט בבלוג"
@@ -64,6 +72,14 @@ alt  = "שיר אמיתי במפגש פתיחת קול"
 [voice-2]
 file = "/img/content/voice-2.jpeg"
 alt  = "שיר אמיתי במפגש פתיחת קול"
+
+[workshops-1]
+file = "/img/content/workshops-1.jpg"
+alt  = "איור אבסטרקטי של קבוצה נאספת יחד"
+
+[ceremonies-1]
+file = "/img/content/ceremonies-1.jpg"
+alt  = "איור אבסטרקטי של אש טקסית עולה בין עצים"
 
 [background-main]
 file = "/img/bg/background.jpg"

@@ -46,7 +46,10 @@
   --color-sand:         #e8d4a8;
   --color-peach:        #f3c9bb;
   --color-rose:         #e9b8c2;
+  --color-blush:        #f9e2d8;
   --color-lavender:     #c9bde0;
+  --color-moss:         #c3d3ae;
+  --color-sage:         #dde6cc;
   --color-teal:         #a6d4c8;
   --color-seafoam:      #bfe0d3;
   --color-glass:        rgba(255, 255, 255, 0.42);
@@ -104,6 +107,14 @@
 [data-theme="voice"] {
   --accent:      var(--color-rose);
   --accent-soft: var(--color-sand);
+}
+[data-theme="workshops"] {
+  --accent:      var(--color-peach);
+  --accent-soft: var(--color-blush);
+}
+[data-theme="ceremonies"] {
+  --accent:      var(--color-moss);
+  --accent-soft: var(--color-sage);
 }
 
 /* ============================================================

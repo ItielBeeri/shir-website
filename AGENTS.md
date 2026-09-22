@@ -117,7 +117,7 @@ Editable content lives in `src/content/` and is parsed at build time. **Componen
 
 `src/lib/screenshots.ts` measures recommendation screenshots with `sharp` at build time so every card renders its text at the same apparent size regardless of which phone took the capture. Its header comment explains the thresholds; read it before touching them.
 
-**Adding a modality** touches four places: the `accent` enum in `config.ts`, a `[data-theme]` row in `global.css`, `src/content/therapies/<slug>.mdx`, and a 3-line `src/pages/<slug>.astro` wrapper. Add a `nav.toml` entry and the home triptych and footer pick it up automatically.
+**Adding a modality** touches six places: the `accent` enum in `config.ts`, `BaseLayout`'s `theme` union, a `[data-theme]` row in `global.css`, `src/content/therapies/<slug>.mdx`, a 3-line `src/pages/<slug>.astro` wrapper, and `THERAPY_OPTIONS` in `cms/` (gated by test C-4). Add a `nav.toml` entry and the home triptych and footer pick it up automatically.
 
 ## 6. Components
 

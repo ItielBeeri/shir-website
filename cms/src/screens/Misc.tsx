@@ -193,6 +193,8 @@ export function describePath(path: string): string {
       psychotherapy: 'פסיכותרפיה',
       shiatsu: 'טיפול במגע',
       voice: 'פתיחת קול',
+      workshops: 'סדנאות',
+      ceremonies: 'טקסים',
     };
     return `עמוד ${names[slug ?? ''] ?? slug}`;
   }

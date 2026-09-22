@@ -5,7 +5,7 @@ const therapies = defineCollection({
   schema: z.object({
     title:             z.string(),
     kicker:            z.string(),
-    accent:            z.enum(['psychotherapy', 'shiatsu', 'voice']),
+    accent:            z.enum(['psychotherapy', 'shiatsu', 'voice', 'workshops', 'ceremonies']),
     hero_image:        z.string(),
     teaser_image:      z.string().optional(),
     summary:           z.string(),
@@ -22,7 +22,7 @@ const blog = defineCollection({
     date:            z.coerce.date(),
     cover:           z.string().optional(),
     tags:            z.array(z.string()).default([]),
-    related_therapy: z.enum(['psychotherapy', 'shiatsu', 'voice']).optional(),
+    related_therapy: z.enum(['psychotherapy', 'shiatsu', 'voice', 'workshops', 'ceremonies']).optional(),
     order:           z.number().int().positive().optional(),
     draft:           z.boolean().default(false),
   }),
