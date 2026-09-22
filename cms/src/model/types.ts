@@ -6,7 +6,7 @@
  * updated in the same commit as any shape change. `model.test.ts` fails when
  * the two drift.
  */
-import type { TomlPath } from '../content/toml-edit';
+import type { TomlPath } from '../content/toml-edit.js';
 
 export type FieldType =
   /** One line of Hebrew. */

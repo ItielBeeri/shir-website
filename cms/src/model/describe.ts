@@ -5,7 +5,7 @@
  * publish commit is written on the server and its subject says which pages
  * changed - the same names she read on the way to pressing the button.
  */
-import { screens } from './screens';
+import { screens } from './screens.js';
 
 const THERAPY_NAMES: Record<string, string> = {
   psychotherapy: 'פסיכותרפיה',

@@ -8,11 +8,12 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && node scripts/check-functions.mjs && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:functions": "node scripts/check-functions.mjs"
   },
   "dependencies": {
     "@tiptap/core": "^3.31.3",

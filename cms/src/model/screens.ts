@@ -6,8 +6,8 @@
  * site copy - it is the one place in this repo where Hebrew is written by a
  * maintainer rather than by the owner.
  */
-import type { Screen } from './types';
-import { THERAPY_OPTIONS } from './types';
+import type { Screen } from './types.js';
+import { THERAPY_OPTIONS } from './types.js';
 
 const CONTENT = 'src/content';
 
