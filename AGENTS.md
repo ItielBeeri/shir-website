@@ -175,7 +175,7 @@ The site publishes a formal **הצהרת נגישות** at `/accessibility` (req
 
 ### 10.1 Caching
 
-`vercel.json` holds cache headers, plus the `ignoreCommand` that keeps `cms/` commits from redeploying the site (§13). It grants `immutable` to `/img/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
+`vercel.json` holds cache headers, plus the `ignoreCommand` that keeps `cms/` commits from redeploying the site (§13; `cms/vercel.json` mirrors it). Both diff against `VERCEL_GIT_PREVIOUS_SHA`, never `HEAD^`: Vercel builds only a push's tip, so `HEAD^` misses earlier commits in the push and the first-parent side of every merge. It grants `immutable` to `/img/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
 
 ## 11. Stop and ask
 
