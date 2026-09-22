@@ -305,6 +305,32 @@
     ],
     "digest": "b4679edeba43160a"
   },
+  "/img/content/image-2026-09-22.jpg": {
+    "key": "content/image-2026-09-22",
+    "width": 2048,
+    "height": 1936,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1600,
+      2048
+    ],
+    "digest": "134823a02d38f845"
+  },
+  "/img/content/file-000000001fac81f5a84363db60cff895.jpg": {
+    "key": "content/file-000000001fac81f5a84363db60cff895",
+    "width": 1254,
+    "height": 1254,
+    "widths": [
+      400,
+      640,
+      900,
+      1254
+    ],
+    "digest": "2d84ea10899562a2"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
@@ -328,6 +354,17 @@
       1080
     ],
     "digest": "643c5d6cf077552b"
+  },
+  "/img/recommendations/recommendation-06.jpeg": {
+    "key": "recommendations/recommendation-06",
+    "width": 899,
+    "height": 940,
+    "widths": [
+      400,
+      640,
+      899
+    ],
+    "digest": "41d77b5dd21e54d2"
   },
   "/img/recommendations/recommendation-03.jpeg": {
     "key": "recommendations/recommendation-03",
@@ -364,17 +401,6 @@
       1080
     ],
     "digest": "e2c8b448ab16dbd6"
-  },
-  "/img/recommendations/recommendation-06.jpeg": {
-    "key": "recommendations/recommendation-06",
-    "width": 899,
-    "height": 940,
-    "widths": [
-      400,
-      640,
-      899
-    ],
-    "digest": "41d77b5dd21e54d2"
   },
   "/img/recommendations/recommendation-07.jpeg": {
     "key": "recommendations/recommendation-07",
@@ -436,18 +462,6 @@
     ],
     "digest": "585d63ca365b218e"
   },
-  "/img/recommendations/recommendation-12.jpeg": {
-    "key": "recommendations/recommendation-12",
-    "width": 945,
-    "height": 1561,
-    "widths": [
-      400,
-      640,
-      900,
-      945
-    ],
-    "digest": "88eb5622c38cbf2a"
-  },
   "/img/recommendations/recommendation-13.jpeg": {
     "key": "recommendations/recommendation-13",
     "width": 1071,
@@ -460,6 +474,18 @@
     ],
     "digest": "7a91a9785371127e"
   },
+  "/img/recommendations/recommendation-12.jpeg": {
+    "key": "recommendations/recommendation-12",
+    "width": 945,
+    "height": 1561,
+    "widths": [
+      400,
+      640,
+      900,
+      945
+    ],
+    "digest": "88eb5622c38cbf2a"
+  },
   "/img/recommendations/recommendation-14.jpeg": {
     "key": "recommendations/recommendation-14",
     "width": 1080,
@@ -471,5 +497,17 @@
       1080
     ],
     "digest": "4b5b632d495b64a1"
+  },
+  "/img/recommendations/recommendation-15.jpeg": {
+    "key": "recommendations/recommendation-15",
+    "width": 1080,
+    "height": 933,
+    "widths": [
+      400,
+      640,
+      900,
+      1080
+    ],
+    "digest": "f0e24e0cf1bcdf15"
   }
 }
