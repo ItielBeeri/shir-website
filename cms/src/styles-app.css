@@ -355,34 +355,44 @@
 /* --- preview --------------------------------------------------------------- */
 
 .change-list { margin: 0; padding-inline-start: 1.2rem; }
+
 .preview-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  margin-block-end: 10px;
+  margin-block-end: 12px;
 }
-.preview-switch { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.preview-switch { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .preview-switch .chip { text-decoration: none; color: inherit; }
 
-.frames { display: grid; gap: 14px; }
-.frames.is-both { grid-template-columns: 1fr; }
-@media (min-width: 900px) {
-  .frames.is-both { grid-template-columns: 390px 1fr; }
-}
+/* The preview needs more room than a form does, so this screen alone widens. */
+.app.is-wide { max-inline-size: 1400px; }
 
-.frame { margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.frame iframe {
-  inline-size: 100%;
+.stage-wrap { inline-size: 100%; display: flex; justify-content: center; }
+
+/* The stage is the scaled-down footprint; the frame inside keeps its real
+   pixel width so the site lays out exactly as it would on that device. */
+.stage {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
+  box-shadow: 0 2px 14px rgba(45, 42, 38, 0.08);
 }
-.frame.is-phone iframe { block-size: 70vh; max-inline-size: 390px; }
-.frame.is-desktop iframe { block-size: 70vh; }
+.stage.is-mobile { border-radius: 22px; }
 
-.publish-row { margin-block: 16px 0; }
+.stage iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: top left;
+}
+
+.publish-row { margin-block: 18px 0; }
 
 .spinner {
   display: inline-block;
@@ -399,3 +409,48 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
 }
+
+/* --- reaching the preview -------------------------------------------------- */
+/* Three ways in, because one was not enough: the bar on every screen, the
+   drawer, and a card on the landing screen. */
+
+.bar-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  min-block-size: 38px;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 20px;
+  block-size: 20px;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.drawer .badge { background: var(--accent); color: #fff; margin-inline-start: 6px; }
+
+.pending-callout {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+  padding: 14px 16px;
+  margin-block-end: 14px;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.pending-callout > span:last-child { display: flex; flex-direction: column; gap: 2px; }

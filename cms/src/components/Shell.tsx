@@ -74,6 +74,16 @@ export function Shell({
             {routeTitle(route)}
           </button>
 
+          {store.pending.length > 0 && route.kind !== 'preview' && (
+            <button
+              className="bar-publish"
+              onClick={() => onGo({ kind: 'preview' })}
+            >
+              צפייה ופרסום
+              <span className="badge">{store.pending.length}</span>
+            </button>
+          )}
+
           <button
             className="bar-button"
             onClick={() => setDrawerOpen(true)}
@@ -113,6 +123,20 @@ export function Shell({
                   <span aria-hidden="true">🏠</span> המסך הראשי
                 </button>
               </li>
+              <li>
+                <button
+                  className={route.kind === 'preview' ? 'is-current' : ''}
+                  onClick={() => {
+                    onGo({ kind: 'preview' });
+                    setDrawerOpen(false);
+                  }}
+                >
+                  <span aria-hidden="true">👁</span> צפייה ופרסום
+                  {store.pending.length > 0 && (
+                    <span className="badge">{store.pending.length}</span>
+                  )}
+                </button>
+              </li>
               {destinations.map((screen) => (
                 <li key={screen.id}>
                   <button
@@ -148,7 +172,7 @@ export function Shell({
         </div>
       )}
 
-      <main className="app" id="main">
+      <main className={route.kind === 'preview' ? 'app is-wide' : 'app'} id="main">
         {children}
       </main>
 

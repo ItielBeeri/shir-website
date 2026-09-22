@@ -181,7 +181,21 @@ function Screen({
 
   if (route.kind === 'home') {
     return (
-      <div className="cards">
+      <>
+        {store.pending.length > 0 && (
+          <button className="pending-callout" onClick={() => go({ kind: 'preview' })}>
+            <span className="glyph" aria-hidden="true">👁</span>
+            <span>
+              <b>
+                {store.pending.length === 1
+                  ? 'שינוי אחד ממתין לפרסום'
+                  : `${store.pending.length} שינויים ממתינים לפרסום`}
+              </b>
+              <span className="muted">לצפייה באתר לפני הפרסום</span>
+            </span>
+          </button>
+        )}
+        <div className="cards">
         {screens
           .filter((s) => !s.advanced)
           .map((screen) => (
@@ -191,7 +205,8 @@ function Screen({
               {screen.blurb && <span className="blurb">{screen.blurb}</span>}
             </button>
           ))}
-      </div>
+        </div>
+      </>
     );
   }
 

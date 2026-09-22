@@ -2,32 +2,62 @@
  * See it, then publish it.
  *
  * The draft branch gets its own build, and this is that build - the real site
- * with the real changes, not an approximation. On a wide screen both viewports
- * show at once, because the owner writes on a laptop and half her visitors
- * read on a phone, and the difference is exactly where copy goes wrong.
+ * with the real changes, not an approximation.
  *
- * The status comes from the deployment statuses Vercel pushes to the
- * repository. If that permission is not granted it reads `unknown`, and rather
- * than blocking publishing forever the screen says so and lets her through.
+ * **One viewport at a time.** Two frames side by side each get half the width,
+ * and the site's layout switches at 768px, so a pair of frames on a laptop is
+ * just the mobile layout twice. Instead the widest *real* viewport that fits
+ * the space is rendered at its true width and scaled down to suit, which keeps
+ * the layout honest and only shrinks the pixels.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, FriendlyError } from '../api';
 import { useStore } from '../store';
 import { describePath } from './Misc';
 
 type State = 'building' | 'ready' | 'failed' | 'unknown';
+type Device = 'desktop' | 'mobile';
 
+/**
+ * The site's header swaps the hamburger for full navigation at 768px, so a
+ * frame narrower than that is a phone however wide the screen showing it is.
+ * 1280 is a laptop and is one of the widths §1 of AGENTS.md says to test at.
+ */
+const VIEWPORTS: Record<Device, { width: number; height: number; label: string }> = {
+  desktop: { width: 1280, height: 800, label: 'במסך מחשב' },
+  mobile: { width: 390, height: 844, label: 'בנייד' },
+};
+
+/** Below this the type is too small to judge copy by, so desktop is not offered. */
+const MIN_SCALE = 0.45;
 const POLL_MS = 6000;
+const FRAME_TIMEOUT_MS = 8000;
 
 export function Preview({ onPublished }: { onPublished: () => void }): JSX.Element {
   const store = useStore();
   const [state, setState] = useState<State>('building');
   const [url, setUrl] = useState<string | null>(null);
-  const [both, setBoth] = useState(true);
+  const [device, setDevice] = useState<Device>('desktop');
+  const [available, setAvailable] = useState(0);
+  const [framed, setFramed] = useState<'waiting' | 'ok' | 'blocked'>('waiting');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nudge, setNudge] = useState(0);
+
+  const stage = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
+
+  // The frame is sized from the space it actually has, so the same screen gives
+  // a bigger preview when the drawer is closed or the window is widened.
+  useLayoutEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const measure = (): void => setAvailable(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [url]);
 
   const check = useCallback(async () => {
     try {
@@ -47,12 +77,8 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
 
   useEffect(() => {
     void check();
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
   }, [check, nudge]);
 
-  // Keep asking only while something is actually happening.
   useEffect(() => {
     if (state !== 'building') return;
     timer.current = window.setTimeout(() => setNudge((n) => n + 1), POLL_MS);
@@ -60,6 +86,22 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
       if (timer.current) window.clearTimeout(timer.current);
     };
   }, [state, nudge]);
+
+  /**
+   * A frame that never loads is almost always Vercel Deployment Protection: the
+   * preview redirects to a login on vercel.com, which the content security
+   * policy refuses to frame. That fires neither load nor error, so the only
+   * signal available is the absence of a load.
+   */
+  useEffect(() => {
+    if (!url) return;
+    setFramed('waiting');
+    const id = window.setTimeout(
+      () => setFramed((f) => (f === 'ok' ? f : 'blocked')),
+      FRAME_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [url, device]);
 
   async function publish(): Promise<void> {
     setBusy(true);
@@ -79,6 +121,14 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
     return <p className="banner">אין שינויים שממתינים לפרסום.</p>;
   }
 
+  const fitScale = (width: number): number =>
+    available > 0 ? Math.min(1, available / width) : 1;
+
+  const desktopFits = fitScale(VIEWPORTS.desktop.width) >= MIN_SCALE;
+  const shown: Device = desktopFits ? device : 'mobile';
+  const viewport = VIEWPORTS[shown];
+  const scale = fitScale(viewport.width);
+
   return (
     <>
       {error && <p className="banner error">{error}</p>}
@@ -96,12 +146,20 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
         <Status state={state} />
         {url && (
           <div className="preview-switch">
-            <button className={both ? 'chip is-on' : 'chip'} onClick={() => setBoth(true)}>
-              מסך ונייד
-            </button>
-            <button className={both ? 'chip' : 'chip is-on'} onClick={() => setBoth(false)}>
-              נייד בלבד
-            </button>
+            {desktopFits && (
+              <div className="chips" role="group" aria-label="בחירת תצוגה">
+                {(['desktop', 'mobile'] as Device[]).map((d) => (
+                  <button
+                    key={d}
+                    className={shown === d ? 'chip is-on' : 'chip'}
+                    aria-pressed={shown === d}
+                    onClick={() => setDevice(d)}
+                  >
+                    {VIEWPORTS[d].label}
+                  </button>
+                ))}
+              </div>
+            )}
             <a href={url} target="_blank" rel="noopener noreferrer" className="chip">
               פתיחה בחלון חדש
             </a>
@@ -109,21 +167,42 @@ export function Preview({ onPublished }: { onPublished: () => void }): JSX.Eleme
         )}
       </div>
 
-      {url ? (
-        <div className={both ? 'frames is-both' : 'frames'}>
-          <figure className="frame is-phone">
-            <figcaption className="muted">בנייד</figcaption>
-            <iframe src={url} title="תצוגה מקדימה בנייד" loading="lazy" />
-          </figure>
-          {both && (
-            <figure className="frame is-desktop">
-              <figcaption className="muted">במסך רחב</figcaption>
-              <iframe src={url} title="תצוגה מקדימה במסך רחב" loading="lazy" />
-            </figure>
-          )}
-        </div>
-      ) : (
-        <p className="muted">{state === 'building' ? 'הבנייה בתהליך…' : 'אין עדיין תצוגה להראות.'}</p>
+      <div className="stage-wrap" ref={stage}>
+        {url ? (
+          <div
+            className={`stage is-${shown}`}
+            style={{
+              inlineSize: viewport.width * scale,
+              blockSize: viewport.height * scale,
+            }}
+          >
+            <iframe
+              key={shown}
+              src={url}
+              title={`תצוגה מקדימה ${viewport.label}`}
+              style={{
+                width: viewport.width,
+                height: viewport.height,
+                transform: `scale(${scale})`,
+              }}
+              onLoad={() => setFramed('ok')}
+            />
+          </div>
+        ) : (
+          <p className="muted">
+            {state === 'building' ? 'הבנייה בתהליך…' : 'אין עדיין תצוגה להראות.'}
+          </p>
+        )}
+      </div>
+
+      {url && framed === 'blocked' && (
+        <p className="banner">
+          התצוגה לא נטענת כאן, כנראה בגלל הגדרת אבטחה של Vercel.{' '}
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            אפשר לפתוח אותה בחלון חדש
+          </a>{' '}
+          — וכדאי לספר על כך לאיתיאל.
+        </p>
       )}
 
       <div className="save-row publish-row">
