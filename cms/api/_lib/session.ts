@@ -8,7 +8,7 @@
  * function, which is what lets the write allowlist be unbypassable.
  */
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { Role } from './env';
+import type { Role } from './env.js';
 
 export const SESSION_COOKIE = 'sid';
 export const STATE_COOKIE = 'oas';

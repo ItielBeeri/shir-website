@@ -7,8 +7,8 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { randomBytes } from 'node:crypto';
-import { config, roleFor, selfOrigin } from '../_lib/env';
-import { exchangeCode, viewer } from '../_lib/github';
+import { config, roleFor, selfOrigin } from '../_lib/env.js';
+import { exchangeCode, viewer } from '../_lib/github.js';
 import {
   SESSION_COOKIE,
   STATE_COOKIE,
@@ -18,8 +18,8 @@ import {
   safeEqual,
   seal,
   unseal,
-} from '../_lib/session';
-import type { Session } from '../_lib/session';
+} from '../_lib/session.js';
+import type { Session } from '../_lib/session.js';
 
 const SESSION_DAYS = 180;
 

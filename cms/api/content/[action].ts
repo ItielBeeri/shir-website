@@ -4,8 +4,8 @@
  * passed through `assertWritablePath`.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { config } from '../_lib/env';
-import { GitHubTransport, refreshTokens } from '../_lib/github';
+import { config } from '../_lib/env.js';
+import { GitHubTransport, refreshTokens } from '../_lib/github.js';
 import {
   SESSION_COOKIE,
   cookie,
@@ -13,8 +13,8 @@ import {
   parseCookies,
   seal,
   unseal,
-} from '../_lib/session';
-import type { Session } from '../_lib/session';
+} from '../_lib/session.js';
+import type { Session } from '../_lib/session.js';
 import {
   deleteFiles,
   discardPath,
@@ -24,8 +24,8 @@ import {
   publish,
   restorePath,
   saveFiles,
-} from '../../src/git/engine';
-import { DRAFT_BRANCH, TARGET_BRANCH, assertWritablePath } from '../../src/git/paths';
+} from '../../src/git/engine.js';
+import { DRAFT_BRANCH, TARGET_BRANCH, assertWritablePath } from '../../src/git/paths.js';
 
 const SESSION_DAYS = 180;
 /** Base64 of 8 MB, plus slack. Vercel caps the body well below this anyway. */

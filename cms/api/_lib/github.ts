@@ -7,7 +7,7 @@
  * typed API means the client cannot express a call the allowlist has not
  * already seen.
  */
-import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../src/git/engine';
+import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../src/git/engine.js';
 
 const API = 'https://api.github.com';
 

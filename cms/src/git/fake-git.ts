@@ -3,7 +3,7 @@
  * addressing, trees, commits, refs and a real diff. Test-only.
  */
 import { createHash } from 'node:crypto';
-import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from './engine';
+import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from './engine.js';
 
 const sha1 = (s: string) => createHash('sha1').update(s).digest('hex');
 

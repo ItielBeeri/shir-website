@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "shir-website",
+      "name": "cms",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "port": 4321
+      "runtimeArgs": ["--dir", "cms", "dev"],
+      "port": 5175
     }
   ]
 }

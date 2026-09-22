@@ -15,7 +15,7 @@ import {
   assertWritableBranch,
   assertWritablePath,
   assertWritablePaths,
-} from './paths';
+} from './paths.js';
 
 export type ChangeStatus = 'added' | 'modified' | 'removed';
 
