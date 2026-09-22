@@ -7,7 +7,9 @@ import GlassCard from '../components/ui/GlassCard.astro';
 import CTAButton from '../components/ui/CTAButton.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
+import Icon from '../components/ui/Icon.astro';
 import { loadToml } from '../lib/content';
+import { socialLinks, socialSchema } from '../lib/social';
 import { z } from 'zod';
 
 const contactPageSchema = z.object({
@@ -20,11 +22,13 @@ const siteSchema = z.object({
     phone_href: z.string(), phone_display: z.string(), phone_label: z.string(),
     email_href: z.string(), email_display: z.string(), email_label: z.string(),
   }),
-  social: z.object({ facebook_url: z.string(), facebook_label: z.string(), biosynthesis_url: z.string(), biosynthesis_label: z.string() }),
+  social: socialSchema,
 });
 
 const page   = loadToml('pages/contact.toml', contactPageSchema);
-const { contact, social } = loadToml('site.toml', siteSchema);
+const site   = loadToml('site.toml', siteSchema);
+const contact = site.contact;
+const social = socialLinks(site.social);
 ---
 
 <BaseLayout
@@ -72,29 +76,21 @@ const { contact, social } = loadToml('site.toml', siteSchema);
           </div>
 
           <div class="contact-social">
-            <a
-              href={social.facebook_url}
-              target="_blank"
-              rel="noopener"
-              class="link-underline social-link"
-              data-an-event="outbound_click"
-              data-an-cta-label="facebook"
-              data-an-placement="contact_page"
-            >
-              {social.facebook_label}
-            </a>
-            <span aria-hidden="true"> · </span>
-            <a
-              href={social.biosynthesis_url}
-              target="_blank"
-              rel="noopener"
-              class="link-underline social-link"
-              data-an-event="outbound_click"
-              data-an-cta-label="biosynthesis"
-              data-an-placement="contact_page"
-            >
-              {social.biosynthesis_label}
-            </a>
+            {social.map((link) => (
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener"
+                class="link-underline social-link"
+                aria-label={`${link.label} - נפתח בטאב חדש`}
+                data-an-event="outbound_click"
+                data-an-cta-label={link.event}
+                data-an-placement="contact_page"
+              >
+                <Icon name={link.icon} decorative size={16} />
+                {link.label}
+              </a>
+            ))}
           </div>
         </GlassCard>
       </ScrollReveal>
@@ -164,21 +160,34 @@ const { contact, social } = loadToml('site.toml', siteSchema);
   }
 
   .contact-social {
-    margin-block-start: 1.5rem;
+    margin-block-start: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 1.25rem;
     font-size: var(--fs-small);
-    color: var(--color-mist);
-    text-align: center;
-    white-space: nowrap;
   }
 
   @media (max-width: 520px) {
-    .contact-group :global(.cta-btn span),
-    .contact-social {
+    .contact-group :global(.cta-btn span) {
       white-space: normal;
     }
   }
 
-  .social-link { color: var(--color-ink-soft); }
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-block-size: 44px;
+    padding-block: 0.5rem;
+    color: var(--color-ink-soft);
+  }
+
+  /* The sweep underline belongs under the words, not under the tap padding
+     that carries the row to 44px. */
+  .social-link::after { inset-block-end: 0.5rem; }
+
+  .social-link :global(svg) { flex: none; }
 
   .contact-location {
     padding-block: var(--space-block);

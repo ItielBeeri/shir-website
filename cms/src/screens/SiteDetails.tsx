@@ -35,6 +35,8 @@ const FOOTER: Simple[] = [
 
 const LINKS: Simple[] = [
   { path: ['social', 'facebook_url'], label: 'קישור לפייסבוק', help: 'הכתובת המלאה, כמו שמופיעה בדפדפן' },
+  { path: ['social', 'youtube_url'], label: 'קישור ליוטיוב' },
+  { path: ['social', 'spotify_url'], label: 'קישור לספוטיפיי' },
   { path: ['social', 'biosynthesis_url'], label: 'קישור לבית הספר' },
 ];
 

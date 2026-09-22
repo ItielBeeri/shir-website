@@ -2,6 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "site",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "port": 4321
+    },
+    {
+      "name": "site-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["preview", "--port", "4325"],
+      "port": 4325
+    },
+    {
       "name": "cms",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "cms", "dev"],

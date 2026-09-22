@@ -3,6 +3,7 @@ import { loadToml } from '../../lib/content';
 import { z } from 'zod';
 import Icon from '../ui/Icon.astro';
 import MotionToggle from './MotionToggle.astro';
+import { socialLinks, socialSchema } from '../../lib/social';
 
 const navSchema = z.object({
   items: z.array(z.object({ label: z.string(), href: z.string() })),
@@ -20,12 +21,7 @@ const siteSchema = z.object({
     email_display:  z.string(),
     email_label:    z.string(),
   }),
-  social: z.object({
-    facebook_url:       z.string(),
-    facebook_label:     z.string(),
-    biosynthesis_url:   z.string(),
-    biosynthesis_label: z.string(),
-  }),
+  social: socialSchema,
   footer: z.object({
     copyright_name:     z.string(),
     rights:             z.string(),
@@ -46,6 +42,7 @@ const site = loadToml('site.toml', siteSchema);
 // Same source as the header (nav.toml), so a renamed page is renamed in both.
 const nav = loadToml('nav.toml', navSchema);
 const consent = loadToml('pages/consent.toml', consentSchema);
+const social = socialLinks(site.social);
 const year = new Date().getFullYear();
 ---
 
@@ -137,36 +134,23 @@ const year = new Date().getFullYear();
     <div class="footer-col">
       <p class="footer-col-title">עוד</p>
       <ul role="list">
-        <li>
-          <a
-            href={site.social.facebook_url}
-            target="_blank"
-            rel="noopener"
-            aria-label={`${site.social.facebook_label} - נפתח בטאב חדש`}
-            class="footer-link"
-            data-an-event="outbound_click"
-            data-an-cta-label="facebook"
-            data-an-placement="footer"
-          >
-            <Icon name="facebook" decorative size={16} />
-            {site.social.facebook_label}
-          </a>
-        </li>
-        <li>
-          <a
-            href={site.social.biosynthesis_url}
-            target="_blank"
-            rel="noopener"
-            aria-label={`${site.social.biosynthesis_label} - נפתח בטאב חדש`}
-            class="footer-link"
-            data-an-event="outbound_click"
-            data-an-cta-label="biosynthesis"
-            data-an-placement="footer"
-          >
-            <Icon name="external" decorative size={16} />
-            {site.social.biosynthesis_label}
-          </a>
-        </li>
+        {social.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener"
+              aria-label={`${link.label} - נפתח בטאב חדש`}
+              class="footer-link"
+              data-an-event="outbound_click"
+              data-an-cta-label={link.event}
+              data-an-placement="footer"
+            >
+              <Icon name={link.icon} decorative size={16} />
+              {link.label}
+            </a>
+          </li>
+        ))}
       </ul>
     </div>
   </div>
@@ -271,6 +255,10 @@ const year = new Date().getFullYear();
   }
   .footer-col a:hover,
   .footer-link:hover { color: var(--color-ink); }
+
+  /* The school's label wraps to two lines in the column; the mark beside it
+     must not be squeezed by the wrap. */
+  .footer-link :global(svg) { flex: none; }
 
   .contact-list { display: flex; flex-direction: column; gap: 0.75rem; }
 

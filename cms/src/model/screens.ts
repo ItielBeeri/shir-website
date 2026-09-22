@@ -239,6 +239,8 @@ export const screens: Screen[] = [
         title: 'קישורים',
         fields: [
           { key: 'social.facebook_url', path: ['social', 'facebook_url'], label: 'קישור לפייסבוק', type: 'url' },
+          { key: 'social.youtube_url', path: ['social', 'youtube_url'], label: 'קישור ליוטיוב', type: 'url' },
+          { key: 'social.spotify_url', path: ['social', 'spotify_url'], label: 'קישור לספוטיפיי', type: 'url' },
           { key: 'social.biosynthesis_url', path: ['social', 'biosynthesis_url'], label: 'קישור לבית הספר', type: 'url' },
         ],
       },
@@ -302,6 +304,8 @@ export const DELIBERATELY_HIDDEN: Record<string, string> = {
   'contact.phone_href': 'נגזר ממספר הטלפון',
   'contact.email_href': 'נגזר מכתובת האימייל',
   'social.facebook_label': 'כיתוב קבוע',
+  'social.youtube_label': 'כיתוב קבוע',
+  'social.spotify_label': 'כיתוב קבוע',
   'social.biosynthesis_label': 'כיתוב קבוע',
   'analytics.enabled': 'הפעלת המדידה - שינוי קוד',
   'analytics.measurement_id': 'מזהה המדידה - שינוי קוד',

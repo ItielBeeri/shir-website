@@ -15,9 +15,14 @@ email_href     = "mailto:shir.amitai1@gmail.com"
 email_display  = "shir.amitai1@gmail.com"
 email_label    = "אימייל"
 
+# סדר ההצגה באתר הוא הסדר כאן: הפרופילים האישיים, ואחריהם בית הספר.
 [social]
 facebook_url       = "https://www.facebook.com/shir.amitai"
 facebook_label     = "פייסבוק"
+youtube_url        = "https://www.youtube.com/user/shiramitai"
+youtube_label      = "יוטיוב"
+spotify_url        = "https://open.spotify.com/artist/1ujwWORKnLFn4JvFixXfIm"
+spotify_label      = "ספוטיפיי"
 biosynthesis_url   = "https://biosynthesis.co.il/%D7%A9%D7%99%D7%A8-%D7%90%D7%9E%D7%99%D7%AA%D7%99/"
 biosynthesis_label = "בית הספר לפסיכותרפיה בגישת הביוסינתזה"
 
