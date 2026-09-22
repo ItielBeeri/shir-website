@@ -49,6 +49,11 @@ A second project on the same repository:
 `vercel.json` carries the mirror-image command, so `cms/` commits do not
 redeploy the site.
 
+**Both ignore commands use repo-root-relative pathspecs (`:/cms`, `:/src`).**
+Vercel runs the Ignored Build Step from the project's Root Directory, so a
+plain `-- cms` resolves to `cms/cms` here, matches nothing, exits 0 and cancels
+every build. Exit 0 means skip.
+
 ### 3. Environment variables
 
 All of these live only in Vercel's encrypted environment — never in the repo,
