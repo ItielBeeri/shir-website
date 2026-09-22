@@ -11,7 +11,8 @@ import type { PathChange } from './git/engine';
 import { Shell } from './components/Shell';
 import { StoreProvider, useStore } from './store';
 import { screens, screenById } from './model/screens';
-import type { Route } from './routes';
+import type { Route, Stack } from './routes';
+import { back as popStack, canGoBack, current, initialStack, jump as jumpTo, push, replaceTop } from './routes';
 import { TomlForm } from './screens/TomlForm';
 import { MdxEntry } from './screens/MdxEntry';
 import { Collection } from './screens/Collection';
@@ -118,30 +119,43 @@ export default function App(): JSX.Element {
 }
 
 function Workspace(): JSX.Element {
-  const [stack, setStack] = useState<Route[]>([{ kind: 'home' }]);
+  const [stack, setStack] = useState<Stack>(initialStack);
   const [drawer, setDrawer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const route = stack[stack.length - 1];
-  const go = useCallback((next: Route) => {
+  const route = current(stack);
+  const clear = (): void => {
     setNotice(null);
     setError(null);
-    setStack((prev) => [...prev, next]);
+  };
+
+  /** Deeper inside the current flow: Back steps out one level. */
+  const go = useCallback((next: Route) => {
+    clear();
+    setStack((prev) => push(prev, next));
   }, []);
-  const back = useCallback(() => setStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev)), []);
-  const home = useCallback(() => setStack([{ kind: 'home' }]), []);
-  const replace = useCallback((next: Route) => setStack((prev) => [...prev.slice(0, -1), next]), []);
+
+  /** Somewhere unrelated - the drawer. Back from there means home. */
+  const jump = useCallback((next: Route) => {
+    clear();
+    setStack(jumpTo(next));
+  }, []);
+
+  const back = useCallback(() => setStack(popStack), []);
+  const home = useCallback(() => setStack(initialStack()), []);
+  const replace = useCallback((next: Route) => setStack((prev) => replaceTop(prev, next)), []);
 
   const saved = (): void => setNotice('נשמר. עוד לא פורסם לאתר.');
 
   return (
     <Shell
       route={route}
-      canGoBack={stack.length > 1}
+      canGoBack={canGoBack(stack)}
       onBack={back}
       onHome={home}
       onGo={go}
+      onJump={jump}
       drawerOpen={drawer}
       setDrawerOpen={setDrawer}
     >
@@ -150,11 +164,12 @@ function Workspace(): JSX.Element {
       <Screen
         route={route}
         go={go}
+        jump={jump}
         replace={replace}
         back={back}
         saved={saved}
         published={() => {
-          setStack([{ kind: 'home' }]);
+          setStack(initialStack());
           setNotice('פורסם. השינוי יופיע באתר בתוך כדקה או שתיים.');
         }}
       />
@@ -165,6 +180,7 @@ function Workspace(): JSX.Element {
 function Screen({
   route,
   go,
+  jump,
   replace,
   back,
   saved,
@@ -172,6 +188,7 @@ function Screen({
 }: {
   route: Route;
   go: (route: Route) => void;
+  jump: (route: Route) => void;
   replace: (route: Route) => void;
   back: () => void;
   saved: () => void;
@@ -199,7 +216,7 @@ function Screen({
         {screens
           .filter((s) => !s.advanced)
           .map((screen) => (
-            <button key={screen.id} className="card" onClick={() => go({ kind: 'screen', id: screen.id })}>
+            <button key={screen.id} className="card" onClick={() => jump({ kind: 'screen', id: screen.id })}>
               <span className="glyph" aria-hidden="true">{GLYPHS[screen.icon] ?? '•'}</span>
               <span className="label">{screen.title}</span>
               {screen.blurb && <span className="blurb">{screen.blurb}</span>}

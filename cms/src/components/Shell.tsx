@@ -25,6 +25,7 @@ interface Props {
   onBack: () => void;
   onHome: () => void;
   onGo: (route: Route) => void;
+  onJump: (route: Route) => void;
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
   children: ReactNode;
@@ -36,6 +37,7 @@ export function Shell({
   onBack,
   onHome,
   onGo,
+  onJump,
   drawerOpen,
   setDrawerOpen,
   children,
@@ -127,7 +129,7 @@ export function Shell({
                 <button
                   className={route.kind === 'preview' ? 'is-current' : ''}
                   onClick={() => {
-                    onGo({ kind: 'preview' });
+                    onJump({ kind: 'preview' });
                     setDrawerOpen(false);
                   }}
                 >
@@ -142,7 +144,7 @@ export function Shell({
                   <button
                     className={'id' in route && route.id === screen.id ? 'is-current' : ''}
                     onClick={() => {
-                      onGo({ kind: 'screen', id: screen.id });
+                      onJump({ kind: 'screen', id: screen.id });
                       setDrawerOpen(false);
                     }}
                   >
@@ -154,7 +156,7 @@ export function Shell({
                 <button
                   className={route.kind === 'history' ? 'is-current' : ''}
                   onClick={() => {
-                    onGo({ kind: 'history' });
+                    onJump({ kind: 'history' });
                     setDrawerOpen(false);
                   }}
                 >
