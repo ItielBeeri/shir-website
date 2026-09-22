@@ -343,6 +343,17 @@
     ],
     "digest": "643c5d6cf077552b"
   },
+  "/img/recommendations/recommendation-06.jpeg": {
+    "key": "recommendations/recommendation-06",
+    "width": 899,
+    "height": 940,
+    "widths": [
+      400,
+      640,
+      899
+    ],
+    "digest": "41d77b5dd21e54d2"
+  },
   "/img/recommendations/recommendation-03.jpeg": {
     "key": "recommendations/recommendation-03",
     "width": 1076,
@@ -378,17 +389,6 @@
       1080
     ],
     "digest": "e2c8b448ab16dbd6"
-  },
-  "/img/recommendations/recommendation-06.jpeg": {
-    "key": "recommendations/recommendation-06",
-    "width": 899,
-    "height": 940,
-    "widths": [
-      400,
-      640,
-      899
-    ],
-    "digest": "41d77b5dd21e54d2"
   },
   "/img/recommendations/recommendation-07.jpeg": {
     "key": "recommendations/recommendation-07",
@@ -450,18 +450,6 @@
     ],
     "digest": "585d63ca365b218e"
   },
-  "/img/recommendations/recommendation-12.jpeg": {
-    "key": "recommendations/recommendation-12",
-    "width": 945,
-    "height": 1561,
-    "widths": [
-      400,
-      640,
-      900,
-      945
-    ],
-    "digest": "88eb5622c38cbf2a"
-  },
   "/img/recommendations/recommendation-13.jpeg": {
     "key": "recommendations/recommendation-13",
     "width": 1071,
@@ -473,6 +461,18 @@
       1071
     ],
     "digest": "7a91a9785371127e"
+  },
+  "/img/recommendations/recommendation-12.jpeg": {
+    "key": "recommendations/recommendation-12",
+    "width": 945,
+    "height": 1561,
+    "widths": [
+      400,
+      640,
+      900,
+      945
+    ],
+    "digest": "88eb5622c38cbf2a"
   },
   "/img/recommendations/recommendation-14.jpeg": {
     "key": "recommendations/recommendation-14",
