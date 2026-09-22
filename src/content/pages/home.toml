@@ -5,7 +5,7 @@ title      = "שיר אמיתי"
 tagline    = "פסיכותרפיה · טיפול במגע · פתיחת קול"
 descriptor = "מרחב לטיפול בגוף, נפש וקול"
 subtitle   = "קול הנשמה - מרחב לגילוי הביטוי העמוק שלך"
-scroll_cue = "גלילהה"
+scroll_cue = "גלילה"
 
 [intro]
 portrait   = "placeholder-portrait"
@@ -33,4 +33,4 @@ cta_href  = "/blog"
 [closing]
 enabled = false
 # PLACEHOLDER: TXT_HOME_CLOSING
-line    = "נשימה אחת. כאן. עכשיו."
+line    = "נשימה אחת. כאן. עכשיו"
