@@ -13,32 +13,16 @@ import type { TomlPath } from '../content/toml-edit';
 import { findSlot } from '../content/toml-edit';
 import { useStore } from '../store';
 import { deriveContact, isValidEmail, isValidHttpsUrl, isValidIsraeliMobile } from '../lib/contact';
+import { contactGroup, pathOf, plainFields, plainGroups } from '../model/site-fields';
+import type { Field } from '../model/types';
 
 const FILE = 'src/content/site.toml';
 
-interface Simple {
-  path: TomlPath;
-  label: string;
-  help?: string;
-}
-
-const BRAND: Simple[] = [
-  { path: ['brand', 'name'], label: 'השם' },
-  { path: ['brand', 'tagline'], label: 'שורת התחומים' },
-];
-
-const FOOTER: Simple[] = [
-  { path: ['footer', 'copyright_name'], label: 'השם ליד סימן הזכויות' },
-  { path: ['footer', 'rights'], label: 'נוסח הזכויות' },
-  { path: ['footer', 'location'], label: 'המיקום' },
-];
-
-const LINKS: Simple[] = [
-  { path: ['social', 'facebook_url'], label: 'קישור לפייסבוק', help: 'הכתובת המלאה, כמו שמופיעה בדפדפן' },
-  { path: ['social', 'youtube_url'], label: 'קישור ליוטיוב' },
-  { path: ['social', 'spotify_url'], label: 'קישור לספוטיפיי' },
-  { path: ['social', 'biosynthesis_url'], label: 'קישור לבית הספר' },
-];
+// Both lists are the model's; only the contact inputs are built here, and
+// `site-fields.ts` says why.
+const CONTACT = contactGroup();
+const PLAIN = plainGroups();
+const FIELDS = plainFields();
 
 export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
   const store = useStore();
@@ -58,7 +42,7 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
         if (cancelled || !content) return;
         const read = (path: TomlPath): string => String(findSlot(content, path).value);
         const values: Record<string, string> = {};
-        for (const f of [...BRAND, ...FOOTER, ...LINKS]) values[f.path.join('.')] = read(f.path);
+        for (const f of FIELDS) values[f.key] = read(pathOf(f));
         const p = read(['contact', 'phone_display']);
         const e = read(['contact', 'email_display']);
         setSource(content);
@@ -75,9 +59,11 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
 
   const phoneOk = isValidIsraeliMobile(phone);
   const emailOk = isValidEmail(email);
-  const badLinks = LINKS.filter((l) => {
-    const v = simple[l.path.join('.')];
-    return v !== undefined && v !== '' && !isValidHttpsUrl(v);
+  // Emptying one is how a platform is dropped, so blank is valid and only a
+  // value that is not an address is not.
+  const badLinks = FIELDS.filter((f) => {
+    const v = simple[f.key];
+    return f.type === 'url' && v !== undefined && v !== '' && !isValidHttpsUrl(v);
   });
 
   const dirty =
@@ -97,10 +83,7 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
         { path: ['contact', 'whatsapp_url'], value: derived.whatsapp_url },
         { path: ['contact', 'email_display'], value: derived.email_display },
         { path: ['contact', 'email_href'], value: derived.email_href },
-        ...[...BRAND, ...FOOTER, ...LINKS].map((f) => ({
-          path: f.path,
-          value: simple[f.path.join('.')],
-        })),
+        ...FIELDS.map((f) => ({ path: pathOf(f), value: simple[f.key] })),
       ];
       const next = setValues(source, edits);
       await api.save('עדכון פרטי הקשר', [{ path: FILE, content: next }]);
@@ -124,16 +107,22 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
     <>
 
       <section className="group">
-        <h2>דרכי יצירת קשר</h2>
-        <p className="help">
-          כל פרט נכתב פעם אחת. מה שרואים על המסך ומה שקורה בלחיצה מתעדכנים יחד.
-        </p>
+        <h2>{CONTACT.title}</h2>
+        {CONTACT.help && <p className="help">{CONTACT.help}</p>}
 
         <div className="field">
           <label htmlFor="phone">מספר הטלפון</label>
-          <p className="help">אותו מספר משמש גם לוואטסאפ.</p>
-          <input id="phone" type="text" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          {phone && !phoneOk && <p className="invalid">זה לא נראה כמו מספר נייד ישראלי.</p>}
+          <p className="help" id="phone-help">אותו מספר משמש גם לוואטסאפ.</p>
+          <input
+            id="phone"
+            type="text"
+            inputMode="tel"
+            value={phone}
+            aria-describedby={phone && !phoneOk ? 'phone-help phone-bad' : 'phone-help'}
+            aria-invalid={Boolean(phone) && !phoneOk}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          {phone && !phoneOk && <p className="invalid" id="phone-bad">זה לא נראה כמו מספר נייד ישראלי.</p>}
           {phoneOk && (
             <p className="derived">
               על המסך יופיע <b>{derived.phone_display}</b> · בלחיצה יתקשרו אליו · וואטסאפ ייפתח לאותו מספר
@@ -143,14 +132,30 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
 
         <div className="field">
           <label htmlFor="email">כתובת האימייל</label>
-          <input id="email" type="text" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          {email && !emailOk && <p className="invalid">זו לא נראית ככתובת אימייל תקינה.</p>}
+          <input
+            id="email"
+            type="text"
+            inputMode="email"
+            value={email}
+            aria-describedby={email && !emailOk ? 'email-bad' : undefined}
+            aria-invalid={Boolean(email) && !emailOk}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {email && !emailOk && <p className="invalid" id="email-bad">זו לא נראית ככתובת אימייל תקינה.</p>}
         </div>
       </section>
 
-      <Group title="השם ושורת התחומים" fields={BRAND} values={simple} onChange={setSimple} />
-      <Group title="קישורים" fields={LINKS} values={simple} onChange={setSimple} invalid={badLinks} />
-      <Group title="כותרת תחתונה" fields={FOOTER} values={simple} onChange={setSimple} />
+      {PLAIN.map((group) => (
+        <Group
+          key={group.title}
+          title={group.title ?? ''}
+          help={group.help}
+          fields={group.fields}
+          values={simple}
+          onChange={setSimple}
+          invalid={badLinks}
+        />
+      ))}
 
       {/* Beside the button: the save is at the foot of the form, and a
           message at the top is a message she never scrolls back to see. */}
@@ -172,34 +177,54 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
 
 function Group({
   title,
+  help,
   fields,
   values,
   onChange,
   invalid = [],
 }: {
   title: string;
-  fields: Simple[];
+  help?: string;
+  fields: Field[];
   values: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
-  invalid?: Simple[];
+  invalid?: Field[];
 }): JSX.Element {
   return (
     <section className="group">
       <h2>{title}</h2>
+      {help && <p className="help">{help}</p>}
       {fields.map((field) => {
-        const key = field.path.join('.');
+        const key = field.key;
         const id = `f-${key.replace(/\W/g, '-')}`;
+        const bad = invalid.includes(field);
+        // Sentences beside a box are not attached to it. The help here carries
+        // a consequence - an emptied link leaves the site - so it has to reach
+        // somebody who never sees the paragraph.
+        const describedBy = [field.help && `${id}-help`, bad && `${id}-bad`]
+          .filter(Boolean)
+          .join(' ');
         return (
           <div className="field" key={key}>
             <label htmlFor={id}>{field.label}</label>
-            {field.help && <p className="help">{field.help}</p>}
+            {field.help && (
+              <p className="help" id={`${id}-help`}>
+                {field.help}
+              </p>
+            )}
             <input
               id={id}
               type="text"
               value={values[key] ?? ''}
+              aria-describedby={describedBy || undefined}
+              aria-invalid={bad || undefined}
               onChange={(e) => onChange({ ...values, [key]: e.target.value })}
             />
-            {invalid.includes(field) && <p className="invalid">הכתובת צריכה להתחיל ב-https://</p>}
+            {bad && (
+              <p className="invalid" id={`${id}-bad`}>
+                הכתובת צריכה להתחיל ב-https://
+              </p>
+            )}
           </div>
         );
       })}

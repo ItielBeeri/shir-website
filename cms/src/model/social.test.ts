@@ -19,7 +19,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { screens } from './screens';
+import { plainFields, plainGroups } from './site-fields';
 
 const SITE = join(__dirname, '../../../src');
 const read = (p: string): string => readFileSync(join(SITE, p), 'utf8');
@@ -56,12 +56,15 @@ describe('the site, on a social link the owner cleared', () => {
 /**
  * The editor's half. The site no longer breaks, but silently dropping a link
  * from every page is still a consequence worth naming before she does it.
+ *
+ * Asked of `plainFields()` - the list the screen renders - and not of
+ * `screens.ts`. The first version of this test asked the model, and passed
+ * while the screen showed a different sentence from a list of its own.
  */
 describe('what the editor says about clearing one', () => {
-  const socialFields = screens
-    .flatMap((screen) => screen.groups ?? [])
-    .flatMap((group) => group.fields)
-    .filter((field) => field.key.startsWith('social.') && field.key.endsWith('_url'));
+  const socialFields = plainFields().filter(
+    (field) => field.key.startsWith('social.') && field.key.endsWith('_url'),
+  );
 
   it('has the social URL fields to speak for', () => {
     expect(socialFields.length).toBeGreaterThanOrEqual(3);
@@ -72,5 +75,20 @@ describe('what the editor says about clearing one', () => {
       expect(field.help, field.key).toBeTruthy();
       expect(field.help, field.key).toContain('ריק');
     }
+  });
+
+  it('reaches the screen, because the screen has no list of its own', () => {
+    const screen = readFileSync(join(__dirname, '../screens/SiteDetails.tsx'), 'utf8');
+    expect(screen).toContain("from '../model/site-fields'");
+    // A second array of paths and labels here is what made the help invisible.
+    expect(screen).not.toMatch(/path: \['(brand|social|footer)'/);
+  });
+
+  it('covers every group the screen draws', () => {
+    expect(plainGroups().map((g) => g.title)).toEqual([
+      'השם ושורת התחומים',
+      'קישורים',
+      'כותרת תחתונה',
+    ]);
   });
 });

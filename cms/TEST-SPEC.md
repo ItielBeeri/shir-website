@@ -450,7 +450,10 @@ observable against real Vercel. A-9.2's deploy-watch half is a unit test
 (`deploy.test.ts`); the serving half still needs a real build.
 
 V-6 and N-8a are gated in `pnpm test` too, both by reading sources rather than
-a rendered page. V-6's guard belongs to the site, where it also covers a hand
+a rendered page. V-6's editor half asks `plainFields()`, the list the contact
+screen renders, and not `screens.ts`: the first version asked the model and
+passed while the screen drew a second list of its own, which is how a help
+string can be shipped, green and invisible at once. V-6's guard belongs to the site, where it also covers a hand
 edit, and the site has no runner of its own; this suite may not *import* it
 either, because `cms/` is installed without the site's dependencies (§13), so
 it reads `social.ts` and the three pages that render through it. N-8a reads the

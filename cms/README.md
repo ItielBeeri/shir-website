@@ -113,6 +113,7 @@ falling back to something insecure.
 | `src/content/frontmatter.ts` | YAML frontmatter splices, read with Astro's own parser |
 | `src/content/mdx-edit.ts` | body block model; untouched blocks emit original bytes |
 | `src/model/` | every editable field, with the Hebrew the owner reads |
+| `src/model/site-fields.ts` | the contact screen's own fields, so the one screen `App.tsx` draws by hand still reads them from the model |
 | `src/git/paths.ts` | **the permission model** — what may be written, and where |
 | `src/git/engine.ts` | save, publish, discard, restore, over an injectable transport |
 | `api/` | auth and the typed content API; the engine runs here |
