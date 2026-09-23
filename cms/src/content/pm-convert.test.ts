@@ -274,6 +274,27 @@ describe('blank lines', () => {
     expect(emit(pm)).toBe(`${fm}\nאחת\n`);
   });
 
+  /** `## ` builds as an `<h2>` with no name, which a screen reader announces as a heading and nothing more. */
+  describe('a heading with no words', () => {
+    const heading = (gap: string, content: PmNode[] = []): PmNode => ({
+      type: 'heading',
+      attrs: { gap, level: 2 },
+      content,
+    });
+
+    it('is a blank line between blocks, like an empty paragraph', () => {
+      const pm: PmNode = {
+        type: 'doc',
+        content: [para('אחת', '\n'), heading('\n\n'), heading('\n\n', [{ type: 'text', text: '  ' }]), para('שתיים', '\n\n')],
+      };
+      expect(emit(pm)).toBe(`${fm}\nאחת\n\n\n\nשתיים\n`);
+    });
+
+    it('writes nothing below the last block', () => {
+      expect(roundTrip(`${fm}\nאחת\n\n## \n`)).toBe(`${fm}\nאחת\n`);
+    });
+  });
+
   /**
    * The editor's empty paragraphs are exactly the site's lines of space, file
    * by file. The plugin is read and loaded from its text rather than imported,

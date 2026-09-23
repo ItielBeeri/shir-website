@@ -221,8 +221,14 @@ function pmToBlock(node: PmNode): Block {
 /** Default separation for a block the owner just added. */
 const DEFAULT_GAP = '\n\n';
 
-const isEmptyParagraph = (block: Block): boolean =>
-  block.kind === 'paragraph' &&
+/**
+ * A heading with no words is an empty line as well, because that is what the
+ * editor shows her: deleting a heading's text leaves one, and so does pressing
+ * H2 on an empty line. Written out, `## ` ships an `<h2>` with no name; dropped
+ * outright, it takes away a line of space she can see.
+ */
+const isEmptyLine = (block: Block): boolean =>
+  (block.kind === 'paragraph' || block.kind === 'heading') &&
   block.inline.every((n) => n.type === 'text' && n.value.trim() === '');
 
 /**
@@ -274,7 +280,7 @@ function blankLinesOf(own: string, text: string): string {
 }
 
 const textOf = (block: Block): string =>
-  block.kind === 'paragraph' ? block.inline.map((n) => (n.type === 'text' ? n.value : '')).join('') : '';
+  block.kind === 'paragraph' || block.kind === 'heading' ? block.inline.map((n) => (n.type === 'text' ? n.value : '')).join('') : '';
 
 /** Two newlines, the least that separates the block the empty lines come before. */
 const separated = (own: string): string => '\n'.repeat(Math.max(0, 2 - newlines(own))) + own;
@@ -291,7 +297,7 @@ export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
   (pm.content ?? []).forEach((node, i) => {
     const own = typeof node.attrs?.gap === 'string' ? node.attrs.gap : i === 0 ? '' : DEFAULT_GAP;
     const block = pmToBlock(node);
-    if (isEmptyParagraph(block)) {
+    if (isEmptyLine(block)) {
       if (prev) pending += blankLinesOf(own, textOf(block));
       return;
     }
