@@ -3,67 +3,154 @@
 End-to-end execution of `cms/TEST-SPEC.md` against the **production deployment**, driven
 through a real browser as the owner would use it.
 
-| | Run 6 | Run 7 | Run 8 | Run 9 | Run 10 (current) |
+| | Run 7 | Run 8 | Run 9 | Run 10 | Run 11 (current) |
 |---|---|---|---|---|---|
 | **Date** | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 |
-| **Build** | `356cee7` | `a569bea` / `8e235e7` | `06bbe1c` / `bef7249` | `06bbe1c` / `bef7249` | `0be0269` / `72c82e2` |
-| **Role tested** | owner | owner | owner | owner | **maintainer** |
-| **Scope** | full | targeted | targeted | full, from scratch | **the run-9 findings** |
-| **Verdict** | No failing row | one inert in production | Everything open closed | Three new findings | **All three fixed; one leftover, and a build that briefly failed** |
+| **Build** | `8e235e7` | `bef7249` | `bef7249` | `0be0269` | `9a6aed1` |
+| **Role tested** | owner | owner | owner | maintainer | maintainer |
+| **Scope** | targeted | targeted | full, from scratch | the run-9 findings | **the run-10 finding and the screen it rewrote** |
+| **Verdict** | one inert in production | Everything open closed | Three new findings | All three fixed; one leftover | **Leftover fixed at the root; the rewrite left one property behind** |
 
-Runs 1–3 re-tested everything (runs 1 and 2 are summarised in §13). Runs 4–8 each focused on the
+Runs 1–3 re-tested everything (runs 1 and 2 are summarised in §14). Runs 4–8 each focused on the
 round before; run 9 started over from the spec. Findings keep their original numbers.
 
 ---
 
 ## 1. Verdict
 
-**All three run-9 findings are fixed, and two of them are fixed well.** `R9-1`'s rename now
-refuses a taken target server-side, `R9-2`'s emptied link is dropped from the site rather than
-rendered dead — confirmed on a real build — and `R9-3`'s row controls name their rows on all
-three screens, file inputs included.
+**`R10-1` is fixed, and fixed at the root rather than at the symptom.** The recommendation was to
+move one string; what landed instead is `src/model/site-fields.ts`, which makes the contact
+screen read its fields off `screens.ts` rather than restating them. The duplicate list is gone,
+so the class of bug is gone with it — the help text now renders on **all four** social fields,
+where before only one field had help at all.
 
-Two things this round is obliged to say beyond that:
+**The rewrite left one property behind, and that is this round's finding.** `SiteDetails.tsx`
+now takes `path`, `label` and `help` from the model. It does not take `required`. `brand.name`
+and `brand.tagline` are both `required: true` in `screens.ts`, and on this screen they can be
+emptied: save stays enabled, no message appears, and the file receives `name = ""` and
+`tagline = ""` (`R11-1`).
 
-- **The first fix attempt broke the CMS build.** `72c82e2`'s new `social.test.ts` imported the
-  site's `socialLinks()` across the package boundary, which resolves locally and not on Vercel.
-  The CMS production deployment for `2dc0b36` is recorded as **failure**; `0be0269` fixed it
-  about eighteen minutes later and added `boundary.test.ts` so the class cannot recur. The site
-  was never affected. It is in the report because a red production deployment is a fact about
-  the release even when the next one is green.
-- **`R10-1` (LOW), new.** The help text explaining what clearing a link means was added to
-  `screens.ts`, but the contact screen renders from `SiteDetails.tsx`'s own hardcoded field list,
-  so the owner never sees it. Its test asserts against `screens.ts` and passes. The protective
-  half works; only the explanatory half went to the wrong file.
+The contrast is the proof. On a screen rendered by the generic `TomlForm`, emptying a required
+field disables save and says **"צריך למלא: השם"**. On the contact screen, nothing stops it. Same
+model, same flag, one screen honouring it.
 
-**This round ran as `maintainer`, not `owner`** — the session was signed in as `ItielBeeri`. That
-was not planned, and it cost me a false alarm I want on the record: the legal-lock probe returned
-`200` where nine rounds had returned `400`, and I had it written up as a critical regression
-before checking the role. It is not a regression. `legalProblems()` returns no problems for a
-maintainer by design, which is exactly what `A-10.4` specifies.
+That makes `R11-1` the same shape as `R10-1` one property over: unifying the *list* was right,
+but a bespoke renderer still has to consume everything the list carries.
 
-The accident paid for itself. **`A-10.4`'s maintainer half has been carried unverified since run
-3** and is now tested: a maintainer can edit every locked section, sees none of the 17 disabled
-fields or 3 request-change affordances the owner sees — **and still cannot make consent
-invalid**. The balance and disclosure rules bind both roles. That is the right line, and nothing
-before this round had proved it was drawn there.
-
-| Exit criterion | Run 7 | Run 8 | Run 9 | Run 10 |
+| Exit criterion | Run 8 | Run 9 | Run 10 | Run 11 |
 |---|---|---|---|---|
-| All 58 acceptance rows pass | No failures; 6 partial | No failures; 5 partial | No failures; 7 partial | **No failures; 5 partial** |
-| §4.1 fidelity gates pass live | Yes | Yes | Yes + Unicode corpus | **Yes** — unchanged code |
-| Build parity (§4.4) | Previews only | Both ways | Previews only | **Previews only** — nothing published |
-| Every §7 guarantee passes | X-10 outright | Unchanged | X-4 both directions | **X-11 both roles for the first time** |
-| Zero `axe` violations | None | None | `R9-3` | **None** |
+| All 58 acceptance rows pass | No failures; 5 partial | No failures; 7 partial | No failures; 5 partial | **No failures; 6 partial** |
+| §4.1 fidelity gates pass live | Yes | Yes + Unicode | Yes | **Yes** — site.toml re-proved line-for-line |
+| Build parity (§4.4) | Both ways | Previews only | Previews only | **Not exercised** — Vercel rate limit |
+| Every §7 guarantee passes | Unchanged | X-4 both ways | X-11 both roles | **Unchanged** |
+| Zero `axe` violations | None | `R9-3` | None | **None** |
 | Green in CI three times | n/a | n/a | n/a | n/a |
 
-Open after run 10: one low (`R10-1`), plus the standing design decision (`R2-3`/`X-7`) and the
-informational note (`R4-2`). **The owner-side legal locks were not re-exercised this round** —
-the code is untouched and run 9 verified them, but that is inheritance, not observation.
+Open after run 11: one medium (`R11-1`), plus the standing design decision (`R2-3`/`X-7`) and the
+informational note (`R4-2`). Two things remain inherited rather than observed: the **owner-side
+legal locks** (this round was again signed in as `ItielBeeri`/maintainer) and **build parity**.
 
 ---
 
-## 2. Round 10 — the run-9 fixes
+## 2. Round 11 — the contact screen, rebuilt
+
+`9a6aed1` is live and its CMS deployment succeeded. `pnpm test` green at **632** across 26 files
+(was 630/26); `pnpm check` and `pnpm build` clean.
+
+| Finding | Severity | Verdict |
+|---|---|---|
+| `R10-1` help text never reaches the screen | LOW | **Fixed at the root** — one field list, four fields with help |
+| `R11-1` required fields not enforced on that screen | MEDIUM | **New** — see below |
+
+### R10-1 — fixed, and the duplication with it
+
+`site-fields.ts` reads the screen's groups from `screenById('site')`, separates the contact group
+(whose two inputs write five TOML keys, which is why the screen is bespoke at all) from the rest,
+and hands the rest to the renderer as they come. `SiteDetails.tsx` no longer contains a field
+list.
+
+Observed on the live screen: all four social fields now carry
+*"אפשר להשאיר ריק - אז הקישור פשוט לא יופיע באתר"*. Before the fix, only Facebook had help and it
+said something else.
+
+An unasked-for improvement came with it: the phone field now previews its own derivation —
+*"על המסך יופיע 054-987-6543 · בלחיצה יתקשרו אליו · וואטסאפ ייפתח לאותו מספר"* — which updates as
+she types. `X-8`'s guarantee was always true; now it is also visible.
+
+### The rewritten screen, regression-tested
+
+121 lines of `SiteDetails.tsx` changed, so the screen was re-tested rather than assumed.
+
+| Check | Result |
+|---|---|
+| All 11 fields present, same ids | **Pass** |
+| `X-8` phone → three keys | **Pass** — `wa.me/972549876543`, `tel:+972549876543`, `054-987-6543` |
+| `X-8` email → two keys | **Pass** — `mailto:` and display from one input |
+| `A-8.2` tagline, `·` separators | **Pass** |
+| `A-8.5` footer fields | **Pass** |
+| TOML fidelity | **Pass** — exactly 7 lines changed, line count identical, all comments and alignment preserved |
+| `A-8.4` bad URL | **Pass** — `http://`, `javascript:`, bare host all refused in Hebrew |
+| `A-8.4` empty URL | **Pass** — accepted, and now explained |
+| Phone / email validation | **Pass** — both refuse with a Hebrew reason and block save |
+| **Required text fields** | **Fail** — `R11-1` |
+
+### R11-1 · Required fields are not enforced on the contact screen — MEDIUM
+
+`screens.ts:247-248` marks both brand fields required:
+
+```ts
+{ key: 'brand.name',    path: ['brand', 'name'],    label: 'השם',           type: 'text', required: true },
+{ key: 'brand.tagline', path: ['brand', 'tagline'], label: 'שורת התחומים', type: 'text', required: true },
+```
+
+Emptying either leaves save enabled with no message, and saving writes:
+
+```toml
+[brand]
+name    = ""
+tagline = ""
+```
+
+Tested with the form already dirty from a valid edit, so "save is disabled" could not be confused
+with "nothing to save" — and against an invalid phone in the same state, which *does* disable
+save. The difference is the field type, not the form state.
+
+**What it costs.** `seo.ts:19` reads `brand.name` into `PERSON_NAME`, used five times across the
+JSON-LD: `Person.name`, `HealthAndBeautyBusiness.name`, the `Service` provider and
+`BlogPosting.author`. All become empty strings on every page — structured data that validates as
+present and says nothing, against a stated SEO target of 100. `Footer.astro:59` feeds the same
+value into the footer watermark, which renders blank.
+
+The page title is **not** affected: `BaseLayout.astro:64` hardcodes `שיר אמיתי` rather than
+reading the file. Worth its own look sometime — `AGENTS.md` §5 calls `site.toml` the single
+source of truth for the brand name — but it is what stops this finding being worse.
+
+**Not confirmed on a build.** A preview was synced for the empty-brand draft and Vercel created
+no deployment for it; the rate limit is out of scope for this session by agreement. The impact
+above is read from the site's source, and is stated as such.
+
+**The fix is small**: have `SiteDetails.tsx` apply `field.required` the way `TomlForm.tsx:71`
+already does, and reuse its message. The broader point is worth one line in `site-fields.ts`:
+a screen that renders the model by hand owes every property in it, not the three it happened to
+need.
+
+### Also confirmed in round 11
+
+- **`R9-1`** — rename onto an existing post still 409, missing source still 409.
+- **Permission boundary** — five write probes, two read probes, all 403; no cookie 401s; a legal
+  file still undeletable (400).
+- **`G-11` discard** — two discards, both verified byte-identical to `master`, including the one
+  that put the brand name back.
+- **`TomlForm` honours `required`** — emptying `hero.title` on the home screen disables save and
+  names the field. That is the control this finding is measured against.
+- **Accessibility** — no contrast failure, no unnamed control, nothing under 44 px, no heading
+  jump, one `h1`, `lang="he" dir="rtl"`, no horizontal overflow.
+
+---
+
+## 3. Round 10 — the run-9 fixes
+
+> `R10-1` was fixed at the root in `9a6aed1` and re-tested in run 11 (§2). Kept as written.
 
 `0be0269` is live: the deployed bundle carries the new help constant, and the row-control labels
 render interpolated. `pnpm test` green at **630** across 26 files (was 607/23); `pnpm check` and
@@ -157,7 +244,7 @@ rather than code.
 
 ---
 
-## 3. Round 9 — a full run from scratch
+## 4. Round 9 — a full run from scratch
 
 > All three findings below were fixed in `72c82e2` / `0be0269` and re-tested in run 10 (§2).
 > Kept as written.
@@ -295,7 +382,7 @@ pushing to `master` anyway.
 
 ---
 
-## 4. Round 8 — the last two findings, and the gap run 7 left
+## 5. Round 8 — the last two findings, and the gap run 7 left
 
 > Everything below still holds after run 9. What run 9 added were surfaces no round,
 > including this one, had opened.
@@ -381,7 +468,7 @@ every screen, and confirmed by measurement: unchanged at 2.5 s after the clock j
 
 ---
 
-## 5. Round 7 — the run-6 findings, re-tested
+## 6. Round 7 — the run-6 findings, re-tested
 
 `8e235e7` is live: the deployed bundle carries the new Hebrew absence strings, `is-absent` and
 `.switch label`. `pnpm test` is green at **591 passed** across 22 files (was 528/19) and
@@ -509,7 +596,7 @@ says. The publish succeeded either way, and that is the fact worth putting on sc
 
 ---
 
-## 6. Round 6 — the fixes, verified
+## 7. Round 6 — the fixes, verified
 
 `356cee7` is live: the deployed client bundle carries its marker strings, and the server
 returns the `resolved` diagnostic that commit added. `pnpm test` is green (**528 passed**, 19
@@ -674,7 +761,7 @@ than a regression — `356cee7` touched no component or stylesheet.
   jumps, one `h1`, `lang="he" dir="rtl"`. No horizontal overflow at 375 px.
 
 ---
-## 7. Round 5 — the build-dependent gap, closed
+## 8. Round 5 — the build-dependent gap, closed
 
 The seven-step checklist from run 4, executed once Vercel had headroom. Six steps pass. Step 3
 found a defect that had been hiding behind "no builds to look at".
@@ -769,7 +856,7 @@ byte-exact. **R2-4** — the publish subject named the net change (`פרסום �
 
 ---
 
-## 8. Round 4 — the preview-build change (`66968c4`)
+## 9. Round 4 — the preview-build change (`66968c4`)
 
 ### What the commit changes
 
@@ -883,7 +970,7 @@ probe was deleted.
 
 ---
 
-## 9. Round 3 — every run-2 finding re-tested
+## 10. Round 3 — every run-2 finding re-tested
 
 | Finding | Status | Evidence |
 |---|---|---|
@@ -899,7 +986,7 @@ probe was deleted.
 
 ---
 
-## 10. The owner role — closed at last, and it passes
+## 11. The owner role — closed at last, and it passes
 
 Deferred in runs 1 and 2. Tested this round under a genuine `shiramitai1` / `role: owner`
 session.
@@ -935,7 +1022,7 @@ request affordance, exactly as required.
 
 ---
 
-## 11. New in run 3
+## 12. New in run 3
 
 > Both findings in this section were **fixed in `356cee7`** and re-tested in run 6 (§2). Kept
 > as written for the record.
@@ -968,7 +1055,7 @@ The change list on screen says *"· נמחק"* correctly; only the commit subjec
 
 ---
 
-## 12. Regression sweep — everything from runs 1 and 2, re-verified
+## 13. Regression sweep — everything from runs 1 and 2, re-verified
 
 **The critical fix holds.** Re-typed the full hostile set plus new constructs. The serialized
 MDX escapes `#`, `[`, `]`, `-`, `*`, `` ` ``, `>`, `1.`, `<`, `{` **and** `![alt](x.png)`:
@@ -1009,7 +1096,7 @@ modal with focus return; drafts persist and are offered back after a hard reload
 
 ---
 
-## 13. Acceptance matrix — after run 10
+## 14. Acceptance matrix — after run 11
 
 `P` pass · `F` fail · `~` partial · `–` not exercised
 
@@ -1031,27 +1118,28 @@ re-scored. Run 9 exercised many of them for the first time rather than inheritin
 | Ch. 6 | | Ch. 7 | | Ch. 8 | | Ch. 9 | | Ch. 10 | |
 |---|---|---|---|---|---|---|---|---|---|
 | A-6.1 | **P** | A-7.1 | **P** | A-8.1 | **P** | A-9.1 | ~ | A-10.1 | **P** |
-| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | **P** | A-9.2 | **P** | A-10.2 | **P** |
+| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | ~ | A-9.2 | **P** | A-10.2 | **P** |
 | A-6.3 | **P** | A-7.3 | **P** | A-8.3 | **P** | A-9.3 | **P** | A-10.3 | **P** |
 | A-6.4 | **P** | A-7.4 | **P** | A-8.4 | **P** | A-9.4 | **P** | A-10.4 | **P** |
 | A-6.5 | ~ | A-7.5 | ~ | A-8.5 | **P** | A-9.5 | ~ | A-10.5 | **P** |
 | | | | | | | | | A-10.6 | **P** |
 
-**Tally — 53 P · 0 F · 5 ~ · 0 – · 0 ⊘**
-(run 9: 51 P · 0 F · 7 ~ — run 8: 53 P · 0 F · 5 ~ — run 7: 52 P · 0 F · 6 ~ —
-run 6: 52 P · 0 F · 6 ~ — run 5: 50 P · 3 F · 5 ~ — run 3: 50 P · 0 F · 6 ~ · 2 ⊘ —
-run 2: 45 P · 0 F · 7 ~ · 1 – · 3 ⊘ — run 1: 34 P · 6 F · 15 ~ · 3 –)
+**Tally — 52 P · 0 F · 6 ~ · 0 – · 0 ⊘**
+(run 10: 53 P · 0 F · 5 ~ — run 9: 51 P · 0 F · 7 ~ — run 8: 53 P · 0 F · 5 ~ —
+run 7: 52 P · 0 F · 6 ~ — run 6: 52 P · 0 F · 6 ~ — run 5: 50 P · 3 F · 5 ~ —
+run 3: 50 P · 0 F · 6 ~ · 2 ⊘ — run 2: 45 P · 0 F · 7 ~ · 1 – · 3 ⊘ —
+run 1: 34 P · 6 F · 15 ~ · 3 –)
 
-**Both rows run 9 downgraded return to pass.** `A-4.8` — the rename flow works and both the
-screen and the proxy now refuse a taken name. `A-8.4` — a malformed URL is refused in Hebrew and
-an emptied one is dropped from the site rather than rendered dead. `R10-1` is not scored against
-`A-8.4`: the row is about validating the link, and the link is now handled correctly end to end.
+**A-8.2 moves to partial.** Its own wording is "name and tagline edited; the `·` separator
+survives", and both halves pass — the row is downgraded for what it does not say. `V-2` requires
+a required field to be refused empty *by the CMS*, these two fields are declared required, and
+this screen accepts them empty (`R11-1`). Scoring the row `P` would record the separator surviving
+while the field it separates can be blanked.
 
-**`A-10.4` is the row that changed most without changing score.** It has read `P` since run 3 on
-the owner half alone; run 10 supplies the maintainer half, so for the first time the whole row
-has been seen rather than half-seen and half-assumed.
+`A-8.4` stays `P`: link validation is correct in both directions, and the emptied-link behaviour
+it was downgraded for in run 9 is fixed.
 
-The five remaining partials are the long-standing structural ones (`A-3.5`, `A-6.5`, `A-7.5`,
+The other five partials are the long-standing structural ones (`A-3.5`, `A-6.5`, `A-7.5`,
 `A-9.1`, `A-9.5`), each needing a tool, a second account, or an enumeration this suite has not
 been asked for.
 
@@ -1076,61 +1164,60 @@ spec.
 
 ---
 
-## 14. Still not verified
+## 15. Still not verified
 
 | Area | Reason |
 |---|---|
-| **The owner-side legal locks, this round** | Run 10 ran as `maintainer`, for whom the locks lift by design. The code is untouched since run 9, which verified them as `owner` — but that is inheritance, not observation. Worth one owner-session probe on the next round that has one. |
+| **The owner-side legal locks** | Runs 10 and 11 both ran as `maintainer`, for whom the locks lift by design. The code is untouched since run 9, which verified them as `owner`. Two rounds of inheritance now, and worth one owner-session probe. |
+| **Build parity, and `R11-1`'s site impact** | Vercel created no deployment for this round's preview — the rate limit, out of scope by agreement. Parity rests on run 8; `R11-1`'s effect on the JSON-LD and the footer watermark is read from the site's source rather than from a built page. |
 | **Conflict detection, live** | Needs `master` to move under a pending draft, which only an external writer can do; this session may not push to `master`. Five unit tests and the `is-clash` panel cover it otherwise. |
-| **Build parity** | Runs 9 and 10 published nothing, so parity rests on run 8's two production deployments. The site's Vercel deployment rate limit is a known environment constraint, declared out of scope. |
 | **`R7-1`'s terminal state, unfaked** | Reached in run 8 by stubbing `Date.now` past the limit; everything but the clock was real. |
-| **`axe` (N-5)** | The CMS's own CSP (`script-src 'self'`) blocks loading axe-core. Substituted a scripted audit, which is what found `R6-3` and `R9-3`. |
+| **`axe` (N-5)** | The CMS's own CSP blocks loading axe-core. Substituted a scripted audit, which is what found `R6-3` and `R9-3`. |
 | **N-16 / N-17 on 4G** | No throttling available. Eager payload is 174 KB across two chunks. |
 | **B-10** | Needs a second, non-allow-listed GitHub account. |
 | **B-11** | Verified by code: the cookie is AES-256-GCM sealed, HttpOnly, Secure, SameSite=Lax, so tampering fails the auth tag. |
 
-The **maintainer role** leaves this table after six rounds, by accident rather than design — see
-§1. What replaces it is the owner half of the same row, for the same reason in reverse.
-
 ---
 
-## 15. Repository state — clean
+## 16. Repository state — clean
 
 ```
-git diff --name-status 0be0269 origin/master -- src/content public/img
-  (empty — content byte-identical to the round-10 baseline)
+git diff --name-status 9a6aed1 origin/master -- src/content public/img
+  (empty — content byte-identical to the round-11 baseline)
 ```
 
-- **Round 10 published nothing**, as round 9 did not. `master` has not moved since the fix
-  commits, and `www.shir-amitai.com` was never touched.
-- Three discards undid everything written: `site.toml` twice and `accessibility.toml` once, each
-  verified byte-identical to `master` afterwards — including the locked section a maintainer is
-  permitted to edit and this suite is not.
-- Every rename probe was refused before it wrote anything, so `R9-1`'s fix left nothing to clean.
-- `git ls-tree` on master shows no `qa9`, `qa10` or `TAMPER` residue.
+- **Round 11 published nothing**, as rounds 9 and 10 did not. `master` has not moved since the
+  fix commit and `www.shir-amitai.com` was never touched.
+- Two discards undid everything written: `site.toml` twice, each verified byte-identical to
+  `master` afterwards — including the save that blanked the brand name, which is the one write
+  this round that would have mattered.
+- Every rename and allowlist probe was refused before writing, so they left nothing behind.
+- `git ls-tree` on master shows no `qa9`, `qa10`, `qa11` or `TAMPER` residue.
 - `pending` and `conflicts` are both empty; `content-draft` content matches `master`.
-- The working tree is clean; run 9's report and spec edits landed in `72c82e2`.
+- The working tree is clean; run 10's report edits landed in `9a6aed1`.
 
 ---
 
-## 16. Suggested order of work
+## 17. Suggested order of work
 
-1. **R10-1** — move the help text to the list that renders (`SiteDetails.tsx`), and point its
-   test at the same place. Small, but the interesting part is the shape underneath: two field
-   lists describe the contact screen, and anything presentational added to the wrong one is
-   invisible and green at the same time. Worth a line in `README.md`'s "how it is put together",
-   or a test that fails when the two disagree.
-2. **An owner-session probe of the legal locks.** They are inherited from run 9 rather than
-   observed in run 10, because this round was signed in as the maintainer. One probe closes it.
-3. **A conflict test, next time someone pushes to `master`.** The mechanism has unit tests and a
+1. **R11-1** — apply `field.required` in `SiteDetails.tsx` the way `TomlForm.tsx:71` already
+   does, and reuse its Hebrew message. The one-line version fixes the two brand fields; the
+   version worth writing makes the bespoke screen consume every property the model carries, so
+   the next property added there is not invisible in the same way `help` was in `R10-1`.
+2. **An owner-session probe of the legal locks.** Two rounds running they have been inherited
+   rather than observed, because both were signed in as the maintainer. It is a compliance
+   control and the cheapest item on this list.
+3. **`BaseLayout.astro:64`** — the page title hardcodes `שיר אמיתי` instead of reading
+   `site.brand.name`, which `AGENTS.md` §5 calls the single source of truth. It is what kept
+   `R11-1` from reaching the title, so fixing it without fixing `R11-1` first would make things
+   worse, not better. Informational, and order matters.
+4. **A conflict test, next time someone pushes to `master`.** The mechanism has unit tests and a
    UI panel but has never been seen working end to end.
-4. **`X-7` / `R2-3`** — unchanged, still a decision rather than a defect: bare URLs autolink
-   because the site's markdown is GFM. The lever is `markdown.gfm`, not the CMS.
-5. **The gaps in §14 that need tools** — `axe` proper, 4G throttling, a second GitHub account
-   for `B-10`. Each is a one-off setup cost that retires a permanent caveat.
+5. **`X-7` / `R2-3`** — unchanged, still a decision rather than a defect.
+6. **The gaps in §15 that need tools** — `axe` proper, 4G throttling, a second GitHub account.
 
-**On the failed build.** `boundary.test.ts` is the right response and needs no follow-up: it
-turns a Vercel-only failure into a local one, which is the only place that class can be caught
-cheaply. The thing worth keeping from the episode is that the CMS served a stale bundle for
-eighteen minutes and nothing in the product said so — the same blind spot `R7-1` addressed for
-the site's builds, one layer up.
+**On the shape of the last two rounds.** `R10-1` and `R11-1` are the same bug wearing different
+clothes: a screen that renders the model by hand, and a property of the model it does not read.
+The fix for `R10-1` removed the duplicate list, which was the right move and is why `R11-1` is a
+missing line rather than a second list. A test that asserts the bespoke screen honours every
+flag the model sets on its fields would close the family rather than the instance.

@@ -26,7 +26,11 @@ import { SITE_URL } from '../../lib/seo';
  */
 const globalCss = readFileSync(resolve(process.cwd(), 'public/global.css'), 'utf-8');
 
-const analyticsSchema = z.object({
+const siteSchema = z.object({
+  // §5: site.toml is the single source of truth for the brand name, and the
+  // title is where it is read most. `min(1)` because an empty one would append
+  // a bare separator to every title in the site.
+  brand: z.object({ name: z.string().min(1) }),
   analytics: z.object({
     enabled:        z.boolean(),
     measurement_id: z.string(),
@@ -39,7 +43,7 @@ const analyticsSchema = z.object({
  * not a secret - it is readable in any page's source by design - and its
  * absence is what tells the gate there is nothing to load.
  */
-const { analytics } = loadToml('site.toml', analyticsSchema);
+const { analytics, brand } = loadToml('site.toml', siteSchema);
 const gaId = analytics.enabled ? analytics.measurement_id : undefined;
 
 interface Props {
@@ -61,7 +65,7 @@ const {
 } = Astro.props;
 
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, SITE_URL).href;
-const pageTitle = title.includes('שיר אמיתי') ? title : `${title} | שיר אמיתי`;
+const pageTitle = title.includes(brand.name) ? title : `${title} | ${brand.name}`;
 ---
 
 <!doctype html>

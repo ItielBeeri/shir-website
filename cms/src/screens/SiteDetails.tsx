@@ -59,12 +59,26 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
 
   const phoneOk = isValidIsraeliMobile(phone);
   const emailOk = isValidEmail(email);
-  // Emptying one is how a platform is dropped, so blank is valid and only a
-  // value that is not an address is not.
-  const badLinks = FIELDS.filter((f) => {
-    const v = simple[f.key];
-    return f.type === 'url' && v !== undefined && v !== '' && !isValidHttpsUrl(v);
+  /**
+   * What is wrong with each field, in the field's own words.
+   *
+   * `required` is the model's flag and this screen owes it the same answer the
+   * generic form gives: `brand.name` is read into five JSON-LD strings and the
+   * footer watermark, and an empty one is a page that says nothing inside
+   * markup claiming it does. A link is the other way round - emptying one is
+   * how a platform is dropped, so blank is fine and only a non-address is not.
+   */
+  const problems = FIELDS.flatMap((field) => {
+    const value = simple[field.key];
+    if (typeof value !== 'string') return [];
+    if (field.required && !value.trim()) return [{ field, message: 'שדה חובה' }];
+    if (field.type === 'url' && value !== '' && !isValidHttpsUrl(value)) {
+      return [{ field, message: 'הכתובת צריכה להתחיל ב-https://' }];
+    }
+    return [];
   });
+
+  const missing = problems.filter((p) => p.field.required && !simple[p.field.key].trim());
 
   const dirty =
     phone !== initial.phone ||
@@ -153,7 +167,7 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
           fields={group.fields}
           values={simple}
           onChange={setSimple}
-          invalid={badLinks}
+          problems={problems}
         />
       ))}
 
@@ -165,10 +179,13 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
         <button
           className="primary"
           onClick={save}
-          disabled={!dirty || busy || !phoneOk || !emailOk || badLinks.length > 0}
+          disabled={!dirty || busy || !phoneOk || !emailOk || problems.length > 0}
         >
           {busy ? 'שומר…' : 'שמירה'}
         </button>
+        {missing.length > 0 && (
+          <span className="invalid">צריך למלא: {missing.map((p) => p.field.label).join(', ')}</span>
+        )}
         {!dirty && !busy && <span className="muted">אין שינויים לשמור.</span>}
       </div>
     </>
@@ -181,14 +198,14 @@ function Group({
   fields,
   values,
   onChange,
-  invalid = [],
+  problems = [],
 }: {
   title: string;
   help?: string;
   fields: Field[];
   values: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
-  invalid?: Field[];
+  problems?: Array<{ field: Field; message: string }>;
 }): JSX.Element {
   return (
     <section className="group">
@@ -197,7 +214,7 @@ function Group({
       {fields.map((field) => {
         const key = field.key;
         const id = `f-${key.replace(/\W/g, '-')}`;
-        const bad = invalid.includes(field);
+        const bad = problems.find((p) => p.field === field)?.message;
         // Sentences beside a box are not attached to it. The help here carries
         // a consequence - an emptied link leaves the site - so it has to reach
         // somebody who never sees the paragraph.
@@ -216,13 +233,14 @@ function Group({
               id={id}
               type="text"
               value={values[key] ?? ''}
+              required={field.required}
               aria-describedby={describedBy || undefined}
-              aria-invalid={bad || undefined}
+              aria-invalid={bad ? true : undefined}
               onChange={(e) => onChange({ ...values, [key]: e.target.value })}
             />
             {bad && (
               <p className="invalid" id={`${id}-bad`}>
-                הכתובת צריכה להתחיל ב-https://
+                {bad}
               </p>
             )}
           </div>

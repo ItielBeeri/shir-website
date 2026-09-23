@@ -139,7 +139,7 @@ C-3 is parsed out of `config.ts` with the TypeScript compiler API - it imports
 | ID | Assertion |
 |---|---|
 | V-1 | For each collection, a valid CMS payload passes the site's Zod schema |
-| V-2 | For each required field, an empty value is rejected **by the CMS** before any commit is attempted |
+| V-2 | For each required field, an empty value is rejected **by the CMS** before any commit is attempted - on every screen, including the one rendered by hand. A flag the model sets and a screen does not read is the same defect whether the screen restates the field list or merely under-reads it |
 | V-3 | A date is emitted as `YYYY-MM-DD` and parses via `z.coerce.date()` |
 | V-4 | `order` rejects zero, negatives and non-integers (schema says positive int) |
 | V-5 | Tags and `relatedTherapies` reject values outside their enums |
@@ -449,14 +449,20 @@ in-memory git. G-14's second half - that a save costs no build - is only
 observable against real Vercel. A-9.2's deploy-watch half is a unit test
 (`deploy.test.ts`); the serving half still needs a real build.
 
-V-6 and N-8a are gated in `pnpm test` too, both by reading sources rather than
-a rendered page. V-6's editor half asks `plainFields()`, the list the contact
+V-2's contact-screen half and V-6 and N-8a are gated in `pnpm test` too, all by
+reading sources rather than a rendered page. V-2's is `site-fields.test.ts`,
+which is written against the *family* rather than the instance: it lists the
+properties `SiteDetails.tsx` actually reads, and fails when a site field
+carries any other. `help` went unread, then `required`; the third one fails
+here first.
+
+V-6 has two halves. Its editor half asks `plainFields()`, the list the contact
 screen renders, and not `screens.ts`: the first version asked the model and
-passed while the screen drew a second list of its own, which is how a help
-string can be shipped, green and invisible at once. V-6's guard belongs to the site, where it also covers a hand
-edit, and the site has no runner of its own; this suite may not *import* it
-either, because `cms/` is installed without the site's dependencies (§13), so
-it reads `social.ts` and the three pages that render through it. N-8a reads the
+passed while the screen drew a second list of its own. Its site half belongs to
+the site, where it also covers a hand edit; the site has no runner, and this
+suite may not *import* it either, because `cms/` is installed without the
+site's dependencies (§13), so it reads `social.ts` and the three pages that
+render through it. N-8a reads the
 screens and fails on a *constant* `aria-label`, because a name built from the
 row can only arrive interpolated.
 
