@@ -11,8 +11,29 @@
  * differently (§4.3), so they are two marks with two tags: `em` carries
  * Hebrew emphasis-by-weight, `i` carries real italic.
  */
-import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
+import { Extension, Mark, Node, mergeAttributes, wrappingInputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+
+/**
+ * A lone `*` is the owner's divider, kept as the character she typed
+ * (mdx-edit.ts, `STARS_ONLY`). StarterKit turns `*` followed by a space - or by
+ * Enter, which input rules also see - into a list, so typing the divider and
+ * pressing Enter opened a bullet and put her next sentence inside it. `-` and
+ * `+` still start a list.
+ */
+const Kit = StarterKit.extend({
+  addExtensions() {
+    return (this.parent?.() ?? []).map((extension) =>
+      extension.name === 'bulletList'
+        ? (extension as Node).extend({
+            addInputRules() {
+              return [wrappingInputRule({ find: /^\s*([-+])\s$/, type: this.type })];
+            },
+          })
+        : extension,
+    );
+  },
+});
 
 /** Hebrew emphasis: `*text*`, rendered at weight 600 by the site. */
 export const Emphasis = Mark.create({
@@ -44,7 +65,7 @@ export const SoftImageNode = Node.create({
     id: { default: '' },
     aspect: { default: '4/3' },
     float: { default: undefined },
-    floatWidth: { default: undefined },
+    width: { default: undefined },
   }),
   parseHTML: () => [{ tag: 'div[data-soft-image]' }],
   renderHTML: ({ HTMLAttributes }) => ['div', mergeAttributes(HTMLAttributes, { 'data-soft-image': '' })],
@@ -104,7 +125,7 @@ const GapAttribute = Extension.create({
 });
 
 export const extensions = [
-  StarterKit.configure({
+  Kit.configure({
     heading: { levels: [2, 3] },
     // Off because the site has no styles for them (AGENTS.md §13).
     blockquote: false,

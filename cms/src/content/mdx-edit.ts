@@ -191,9 +191,9 @@ const escapeLineStart = (line: string): string =>
 /**
  * A marker alone on a line - an empty list item, and only where a block opens.
  *
- * It cannot interrupt a paragraph, so mid-paragraph it is punctuation and the
- * owner's copy uses it that way: a lone `*` is her section divider. At the head
- * of a block it opens a list, and everything after it becomes a second block.
+ * It cannot interrupt a paragraph, so mid-paragraph it is punctuation. At the
+ * head of a block it opens a list, and everything after it becomes a second
+ * block - except in a paragraph of nothing else, which `STARS_ONLY` owns.
  */
 const EMPTY_MARKER = /^([ \t]*)([-+*]|(\d{1,9})([.)]))[ \t]*$/;
 
@@ -236,6 +236,24 @@ const escapeBlockStarts = (text: string): string =>
 const dropUncarryableIndent = (line: string): string =>
   line.replace(/^[ \t]+/, "");
 
+/**
+ * A paragraph of lone asterisks, one to a line - the owner's section divider.
+ *
+ * Markdown reads it as a list of empty items and the site draws a bullet at
+ * the start of each line, which is the mark she wants. So it travels as the
+ * characters she typed: read back as a paragraph, written back bare. Escaped,
+ * it would reach the page as a literal asterisk.
+ *
+ * Only unindented lines count: an indented `*` under an empty item nests
+ * inside it, and that no longer reads back as the same text.
+ */
+const STARS_ONLY = /^\*[ \t]*(?:\n(?:\*[ \t]*|[ \t]*))*$/;
+
+const plainText = (nodes: Inline[]): string | null =>
+  nodes.every((n) => n.type === "text")
+    ? nodes.map((n) => (n as { value: string }).value).join("")
+    : null;
+
 export function inlineToMarkdown(nodes: Inline[]): string {
   return nodes
     .map((n) => {
@@ -256,6 +274,9 @@ export function inlineToMarkdown(nodes: Inline[]): string {
 export function blockToMarkdown(block: Block): string {
   switch (block.kind) {
     case "paragraph": {
+      const typed = plainText(block.inline);
+      if (typed !== null && STARS_ONLY.test(dropUncarryableIndent(typed)))
+        return dropUncarryableIndent(typed);
       const [head, ...rest] = escapeBlockStarts(
         inlineToMarkdown(block.inline),
       ).split("\n");
@@ -310,6 +331,12 @@ function blockFrom(node: any, body: string): Block {
         inline: inlineFrom(node.children, body, node.position.end.offset),
       };
     case "list": {
+      if (
+        !node.ordered &&
+        STARS_ONLY.test(source) &&
+        node.children.every((li: any) => li.children.length === 0)
+      )
+        return { kind: "paragraph", source, inline: [{ type: "text", value: source }] };
       // Only flat, single-paragraph items occur; anything else stays opaque so
       // it round-trips rather than being flattened.
       const simple = node.children.every(

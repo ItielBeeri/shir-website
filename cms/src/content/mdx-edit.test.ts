@@ -19,6 +19,7 @@ import {
   parseMdx,
   serializeMdx,
 } from './mdx-edit';
+import type { Block } from './mdx-edit';
 
 const CONTENT = join(__dirname, '../../../src/content');
 
@@ -180,7 +181,6 @@ describe('body text the grammar would otherwise claim', () => {
     ['a spaced thematic break', '* * *'],
     ['a break with a gap in it', '--- -'],
     ['an underscore break', '___'],
-    ['a marker alone on the line', '*'],
     ['a dash alone on the line', '-'],
     ['a number alone on the line', '1.'],
     ['strikethrough', 'טקסט ~~מחוק~~ כאן'],
@@ -198,6 +198,33 @@ describe('body text the grammar would otherwise claim', () => {
     const out = shipped('שורה רגילה\n# לא כותרת\nעוד שורה');
     expect(out.kinds).toEqual(['paragraph']);
     expect(out.text).toBe('שורה רגילה\n# לא כותרת\nעוד שורה');
+  });
+
+  /**
+   * A lone `*` is her divider, and the bullet markdown draws for it is the
+   * mark she wants - so it ships bare, and reads back as what she typed.
+   */
+  describe('a paragraph of lone asterisks', () => {
+    const readBack = (mdx: string): Block[] =>
+      parseMdx(mdx).segments.flatMap((s) => (s.type === 'block' ? [s.block] : []));
+
+    it.each([['one', '*'], ['several', '*\n*\n*'], ['a blank line between', '*\n\n*']])(
+      'ships %s as the empty bullet the site draws',
+      (_name, typed) => {
+        expect(shipped(typed).kinds).toEqual(['list']);
+        const [block] = readBack(blockToMarkdown({ kind: 'paragraph', source: '', inline: [{ type: 'text', value: typed }] }));
+        expect(block).toMatchObject({ kind: 'paragraph', inline: [{ type: 'text', value: typed }] });
+      },
+    );
+
+    it('is still escaped with anything else in the paragraph', () => {
+      expect(shipped('*\nשורה').kinds).toEqual(['paragraph']);
+      expect(shipped('*\nשורה').text).toBe('*\nשורה');
+    });
+
+    it('is not an empty bullet under another marker', () => {
+      expect(readBack('-\n')[0].kind).toBe('opaque');
+    });
   });
 
   it('leaves the lone asterisk this copy uses as a divider alone', () => {

@@ -15,18 +15,57 @@ import {
 import type { Editor } from '@tiptap/react';
 import { extensions, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
-import { ASPECTS, FLOATS } from '../lib/softimage';
+import { ASPECTS, DEFAULT_WIDTH, PLACEMENTS, place, placementOf } from '../lib/softimage';
 import { useStore } from '../store';
-import { useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { PmNode } from '../content/pm-convert';
 
 /* --------------------------------- node views -------------------------------- */
+
+/** Narrower than this is a thumbnail, not a picture in the text. */
+const MIN_WIDTH = 100;
+
+/**
+ * The field holds what she is typing and the node only a width worth
+ * rendering: mid-way through "360" it reads "3", and applying that would
+ * shrink the picture to a speck on every keystroke.
+ */
+function WidthField({ value, onChange }: { value: string; onChange: (width: string) => void }): JSX.Element {
+  const id = useId();
+  const [typed, setTyped] = useState(value);
+  // Undo moves the node without passing through this field.
+  useEffect(() => setTyped(value), [value]);
+  return (
+    <div className="nv-width">
+      <label htmlFor={id}>רוחב בפיקסלים</label>
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={MIN_WIDTH}
+        step={10}
+        dir="ltr"
+        value={typed}
+        aria-describedby={`${id}-hint`}
+        onChange={(e) => {
+          setTyped(e.target.value);
+          if (/^\d+$/.test(e.target.value) && Number(e.target.value) >= MIN_WIDTH) onChange(e.target.value);
+        }}
+        onBlur={() => setTyped(value)}
+      />
+      <span id={`${id}-hint`} className="muted">
+        360 זה בערך שליש מרוחב הטקסט.
+      </span>
+    </div>
+  );
+}
 
 function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element {
   const store = useStore();
   const [picking, setPicking] = useState(false);
   const url = store.urlFor(node.attrs.id, 80);
   const alt = store.gallery.find((g) => g.id === node.attrs.id)?.alt;
+  const placement = placementOf(node.attrs);
 
   return (
     <NodeViewWrapper className="nv-image">
@@ -56,21 +95,22 @@ function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element
           ))}
         </div>
         <div className="chips">
-          {FLOATS.map((f) => (
+          {PLACEMENTS.map((p) => (
             <button
-              key={f.value}
-              className={(node.attrs.float ?? '') === f.value ? 'chip is-on' : 'chip'}
-              onClick={() =>
-                updateAttributes({
-                  float: f.value || undefined,
-                  floatWidth: f.value ? node.attrs.floatWidth || '360' : undefined,
-                })
-              }
+              key={p.value}
+              className={placement === p.value ? 'chip is-on' : 'chip'}
+              onClick={() => updateAttributes(place(p.value, node.attrs.width))}
             >
-              {f.label}
+              {p.label}
             </button>
           ))}
         </div>
+        {placement !== 'full' && (
+          <WidthField
+            value={node.attrs.width || DEFAULT_WIDTH}
+            onChange={(width) => updateAttributes({ width })}
+          />
+        )}
       </div>
 
       {picking && (
@@ -242,11 +282,12 @@ export function BodyEditor({ value, onChange }: Props): JSX.Element {
   return (
     <div className="editor">
       <Toolbar editor={editor} />
-      {/* The one thing about this editor that is not visible by looking at it:
-          both keys make a line, and only the spacing tells them apart. */}
+      {/* What is not visible by looking at it: both keys make a line, and only
+          the spacing tells them apart - and an empty line is space she can add. */}
       <p className="editor-help">
         המקש <kbd dir="ltr">Enter</kbd> מתחיל פסקה חדשה, עם רווח בין הפסקאות.{' '}
-        <kbd dir="ltr">Shift + Enter</kbd> יורד שורה בתוך אותה פסקה, בלי רווח.
+        <kbd dir="ltr">Shift + Enter</kbd> יורד שורה בתוך אותה פסקה, בלי רווח.{' '}
+        כל שורה ריקה בין פסקאות מוסיפה עוד רווח.
       </p>
       <EditorContent editor={editor} />
     </div>

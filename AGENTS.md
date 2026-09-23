@@ -102,7 +102,7 @@ Editable content lives in `src/content/` and is parsed at build time. **Componen
 
 - **TOML** for structured content, loaded through `loadToml('path', schema)` (`src/lib/content.ts`). Each page declares its own Zod schema inline in its frontmatter.
 - **Astro content collections** for `therapies` and `blog`, both `.mdx` with **YAML frontmatter**. **`src/content/config.ts` is the authoritative schema** - read it rather than trusting any list of fields elsewhere. A mismatch fails the build with a clear error.
-- `remark-breaks` is on, so a single newline in body copy - or in a multi-line frontmatter string - renders as a line break. Copy keeps its typed shape without `<br>`.
+- `remark-breaks` is on, so a single newline in body copy - or in a multi-line frontmatter string - renders as a line break, and `scripts/remark-blank-lines.mjs` makes each blank line past the first a line of space (the CMS shows them as empty paragraphs). Copy keeps its typed shape without `<br>`.
 - Comments in the TOML files are Hebrew instructions aimed at the owner. Keep them accurate and keep them Hebrew.
 
 | File | Holds |

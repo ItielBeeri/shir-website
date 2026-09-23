@@ -13,6 +13,9 @@ import { allBlocks, parseMdx, serializeMdx } from './mdx-edit';
 import { docToPm, pmToDoc } from './pm-convert';
 import type { PmNode } from './pm-convert';
 import { extensions } from '../editor/extensions';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { mdxFromMarkdown } from 'mdast-util-mdx';
+import { mdxjs } from 'micromark-extension-mdxjs';
 
 const CONTENT = join(__dirname, '../../../src/content');
 const files = [
@@ -72,11 +75,12 @@ describe('ProseMirror conversion', () => {
     expect(image?.attrs).toMatchObject({ id: expect.any(String), aspect: expect.any(String) });
   });
 
-  it('keeps a placeholder comment as an untouchable block', () => {
-    const pm = docToPm(parseMdx(readFileSync(join(CONTENT, 'therapies/voice.mdx'), 'utf8')));
-    const raw = (pm.content ?? []).filter((n) => n.type === 'rawBlock');
-    expect(raw.length).toBeGreaterThan(0);
-    expect(String(raw[0].attrs?.source)).toContain('PLACEHOLDER');
+  it('keeps a construct it does not model as an untouchable block', () => {
+    const src = '---\ntitle: "x"\n---\n\nפסקה\n\n{/* הערה */}\n\n> ציטוט\n';
+    const pm = docToPm(parseMdx(src));
+    const raw = (pm.content ?? []).filter((n) => n.type === 'rawBlock').map((n) => n.attrs?.source);
+    expect(raw).toEqual(['{/* הערה */}', '> ציטוט']);
+    expect(roundTrip(src)).toBe(src);
   });
 
   it('newline inside a paragraph becomes a hard break and returns as a newline', () => {
@@ -213,4 +217,85 @@ describe('separation between blocks', () => {
     const ends = files.map((f) => readFileSync(f, 'utf8').match(/\n*$/)![0]);
     expect(new Set(ends).size, 'files do not all end the same way').toBeGreaterThan(1);
   });
+});
+
+/**
+ * A blank line past the first is space on the site, so in the editor it is an
+ * empty paragraph: one she can see, add with Enter and remove with Backspace.
+ */
+describe('blank lines', () => {
+  const fm = '---\ntitle: "x"\n---\n';
+  const emit = (pm: PmNode): string => {
+    const doc = pmToDoc(pm, fm);
+    return serializeMdx(doc, allBlocks(doc));
+  };
+  const para = (text: string, gap: string): PmNode => ({
+    type: 'paragraph',
+    attrs: { gap },
+    content: [{ type: 'text', text }],
+  });
+  const empty = (gap: string, content: PmNode[] = []): PmNode => ({ type: 'paragraph', attrs: { gap }, content });
+  const shape = (pm: PmNode): string[] =>
+    (pm.content ?? []).map((n) => (n.type === 'paragraph' && !n.content?.length ? 'blank' : n.type));
+
+  it('opens each one past the first as an empty paragraph, and writes back byte for byte', () => {
+    const src = `${fm}\nאחת  \n\n \n\nשתיים\n`;
+    expect(shape(docToPm(parseMdx(src)))).toEqual(['paragraph', 'blank', 'blank', 'paragraph']);
+    expect(roundTrip(src)).toBe(src);
+  });
+
+  it('loses one blank line when one empty paragraph is deleted', () => {
+    const pm = docToPm(parseMdx(`${fm}\nאחת\n\n\n\nשתיים\n`));
+    pm.content!.splice(1, 1);
+    expect(emit(pm)).toBe(`${fm}\nאחת\n\n\nשתיים\n`);
+  });
+
+  it('writes one blank line for an empty paragraph made with Enter, whatever gap it copied', () => {
+    const pm: PmNode = { type: 'doc', content: [para('אחת', '\n'), empty('\n\n'), para('שתיים', '\n\n')] };
+    expect(emit(pm)).toBe(`${fm}\nאחת\n\n\nשתיים\n`);
+  });
+
+  it('still adds a line after a heading, where one newline was enough to separate', () => {
+    const pm = docToPm(parseMdx(`${fm}\n## כותרת\nפסקה\n`));
+    pm.content!.splice(1, 0, empty('\n'));
+    expect(emit(pm)).toBe(`${fm}\n## כותרת\n\n\nפסקה\n`);
+  });
+
+  it('counts a line break inside an empty paragraph as another empty line', () => {
+    const pm: PmNode = {
+      type: 'doc',
+      content: [para('אחת', '\n'), empty('\n', [{ type: 'hardBreak' }]), para('שתיים', '\n\n')],
+    };
+    expect(emit(pm)).toBe(`${fm}\nאחת\n\n\n\nשתיים\n`);
+  });
+
+  it('writes nothing for empty paragraphs above the first block', () => {
+    const pm: PmNode = { type: 'doc', content: [empty(''), empty('\n'), para('אחת', '\n')] };
+    expect(emit(pm)).toBe(`${fm}\nאחת\n`);
+  });
+
+  /**
+   * The editor's empty paragraphs are exactly the site's lines of space, file
+   * by file. The plugin is read and loaded from its text rather than imported,
+   * which boundary.test.ts forbids; it has no imports of its own to follow.
+   */
+  it.each(files.map((f) => [f.split(/[\\/]/).pop() as string, f]))(
+    'agrees with the site on where every line of space goes in %s',
+    async (_name, file) => {
+      const plugin = readFileSync(join(__dirname, '../../../scripts/remark-blank-lines.mjs'), 'utf8');
+      const { default: remarkBlankLines } = await import(
+        /* @vite-ignore */ `data:text/javascript,${encodeURIComponent(plugin)}`
+      );
+      const src = readFileSync(file, 'utf8');
+      const doc = parseMdx(src);
+      const tree = fromMarkdown(src.slice(doc.frontmatter.length), {
+        extensions: [mdxjs()],
+        mdastExtensions: [mdxFromMarkdown()],
+      });
+      remarkBlankLines()(tree);
+      const site = (tree.children as Array<{ type: string }>).map((n) => (n.type === 'blankLine' ? 'blank' : 'block'));
+      const editor = shape(docToPm(doc)).map((s) => (s === 'blank' ? 'blank' : 'block'));
+      expect(editor).toEqual(site);
+    },
+  );
 });

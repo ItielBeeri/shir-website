@@ -25,7 +25,12 @@ interface Props {
   fetchpriority?: 'high' | 'auto';
   transitionName?: string;
   float?: 'start' | 'end';
-  /** Width in px when floating, e.g. "300" */
+  /**
+   * Width in px, e.g. "300". A float defaults to 280; an image that does not
+   * float fills the column unless given one, and is then centred at it.
+   */
+  width?: string;
+  /** The same as `width`: the name the owner's editing guide teaches. */
   floatWidth?: string;
 }
 
@@ -47,16 +52,24 @@ const {
   fetchpriority,
   transitionName,
   float,
-  floatWidth = '280',
+  width: authoredWidth,
+  floatWidth,
 } = Astro.props;
+
+const slotWidth = authoredWidth ?? floatWidth ?? (float ? '280' : undefined);
+const centred = !float && slotWidth !== undefined;
 
 const image = images[id];
 const src = image?.file ?? '/img/content/placeholder.jpg';
 const alt = image?.alt ?? '';
 const { avif, webp, width, height } = imageSources(src);
 
-const authoredSizes =
-  sizes ?? (float ? `(max-width: 768px) 100vw, ${floatWidth}px` : '(max-width: 768px) 100vw, 800px');
+const defaultSizes = float
+  ? `(max-width: 768px) 100vw, ${slotWidth}px`
+  : centred
+    ? `(max-width: ${slotWidth}px) 100vw, ${slotWidth}px`
+    : '(max-width: 768px) 100vw, 800px';
+const authoredSizes = sizes ?? defaultSizes;
 
 /*
  * `sizes` describes the slot, but object-fit: cover paints wider than the slot
@@ -93,11 +106,12 @@ const resolvedSizes = authoredSizes
     tint && 'soft-image--tint',
     float && 'soft-image--float',
     float && `soft-image--float-${float}`,
+    centred && 'soft-image--centred',
     className
   ]}
   style={`
     aspect-ratio: ${aspect};
-    ${float ? `--float-width: ${floatWidth}px;` : ''}
+    ${slotWidth ? `--image-width: ${slotWidth}px;` : ''}
     ${transitionName ? `view-transition-name: ${transitionName};` : ''}
   `.replace(/\s+/g, ' ').trim()}
 >
@@ -175,14 +189,21 @@ const resolvedSizes = authoredSizes
     float: right;
     float: inline-start;
     margin-inline-end: 1.5rem;
-    width: var(--float-width, 280px);
+    width: var(--image-width);
   }
 
   .soft-image--float-end {
     float: left;
     float: inline-end;
     margin-inline-start: 1.5rem;
-    width: var(--float-width, 280px);
+    width: var(--image-width);
+  }
+
+  /* On a row of its own: a float above it would otherwise sit beside it. */
+  .soft-image--centred {
+    width: var(--image-width);
+    max-width: 100%;
+    clear: both;
   }
 
   @media (max-width: 768px), (max-inline-size: 600px) {

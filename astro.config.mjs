@@ -5,11 +5,12 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import remarkBreaks from 'remark-breaks';
 import remarkUnderscoreItalic from './scripts/remark-underscore-italic.mjs';
+import remarkBlankLines from './scripts/remark-blank-lines.mjs';
 
 export default defineConfig({
   site: 'https://www.shir-amitai.com',
   markdown: {
-    remarkPlugins: [remarkBreaks, remarkUnderscoreItalic],
+    remarkPlugins: [remarkBreaks, remarkUnderscoreItalic, remarkBlankLines],
   },
   integrations: [
     mdx(),

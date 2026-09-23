@@ -7,9 +7,13 @@
  *
  * **Every top-level node carries the whitespace that preceded it** in `gap`.
  * The body's blank-line rhythm is not decoration: `remark-breaks` makes line
- * breaks visible, several files separate sections with more than one blank
- * line, and a serializer that normalised gaps to "\n\n" would silently reflow
- * copy. The round-trip gate is what holds this honest.
+ * breaks visible, and a serializer that normalised gaps to "\n\n" would
+ * silently reflow copy. The round-trip gate is what holds this honest.
+ *
+ * **A blank line past the first is an empty paragraph.** The site draws each
+ * one as a line of space (scripts/remark-blank-lines.mjs), so the editor has
+ * to show it, and has to let her add one with Enter and remove it with
+ * Backspace - which a count hidden in `gap` would not.
  */
 import type { Block, Inline, MdxDoc, Segment } from './mdx-edit';
 import { parseSoftImage, renderSoftImage } from '../lib/softimage';
@@ -82,6 +86,25 @@ function blockToPm(block: Block, gap: string): PmNode {
   }
 }
 
+const newlines = (text: string): number => text.split('\n').length - 1;
+
+/**
+ * One piece per blank line past the first, each ending at its newline, and
+ * the rest - which still holds the two newlines that separate the blocks.
+ * The pieces are the gap's own bytes, so an untouched file writes back the
+ * same, trailing spaces and all.
+ */
+function splitBlankLines(gap: string): { pieces: string[]; rest: string } {
+  const pieces: string[] = [];
+  let rest = gap;
+  while (newlines(rest) > 2) {
+    const end = rest.indexOf('\n') + 1;
+    pieces.push(rest.slice(0, end));
+    rest = rest.slice(end);
+  }
+  return { pieces, rest };
+}
+
 export function docToPm(doc: MdxDoc): PmNode {
   const content: PmNode[] = [];
   let gap = '';
@@ -89,6 +112,13 @@ export function docToPm(doc: MdxDoc): PmNode {
     if (segment.type === 'gap') {
       gap += segment.text;
       continue;
+    }
+    // Above the first block there is nothing to make room from, and the site
+    // draws no space there either.
+    if (content.length) {
+      const { pieces, rest } = splitBlankLines(gap);
+      for (const piece of pieces) content.push({ type: 'paragraph', attrs: { gap: piece } });
+      gap = rest;
     }
     content.push(blockToPm(segment.block, gap));
     gap = '';
@@ -178,7 +208,7 @@ function pmToBlock(node: PmNode): Block {
           id: String(node.attrs?.id ?? ''),
           aspect: String(node.attrs?.aspect ?? '4/3'),
           float: (node.attrs?.float as 'start' | 'end' | undefined) || undefined,
-          floatWidth: node.attrs?.floatWidth ? String(node.attrs.floatWidth) : undefined,
+          width: node.attrs?.width ? String(node.attrs.width) : undefined,
         }),
       };
     case 'rawBlock':
@@ -229,19 +259,40 @@ const widen = (gap: string): string => (gap.includes('\n') ? `${gap}\n` : DEFAUL
 const joinable = (prev: Block | null, next: Block): boolean =>
   prev?.kind === 'list' && next.kind === 'list' && prev.ordered === next.ordered;
 
+/**
+ * The blank lines an empty paragraph stands for: one, plus one per line break
+ * she put inside it, since each of those shows as another empty line.
+ *
+ * Not its `gap` as carried: Enter copies the gap of the paragraph it split,
+ * so one empty paragraph made after a blank-line gap would otherwise write
+ * two blank lines - and two lines of space on the site for one she can see.
+ * A gap already one line long is kept byte for byte.
+ */
+function blankLinesOf(own: string, text: string): string {
+  const line = newlines(own) === 1 ? own : '\n';
+  return line + '\n'.repeat(newlines(text));
+}
+
+const textOf = (block: Block): string =>
+  block.kind === 'paragraph' ? block.inline.map((n) => (n.type === 'text' ? n.value : '')).join('') : '';
+
+/** Two newlines, the least that separates the block the empty lines come before. */
+const separated = (own: string): string => '\n'.repeat(Math.max(0, 2 - newlines(own))) + own;
+
 export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
   const segments: Segment[] = [];
   let prev: Block | null = null;
-  // An empty paragraph is nothing in markdown, and StarterKit's trailing node
-  // adds one after any document that does not end in a paragraph. Its spacing
-  // is real, though, so the gap travels on to whatever comes next.
+  // Empty paragraphs are blank lines, written into the gap of whatever comes
+  // next. Above the first block and below the last there is nothing to make
+  // room between - StarterKit's trailing node puts one below the last block of
+  // any document that does not end in a paragraph - so those write nothing.
   let pending = '';
 
   (pm.content ?? []).forEach((node, i) => {
     const own = typeof node.attrs?.gap === 'string' ? node.attrs.gap : i === 0 ? '' : DEFAULT_GAP;
     const block = pmToBlock(node);
     if (isEmptyParagraph(block)) {
-      pending += own;
+      if (prev) pending += blankLinesOf(own, textOf(block));
       return;
     }
 
@@ -251,7 +302,7 @@ export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
       return;
     }
 
-    let gap = pending + own;
+    let gap = pending ? pending + separated(own) : own;
     pending = '';
     if (!separates(gap, prev, block)) gap = widen(gap);
     if (gap) segments.push({ type: 'gap', text: gap });
