@@ -294,7 +294,7 @@ function Screen({
                   ? 'שינוי אחד ממתין לפרסום'
                   : `${store.pending.length} שינויים ממתינים לפרסום`}
               </b>
-              <span className="muted">לצפייה באתר לפני הפרסום</span>
+              <span className="muted">לפרסום באתר - ואפשר לצפות קודם</span>
             </span>
           </button>
         )}

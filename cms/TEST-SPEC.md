@@ -184,8 +184,8 @@ silently go dark.
 | G-10 | A failed publish leaves master untouched and the draft intact |
 | G-11 | Discarding a draft change restores the file to master's content exactly |
 | G-12 | History lists commits with Hebrew descriptions; restoring returns the file to a prior blob byte-exactly |
-| G-13 | Opening the preview points `content-preview` at the draft's exact commit, creating no commit, and a second open with no save in between pushes nothing (one Vercel build per draft commit) |
-| G-14 | A save alone moves nothing but `content-draft`: no deployment exists for the new commit until the preview is opened. With nothing pending, opening the preview syncs nothing - master's own content never costs a build |
+| G-13 | Asking for the preview points `content-preview` at the draft's exact commit, creating no commit, and a second ask with no save in between pushes nothing (one Vercel build per draft commit) |
+| G-14 | A save alone moves nothing but `content-draft`, and so does opening the publish screen: no deployment exists for the new commit until the preview is asked for. With nothing pending there is no preview to ask for - master's own content never costs a build |
 
 ### 5.3 The permission boundary
 
@@ -314,7 +314,7 @@ asserts the absence of the concept rather than a user action.
 |---|---|---|
 | A-9.1 | 9.1 what to check before publishing | **Structural:** the checklist is unnecessary. Assert each of its five items is machine-enforced (quotes, key names, date form, image registration, screenshot path) |
 | A-9.2 | 9.2 did it go up | Truthful publish state end to end, *including when no build ever reports*: the watch has an upper bound, and reaching it ends on the publish having succeeded rather than on a wait. Vercel builds branch tips, so a second publish minutes after the first can leave the first commit without a deployment for good - ordinary use, and the screen may not imply one is still coming (`deploy.test.ts`) |
-| A-9.3 | 9.3 something looks broken | Preview precedes publish; history offers one-click restore |
+| A-9.3 | 9.3 something looks broken | A preview is one click away on the publish screen; history offers one-click restore |
 | A-9.4 | 9.4 which file for which task | **Structural:** the file map has no referent |
 | A-9.5 | 9.5 what not to do alone | Each of its six items is either impossible (B-*) or an explicit "בקשת שינוי מאיתיאל" affordance |
 
@@ -349,7 +349,7 @@ requires it to fail. A guarantee with no failing-path test is marketing.
 | X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks: the site's markdown is GFM, which resolves character escapes **before** it scans for addresses, so `https:\/\/`, `https\://` and `www\.` all still become links - `escaping.test.ts` proves it. The only remaining lever is the site's own `markdown.gfm`, which is a content-dialect decision, not a CMS one |
 | X-8 | She cannot desynchronise `_href` from `_display` | Property-based: for any phone input, both derive from one source |
 | X-9 | She cannot lose work | Kill the tab mid-edit → the draft is restored on reopen |
-| X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready. Opening the preview screen is what starts that build (G-13), so the hold must end on its own: a build that never arrives leaves her able to publish, told plainly that she is publishing unseen. The frame goes only to a page the build will serve - a hidden post and a deleted page have none, and are named as absent rather than shown as the site's 404 (`pages.test.ts`) |
+| X-10 | Publishing never waits on a preview | Publish is enabled the moment the screen opens and applies straight from `content-draft`. The preview is hers to ask for: until she does, nothing moves `content-preview` (G-14), and publishing mid-build neither waits for it nor lets it resync onto what was just published. Once asked, the frame goes only to a page the build will serve - a hidden post and a deleted page have none, and are named as absent rather than shown as the site's 404 (`pages.test.ts`) |
 
 ### 7.2 Legal guarantees
 

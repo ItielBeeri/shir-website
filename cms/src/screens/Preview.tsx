@@ -1,14 +1,13 @@
 /**
- * See it, then publish it.
+ * What is about to go out, the button that sends it, and a preview if she asks.
  *
- * The draft's commit gets its own build, and this is that build - the real
- * site with the real changes, not an approximation. Saves do not build; this
- * screen does, once per draft commit (`syncPreview`), which is what keeps a
- * session of edits inside Vercel's daily deployment limit.
- *
- * The changes, the preview and the publish button are one screen, because they
- * are one question: is this right, and should it go out? Splitting them meant
- * reading a list in one place and looking at the result in another.
+ * Publishing applies the draft's paths straight onto master; it never needed a
+ * build of its own. The preview is a real build of the draft's commit - the
+ * site with the changes, not an approximation - and that takes a minute or two,
+ * which is why it waits to be asked for rather than holding the button. Until
+ * she opens it nothing touches `content-preview`, so a publish she did not want
+ * to watch costs no build. Once open, it follows the draft (`syncPreview`), one
+ * build per draft commit.
  *
  * **One viewport at a time.** Two frames side by side each get half the width,
  * and the site's layout switches at 768px, so a pair of frames on a laptop is
@@ -50,16 +49,6 @@ const STATUS_WORD: Record<string, string> = {
 const POLL_MS = 6000;
 const FRAME_TIMEOUT_MS = 8000;
 
-/**
- * How long a build may keep the publish button to itself.
- *
- * Waiting for the preview is the right default - publishing something she has
- * not seen is the thing this screen exists to prevent. But a rate limit, a
- * paused project or a queued build must not become an inability to publish at
- * all, so after this the gate opens with the honest caveat instead.
- */
-const PATIENCE_MS = 90_000;
-
 /** Unreadable or unparseable counts as shown: a wrong banner is worse. */
 async function isHidden(path: string): Promise<boolean> {
   try {
@@ -76,38 +65,12 @@ export function Preview({
   onPublished: (sha: string, paths: PathChange[]) => void;
 }): JSX.Element {
   const store = useStore();
-  const [state, setState] = useState<State>('queued');
-  const [url, setUrl] = useState<string | null>(null);
-  const [device, setDevice] = useState<Device>('desktop');
-  const [page, setPage] = useState<string | null>(null);
-  const [available, setAvailable] = useState(0);
-  const [framed, setFramed] = useState<'waiting' | 'ok' | 'blocked'>('waiting');
+  const [previewing, setPreviewing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [discarding, setDiscarding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [nudge, setNudge] = useState(0);
-  const [impatient, setImpatient] = useState(false);
-  /** Bumped whenever a new build starts, so each one gets its own patience. */
-  const [round, setRound] = useState(0);
   /** Paths the site itself has changed since this draft started. */
   const [clashes, setClashes] = useState<string[]>([]);
-  /** Pending posts the site will leave out of the build it is about to make. */
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
-
-  const stage = useRef<HTMLDivElement>(null);
-  const timer = useRef<number | null>(null);
-
-  // The frame is sized from the space it actually has, so the same screen gives
-  // a bigger preview when the drawer is closed or the window is widened.
-  useLayoutEffect(() => {
-    const el = stage.current;
-    if (!el) return;
-    const measure = (): void => setAvailable(el.clientWidth);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [url]);
 
   // Asked once, here, because this is the only screen where the answer
   // changes what she would do.
@@ -117,85 +80,6 @@ export function Preview({
       .then(({ paths }) => setClashes(paths))
       .catch(() => undefined);
   }, [store.pending]);
-
-  /**
-   * `draft: true` is what every post the CMS creates starts as, so this is the
-   * ordinary case and not an edge one - and the only way to know is to read
-   * the file the preview is about to build.
-   */
-  useEffect(() => {
-    const posts = store.pending.filter((c) => c.status !== 'removed' && isBlogPost(c.path));
-    if (posts.length === 0) {
-      setHidden(new Set());
-      return;
-    }
-    let cancelled = false;
-    void Promise.all(posts.map((c) => isHidden(c.path))).then((flags) => {
-      if (cancelled) return;
-      setHidden(new Set(posts.filter((_, i) => flags[i]).map((c) => c.path)));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [store.pending]);
-
-  const check = useCallback(async () => {
-    try {
-      const { sha, moved } = await api.preview();
-      if (moved) {
-        setImpatient(false);
-        setRound((r) => r + 1);
-      }
-      const status = await api.status(sha);
-      setState(status.state);
-      if (status.url) setUrl(status.url);
-    } catch (e) {
-      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לבדוק את מצב התצוגה.');
-      setState('unknown');
-    }
-  }, []);
-
-  const hasChanges = store.pending.length > 0;
-
-  // Rerun when the changes do: a discard here is a new draft commit, and the
-  // frame is showing the one before it. With nothing pending there is nothing
-  // to preview, and syncing would spend a build on master's own content.
-  useEffect(() => {
-    if (hasChanges) void check();
-  }, [check, nudge, hasChanges, store.pending]);
-
-  const waiting = state === 'queued' || state === 'building' || state === 'none';
-  /** Waiting is a reason to hold the button, not a reason to keep it forever. */
-  const blocked = waiting && !impatient;
-
-  useEffect(() => {
-    const id = window.setTimeout(() => setImpatient(true), PATIENCE_MS);
-    return () => window.clearTimeout(id);
-  }, [round]);
-
-  useEffect(() => {
-    if (!waiting || !hasChanges) return;
-    timer.current = window.setTimeout(() => setNudge((n) => n + 1), POLL_MS);
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, [waiting, hasChanges, nudge]);
-
-  /**
-   * A frame that never loads is almost always Vercel Deployment Protection: the
-   * preview redirects to a login on vercel.com, which the content security
-   * policy refuses to frame. That fires neither load nor error, so the only
-   * signal available is the absence of a load.
-   */
-  useEffect(() => {
-    if (!url) return;
-    setFramed('waiting');
-    const id = window.setTimeout(
-      () => setFramed((f) => (f === 'ok' ? f : 'blocked')),
-      FRAME_TIMEOUT_MS,
-    );
-    return () => window.clearTimeout(id);
-  }, [url, device]);
 
   /** Undo one change without touching the others. */
   async function discard(path: string): Promise<void> {
@@ -234,25 +118,6 @@ export function Preview({
       </>
     );
   }
-
-  /**
-   * The pages her changes actually land on. Opening the front door and asking
-   * her to navigate inside a scaled-down frame to find her own edit is the
-   * long way round to the one thing she came to look at.
-   */
-  const pages = pagesFor(store.pending.map((c) => ({ ...c, hidden: hidden.has(c.path) })));
-  const missing = absences(pages);
-
-  const shownPage = page && pages.some((p) => p.to === page) ? page : pages[0].to;
-  const frameUrl = url ? `${url.replace(/\/$/, '')}${shownPage}` : null;
-
-  const fitScale = (width: number): number =>
-    available > 0 ? Math.min(1, available / width) : 1;
-
-  const desktopFits = fitScale(VIEWPORTS.desktop.width) >= MIN_SCALE;
-  const shown: Device = desktopFits ? device : 'mobile';
-  const viewport = VIEWPORTS[shown];
-  const scale = fitScale(viewport.width);
 
   return (
     <>
@@ -298,15 +163,174 @@ export function Preview({
         </ul>
       </section>
 
+      <div className="save-row publish-row">
+        {/* A discard in flight is a draft commit publish would race. */}
+        <button className="primary" onClick={publish} disabled={busy || discarding !== null}>
+          {busy ? 'מפרסם…' : 'פרסמי לאתר'}
+        </button>
+      </div>
+
+      <section className="group" aria-labelledby="preview-heading">
+        <div className="preview-offer">
+          <h2 id="preview-heading">תצוגה מקדימה</h2>
+          <button
+            className={previewing ? 'ghost' : undefined}
+            aria-expanded={previewing}
+            aria-controls="preview-panel"
+            onClick={() => setPreviewing((open) => !open)}
+            disabled={busy && !previewing}
+          >
+            {previewing ? 'הסתרת התצוגה' : 'צפייה בתצוגה מקדימה'}
+          </button>
+        </div>
+        {!previewing && (
+          <p className="muted">
+            אפשר לראות איך השינויים ייראו באתר עצמו לפני שמפרסמים. הכנת התצוגה לוקחת דקה או
+            שתיים, ואין צורך לחכות לה כדי לפרסם.
+          </p>
+        )}
+        <div id="preview-panel" className="preview-panel">
+          {previewing && <PreviewPanel held={busy} />}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/**
+ * The build and the frame, alive only while open: mounting it is the request.
+ *
+ * `held` stops it syncing while a publish is under way. Publish moves the draft
+ * onto master, and a poll landing in between would point `content-preview` at
+ * master's own content - a build of nothing.
+ */
+function PreviewPanel({ held }: { held: boolean }): JSX.Element {
+  const store = useStore();
+  const [state, setState] = useState<State>('queued');
+  const [url, setUrl] = useState<string | null>(null);
+  const [device, setDevice] = useState<Device>('desktop');
+  const [page, setPage] = useState<string | null>(null);
+  const [available, setAvailable] = useState(0);
+  const [framed, setFramed] = useState<'waiting' | 'ok' | 'blocked'>('waiting');
+  const [error, setError] = useState<string | null>(null);
+  const [nudge, setNudge] = useState(0);
+  /** Pending posts the site will leave out of the build it is about to make. */
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+
+  const stage = useRef<HTMLDivElement>(null);
+  const timer = useRef<number | null>(null);
+
+  // The frame is sized from the space it actually has, so the same screen gives
+  // a bigger preview when the drawer is closed or the window is widened.
+  useLayoutEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const measure = (): void => setAvailable(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [url]);
+
+  /**
+   * `draft: true` is what every post the CMS creates starts as, so this is the
+   * ordinary case and not an edge one - and the only way to know is to read
+   * the file the preview is about to build.
+   */
+  useEffect(() => {
+    const posts = store.pending.filter((c) => c.status !== 'removed' && isBlogPost(c.path));
+    if (posts.length === 0) {
+      setHidden(new Set());
+      return;
+    }
+    let cancelled = false;
+    void Promise.all(posts.map((c) => isHidden(c.path))).then((flags) => {
+      if (cancelled) return;
+      setHidden(new Set(posts.filter((_, i) => flags[i]).map((c) => c.path)));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [store.pending]);
+
+  const check = useCallback(async () => {
+    try {
+      const { sha } = await api.preview();
+      const status = await api.status(sha);
+      setError(null);
+      setState(status.state);
+      if (status.url) setUrl(status.url);
+    } catch (e) {
+      setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לבדוק את מצב התצוגה.');
+      setState('unknown');
+    }
+  }, []);
+
+  // Rerun when the changes do: a discard here is a new draft commit, and the
+  // frame is showing the one before it. The screen unmounts this with nothing
+  // pending, so master's own content never costs a build.
+  useEffect(() => {
+    if (!held) void check();
+  }, [check, nudge, held, store.pending]);
+
+  const waiting = state === 'queued' || state === 'building' || state === 'none';
+
+  useEffect(() => {
+    if (!waiting || held) return;
+    timer.current = window.setTimeout(() => setNudge((n) => n + 1), POLL_MS);
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, [waiting, held, nudge]);
+
+  /**
+   * A frame that never loads is almost always Vercel Deployment Protection: the
+   * preview redirects to a login on vercel.com, which the content security
+   * policy refuses to frame. That fires neither load nor error, so the only
+   * signal available is the absence of a load.
+   */
+  useEffect(() => {
+    if (!url) return;
+    setFramed('waiting');
+    const id = window.setTimeout(
+      () => setFramed((f) => (f === 'ok' ? f : 'blocked')),
+      FRAME_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [url, device]);
+
+  /**
+   * The pages her changes actually land on. Opening the front door and asking
+   * her to navigate inside a scaled-down frame to find her own edit is the
+   * long way round to the one thing she came to look at.
+   */
+  const pages = pagesFor(store.pending.map((c) => ({ ...c, hidden: hidden.has(c.path) })));
+  const missing = absences(pages);
+
+  const shownPage = page && pages.some((p) => p.to === page) ? page : pages[0].to;
+  const frameUrl = url ? `${url.replace(/\/$/, '')}${shownPage}` : null;
+
+  const fitScale = (width: number): number =>
+    available > 0 ? Math.min(1, available / width) : 1;
+
+  const desktopFits = fitScale(VIEWPORTS.desktop.width) >= MIN_SCALE;
+  const shown: Device = desktopFits ? device : 'mobile';
+  const viewport = VIEWPORTS[shown];
+  const scale = fitScale(viewport.width);
+
+  return (
+    <>
+      {error && <p className="banner error">{error}</p>}
+
       {missing.length > 0 && (
-        <section className="group is-absent">
-          <h2>מה לא יופיע בתצוגה</h2>
+        <div className="preview-absent">
+          <h3>מה לא יופיע בתצוגה</h3>
           <ul className="usage">
             {missing.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>
-        </section>
+        </div>
       )}
 
       {pages.length > 1 && url && (
@@ -384,21 +408,6 @@ export function Preview({
           — וכדאי לספר על כך לאיתיאל.
         </p>
       )}
-
-      <div className="save-row publish-row">
-        <button className="primary" onClick={publish} disabled={busy || blocked}>
-          {busy ? 'מפרסם…' : 'פרסמי לאתר'}
-        </button>
-        {blocked && <span className="muted">אפשר לפרסם ברגע שהתצוגה מוכנה.</span>}
-        {waiting && impatient && (
-          <span className="muted">
-            הבנייה מתעכבת. אפשר לפרסם בכל זאת, ולבדוק באתר אחרי דקה.
-          </span>
-        )}
-        {state === 'failed' && (
-          <span className="invalid">הבנייה נכשלה. עדיף לפנות לאיתיאל לפני פרסום.</span>
-        )}
-      </div>
     </>
   );
 }
@@ -407,6 +416,7 @@ function Status({ state }: { state: State }): JSX.Element {
   const text: Record<State, string> = {
     ...DEPLOY_WORDS,
     ready: 'התצוגה מוכנה',
+    failed: 'הבנייה נכשלה. עדיף לפנות לאיתיאל לפני פרסום.',
     unknown: 'לא הצלחתי לקבל מצב בנייה. אפשר לפרסם, ולבדוק באתר אחרי דקה.',
   };
   const busy = state === 'queued' || state === 'building' || state === 'none';

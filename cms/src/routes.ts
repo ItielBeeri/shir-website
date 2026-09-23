@@ -13,7 +13,7 @@ export type Route =
   /** A new entry in a collection. */
   | { kind: 'new'; id: string }
   | { kind: 'history' }
-  /** The changes waiting, what they look like, and the publish button. */
+  /** The changes waiting, the publish button, and a preview on request. */
   | { kind: 'preview' }
   /** A publish on its way to the live site. */
   | { kind: 'deploy' };

@@ -457,7 +457,25 @@
   transform-origin: top left;
 }
 
-.publish-row { margin-block: 18px 0; }
+.publish-row { margin-block: 0 18px; }
+
+.preview-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.preview-offer h2 { font-size: 1.0625rem; font-weight: 600; margin: 0; }
+.preview-panel:not(:empty) { margin-block-start: 14px; }
+
+/* Not a problem, just a page the build will not have. */
+.preview-absent {
+  border-inline-start: 3px solid var(--accent);
+  padding-inline-start: 12px;
+  margin-block-end: 14px;
+}
+.preview-absent h3 { font-size: 1rem; font-weight: 600; margin: 0 0 4px; }
 
 .spinner {
   display: inline-block;
@@ -609,5 +627,3 @@
 
 /* A change that would overwrite one the site made meanwhile. */
 .group.is-clash { border-inline-start: 3px solid var(--danger); }
-/* Not a problem, just a page the build will not have. */
-.group.is-absent { border-inline-start: 3px solid var(--accent); }
