@@ -37,6 +37,9 @@ export function FieldInput({ field, value, onChange, locked, onRequestChange }: 
 
   const body = ((): JSX.Element => {
     switch (field.type) {
+      // The state words are a second label, so the target is the whole row
+      // rather than a 24px box; the name is pinned to the field's own label so
+      // the two do not read as one sentence.
       case 'boolean':
         return (
           <div className="switch">
@@ -45,10 +48,11 @@ export function FieldInput({ field, value, onChange, locked, onRequestChange }: 
               type="checkbox"
               checked={Boolean(value)}
               disabled={locked}
+              aria-labelledby={`${id}-label`}
               aria-describedby={describedBy}
               onChange={(e) => onChange(e.target.checked)}
             />
-            <span>{value ? 'מוצג באתר' : 'מוסתר'}</span>
+            <label htmlFor={id}>{value ? 'מוצג באתר' : 'מוסתר'}</label>
           </div>
         );
 

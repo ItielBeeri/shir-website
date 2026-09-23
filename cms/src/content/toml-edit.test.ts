@@ -102,6 +102,38 @@ describe('toml-edit', () => {
     expect(parseSmol(out)).toMatchObject({ hero: { title: 'עם "מרכאות" בפנים' } });
   });
 
+  /**
+   * What the fuzzer found, named so a seed is not the only record of it.
+   * All three are ways a multi-line string can be closed by its own contents.
+   */
+  describe('a value that runs into the closing delimiter', () => {
+    const file = join(CONTENT, 'pages/contact.toml');
+    const src = readFileSync(file, 'utf8');
+    const write = (value: string): unknown => {
+      const out = setValue(src, ['hero', 'intro'], value);
+      return (parseSmol(out) as { hero: { intro: unknown } }).hero.intro;
+    };
+
+    it.each([
+      ['three quotes, which close it', 'לפני """ אחרי'],
+      ['four quotes, where escaping one leaves three', 'לפני """" אחרי'],
+      ['a quote at the very end', 'שורה\nשנייה"'],
+      ['two quotes at the very end', 'שורה\nשנייה""'],
+    ])('survives %s', (_name, value) => {
+      expect(write(value)).toBe(value);
+    });
+
+    // A parser may read CRLF back as LF inside """, so it goes as an escape.
+    it('keeps a carriage return', () => {
+      expect(write('שורה\r\nשנייה')).toBe('שורה\r\nשנייה');
+    });
+
+    // A newline straight after the opening delimiter is the delimiter's own.
+    it('keeps a newline the value starts with', () => {
+      expect(write('\nשורה')).toBe('\nשורה');
+    });
+  });
+
   describe('setStringArray', () => {
     const file = join(CONTENT, 'pages/accessibility.toml');
     const src = () => readFileSync(file, 'utf8');

@@ -280,13 +280,15 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: var(--accent-soft);
   border-radius: 999px;
-  padding: 4px 6px 4px 10px;
+  padding-inline: 12px 0;
   font-size: var(--fs-small);
 }
-.tag button { min-block-size: 28px; min-inline-size: 28px; padding: 0 6px; }
+/* The base 44px applies here too (AGENTS.md §10). Shrinking the button to
+   suit the chip is what made it a 28px target; the chip takes the height. */
+.tag button { padding: 0; }
 .tags input { flex: 1; min-inline-size: 140px; }
 
 .paragraph-row { display: flex; gap: 8px; align-items: flex-start; }
@@ -598,3 +600,5 @@
 
 /* A change that would overwrite one the site made meanwhile. */
 .group.is-clash { border-inline-start: 3px solid var(--danger); }
+/* Not a problem, just a page the build will not have. */
+.group.is-absent { border-inline-start: 3px solid var(--accent); }

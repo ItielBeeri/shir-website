@@ -162,6 +162,7 @@ button.danger { color: var(--danger); }
 
 input[type='text'],
 input[type='number'],
+input[type='date'],
 textarea {
   font: inherit;
   inline-size: 100%;
@@ -180,8 +181,17 @@ input:focus-visible, textarea:focus-visible { border-color: var(--accent); }
 .invalid { color: var(--danger); font-size: var(--fs-small); margin-block-start: 6px; }
 
 /* A boolean is a labelled switch; the words true and false never appear. */
-.switch { display: flex; align-items: center; gap: 12px; min-block-size: var(--tap); }
-.switch input { inline-size: 22px; block-size: 22px; accent-color: var(--accent); }
+.switch { display: flex; align-items: center; gap: 12px; }
+.switch input { inline-size: 24px; block-size: 24px; accent-color: var(--accent); }
+/* The box alone is nobody's idea of a 44px target (AGENTS.md §10); its words
+   are part of it, so they carry the height and the pointer. */
+.switch label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-block-size: var(--tap);
+  cursor: pointer;
+}
 
 .banner {
   border-radius: var(--radius);

@@ -46,6 +46,7 @@ export default function App(): JSX.Element {
     role: 'owner' | 'maintainer';
     login: string;
     repo: string;
+    siteUrl?: string;
     pending: PathChange[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +70,13 @@ export default function App(): JSX.Element {
       try {
         const start = await api.start();
         if (cancelled) return;
-        setSession({ role: start.role, login: start.login, repo: start.repo, pending: start.pending });
+        setSession({
+          role: start.role,
+          login: start.login,
+          repo: start.repo,
+          siteUrl: start.siteUrl,
+          pending: start.pending,
+        });
         setState('in');
       } catch (e) {
         if (cancelled) return;
@@ -122,6 +129,7 @@ export default function App(): JSX.Element {
       role={session.role}
       login={session.login}
       repo={session.repo}
+      siteUrl={session.siteUrl}
       initialPending={session.pending}
     >
       <Workspace />
@@ -208,10 +216,10 @@ function Workspace(): JSX.Element {
             replace={replace}
             back={back}
             saved={saved}
-            published={(sha) => {
+            published={(sha, paths) => {
               // Straight to the screen that watches it land, rather than a
               // line of reassurance she would have to verify herself.
-              store.watchDeploy(sha);
+              store.watchDeploy(sha, paths);
               clear();
               setStack([...initialStack(), { kind: 'deploy' }]);
             }}
@@ -270,7 +278,7 @@ function Screen({
   replace: (route: Route) => void;
   back: () => void;
   saved: () => void;
-  published: (sha: string) => void;
+  published: (sha: string, paths: PathChange[]) => void;
 }): JSX.Element {
   const store = useStore();
 

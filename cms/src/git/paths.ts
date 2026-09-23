@@ -52,8 +52,10 @@ export class PathRejected extends Error {
   constructor(
     readonly path: string,
     reason: string,
+    /** What was refused, so a rejected read does not report itself as a write. */
+    action: 'write' | 'read' | 'move' = 'write',
   ) {
-    super(`refusing to write ${JSON.stringify(path)}: ${reason}`);
+    super(`refusing to ${action} ${JSON.stringify(path)}: ${reason}`);
     this.name = 'PathRejected';
   }
 }
@@ -138,7 +140,7 @@ export const isReadablePath = (path: string): boolean => readRejection(path) ===
 
 export function assertReadablePath(path: string): void {
   const reason = readRejection(path);
-  if (reason) throw new PathRejected(path, reason);
+  if (reason) throw new PathRejected(path, reason, 'read');
 }
 
 export function assertWritablePath(path: string): void {
@@ -164,7 +166,7 @@ export const isMovableBranch = (branch: string): boolean =>
 
 export function assertMovableBranch(branch: string): void {
   if (!isMovableBranch(branch)) {
-    throw new PathRejected(branch, `not one of ${MOVABLE_BRANCHES.join(', ')}`);
+    throw new PathRejected(branch, `not one of ${MOVABLE_BRANCHES.join(', ')}`, 'move');
   }
 }
 

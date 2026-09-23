@@ -109,6 +109,13 @@ opening an empty list, `--- -` read as a thematic break, `## ##` read as an
 empty heading, a break inside a heading ending it. Each is now also a named
 test, because a seed is a reproduction and not a description.
 
+Its TOML half (`src/content/toml-fuzz.test.ts`) writes hostile values into
+every string slot of every live file and did the same: a carriage return lost
+to newline normalisation inside `"""`, a value's own leading newline eaten by
+the opening delimiter, and a run of quotes closing the literal from inside it.
+The reader is `smol-toml` and the writer is `toml-eslint-parser`, and their
+agreement is the only thing the gate is really about.
+
 F-19 is not hypothetical: `js-yaml` 5 rejects `psychotherapy.mdx` and
 `voice.mdx` outright, while the 4.x Astro pins folds them.
 
@@ -338,7 +345,7 @@ requires it to fail. A guarantee with no failing-path test is marketing.
 | X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks: the site's markdown is GFM, which resolves character escapes **before** it scans for addresses, so `https:\/\/`, `https\://` and `www\.` all still become links - `escaping.test.ts` proves it. The only remaining lever is the site's own `markdown.gfm`, which is a content-dialect decision, not a CMS one |
 | X-8 | She cannot desynchronise `_href` from `_display` | Property-based: for any phone input, both derive from one source |
 | X-9 | She cannot lose work | Kill the tab mid-edit → the draft is restored on reopen |
-| X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready. Opening the preview screen is what starts that build (G-13), so the hold must end on its own: a build that never arrives leaves her able to publish, told plainly that she is publishing unseen |
+| X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready. Opening the preview screen is what starts that build (G-13), so the hold must end on its own: a build that never arrives leaves her able to publish, told plainly that she is publishing unseen. The frame goes only to a page the build will serve - a hidden post and a deleted page have none, and are named as absent rather than shown as the site's 404 (`pages.test.ts`) |
 
 ### 7.2 Legal guarantees
 
@@ -386,7 +393,7 @@ Each new production defect traceable to content adds a row here.
 |---|---|
 | N-5 | Zero `axe` violations on every screen at 390 px and 1280 px |
 | N-6 | Every task completable by keyboard alone, with visible focus |
-| N-7 | All controls ≥ 44×44 px |
+| N-7 | All controls ≥ 44×44 px. A checkbox or a date box is the target *with* its words, which carry the height; the box alone is smaller and that is what the row exists to fix |
 | N-8 | Every error is announced to assistive technology, not only coloured |
 
 ### 8.3 Mobile
@@ -430,12 +437,12 @@ CI: L0/L1/L5-unit on every push touching `cms/**` **or** `src/content/**` - a
 content change can break a CMS test, which is the point of one repo. L2-L6 on
 pull requests and nightly.
 
-**Implemented today (`pnpm test`):** all of §4.1 including F-18's MDX half and
-X-3, all of §4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function level)
-and the whole engine layer (§5.2 G-1…G-13) against an in-memory git. G-14's second half - that a
+**Implemented today (`pnpm test`):** all of §4.1 including both halves of F-18
+and X-3, all of §4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function
+level) and the whole engine layer (§5.2 G-1…G-13) against an in-memory git. G-14's second half - that a
 save costs no build - is only observable against real Vercel.
 
-**Not yet wired:** F-18's TOML half · §4.3 validation · §4.4 parity · the live half of §5.3
+**Not yet wired:** §4.3 validation · §4.4 parity · the live half of §5.3
 (B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·
 §8 non-functional. Playwright and `@axe-core/playwright` are not dependencies
 yet, and the sacrificial repo and its App installation do not exist.

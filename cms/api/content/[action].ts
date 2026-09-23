@@ -97,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           role: session.role,
           login: session.login,
           repo: cfg.repo,
+          siteUrl: cfg.siteUrl,
         });
         return;
       }

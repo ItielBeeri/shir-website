@@ -49,10 +49,13 @@ export const projectOf = (environment: string): string =>
 const parentDomain = (host: string): string => host.split('.').slice(1).join('.');
 
 /**
- * A production deployment publishes to a custom domain, where no project name
- * appears at all. The editor lives at `admin.` of the site's own domain
- * (AGENTS.md §13), so a custom host under that domain which is not the
- * editor's is the site's.
+ * A deployment published to a custom domain, where no project name appears at
+ * all. The editor lives at `admin.` of the site's own domain (AGENTS.md §13),
+ * so a custom host under that domain which is not the editor's is the site's.
+ *
+ * GitHub carries the deployment's own URL rather than the alias Vercel gives
+ * it, so this is a fallback for a shape the integration may report and not the
+ * production path; `who.site` is what names production.
  */
 function onTheSitesDomain(url: string, selfHost: string | undefined): boolean {
   if (!selfHost) return false;

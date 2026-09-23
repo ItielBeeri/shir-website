@@ -80,6 +80,12 @@ never in the client bundle.
 | `ALLOWED_GITHUB_LOGINS` | comma-separated GitHub logins allowed to sign in |
 | `MAINTAINER_GITHUB_LOGINS` | subset of the above that may edit locked legal fields |
 | `PUBLIC_ORIGIN` | `https://admin.shir-amitai.com` |
+| `SITE_VERCEL_PROJECT` | the site's Vercel project name, exactly as GitHub reports it in a deployment's `environment` (`Preview – <name>`). Optional; without it a preview build cannot be told from this editor's own |
+| `SITE_PUBLIC_URL` | `https://www.shir-amitai.com`. Optional; without it "צפייה באתר" falls back to the deployment URL GitHub reports, which is an immutable snapshot of one build |
+
+`VERCEL_BRANCH_URL` comes from Vercel itself and needs "Automatically expose
+System Environment Variables" left on: it is where this deployment learns its
+own project name, and so which deployments are its own.
 
 There is deliberately no Vercel API token here; see the third rule below.
 

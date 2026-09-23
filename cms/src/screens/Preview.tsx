@@ -19,9 +19,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, FriendlyError } from '../api';
 import type { DeployState } from '../api';
+import type { PathChange } from '../git/engine';
 import { useStore } from '../store';
-import { describePath, sitePathFor } from './Misc';
+import { describePath } from './Misc';
 import { DEPLOY_WORDS } from '../model/deploy';
+import { absences, isBlogPost, pagesFor } from '../model/pages';
+import { parseFrontmatter } from '../content/frontmatter';
 
 type State = DeployState['state'];
 type Device = 'desktop' | 'mobile';
@@ -57,7 +60,21 @@ const FRAME_TIMEOUT_MS = 8000;
  */
 const PATIENCE_MS = 90_000;
 
-export function Preview({ onPublished }: { onPublished: (sha: string) => void }): JSX.Element {
+/** Unreadable or unparseable counts as shown: a wrong banner is worse. */
+async function isHidden(path: string): Promise<boolean> {
+  try {
+    const { content } = await api.read(path);
+    return Boolean(content) && parseFrontmatter(content as string).data.draft === true;
+  } catch {
+    return false;
+  }
+}
+
+export function Preview({
+  onPublished,
+}: {
+  onPublished: (sha: string, paths: PathChange[]) => void;
+}): JSX.Element {
   const store = useStore();
   const [state, setState] = useState<State>('queued');
   const [url, setUrl] = useState<string | null>(null);
@@ -74,6 +91,8 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   const [round, setRound] = useState(0);
   /** Paths the site itself has changed since this draft started. */
   const [clashes, setClashes] = useState<string[]>([]);
+  /** Pending posts the site will leave out of the build it is about to make. */
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
 
   const stage = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
@@ -97,6 +116,27 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
       .conflicts()
       .then(({ paths }) => setClashes(paths))
       .catch(() => undefined);
+  }, [store.pending]);
+
+  /**
+   * `draft: true` is what every post the CMS creates starts as, so this is the
+   * ordinary case and not an edge one - and the only way to know is to read
+   * the file the preview is about to build.
+   */
+  useEffect(() => {
+    const posts = store.pending.filter((c) => c.status !== 'removed' && isBlogPost(c.path));
+    if (posts.length === 0) {
+      setHidden(new Set());
+      return;
+    }
+    let cancelled = false;
+    void Promise.all(posts.map((c) => isHidden(c.path))).then((flags) => {
+      if (cancelled) return;
+      setHidden(new Set(posts.filter((_, i) => flags[i]).map((c) => c.path)));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [store.pending]);
 
   const check = useCallback(async () => {
@@ -176,9 +216,9 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
     setBusy(true);
     setError(null);
     try {
-      const { sha } = await api.publish();
+      const { sha, paths } = await api.publish();
       await store.refreshPending();
-      onPublished(sha);
+      onPublished(sha, paths);
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לפרסם.');
     } finally {
@@ -200,15 +240,8 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
    * her to navigate inside a scaled-down frame to find her own edit is the
    * long way round to the one thing she came to look at.
    */
-  const pages = (() => {
-    const seen = new Map<string, string>();
-    for (const change of store.pending) {
-      const to = sitePathFor(change.path);
-      if (to && !seen.has(to)) seen.set(to, describePath(change.path));
-    }
-    if (seen.size === 0) seen.set('/', 'דף הבית');
-    return [...seen].map(([to, label]) => ({ to, label }));
-  })();
+  const pages = pagesFor(store.pending.map((c) => ({ ...c, hidden: hidden.has(c.path) })));
+  const missing = absences(pages);
 
   const shownPage = page && pages.some((p) => p.to === page) ? page : pages[0].to;
   const frameUrl = url ? `${url.replace(/\/$/, '')}${shownPage}` : null;
@@ -264,6 +297,17 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
           ))}
         </ul>
       </section>
+
+      {missing.length > 0 && (
+        <section className="group is-absent">
+          <h2>מה לא יופיע בתצוגה</h2>
+          <ul className="usage">
+            {missing.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {pages.length > 1 && url && (
         <div className="chips preview-pages" role="group" aria-label="בחירת עמוד">

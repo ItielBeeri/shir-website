@@ -19,6 +19,15 @@ export interface Config {
    * falls back to skipping this editor's own deployment.
    */
   siteProject?: string;
+  /**
+   * Where the published site lives, e.g. `https://www.shir-amitai.com`.
+   *
+   * GitHub reports a deployment's own immutable URL, which is correct for a
+   * preview and wrong for "go and look at it": that address is frozen at one
+   * build and is not the one she would give anybody. Optional, because without
+   * it the deployment URL is still better than no link at all.
+   */
+  siteUrl?: string;
 }
 
 const required = (name: string): string => {
@@ -46,6 +55,7 @@ export function config(): Config {
     allowedLogins,
     maintainerLogins: list('MAINTAINER_GITHUB_LOGINS'),
     siteProject: process.env.SITE_VERCEL_PROJECT || undefined,
+    siteUrl: process.env.SITE_PUBLIC_URL?.replace(/\/$/, '') || undefined,
   };
 }
 

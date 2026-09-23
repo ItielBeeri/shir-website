@@ -13,6 +13,29 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { DEPLOY_WORDS } from '../model/deploy';
+import { pagesFor } from '../model/pages';
+import type { PageInput } from '../model/pages';
+
+/**
+ * Where to send her to look at what she just published.
+ *
+ * GitHub reports the deployment's own URL, which is an immutable snapshot of
+ * one build: right today, frozen forever, and not an address she could give
+ * anybody. The site's own address and the page she changed is what "see it on
+ * the site" means; the deployment URL is the fallback for a deployment that
+ * has not been told where the site lives.
+ *
+ * The page comes from `pagesFor`, so publishing a deletion lands on the
+ * listing rather than on the 404 the page has just become.
+ */
+export function siteLink(
+  siteUrl: string | undefined,
+  paths: readonly PageInput[],
+  deploymentUrl: string | undefined,
+): string | undefined {
+  if (!siteUrl) return deploymentUrl;
+  return `${siteUrl.replace(/\/$/, '')}${pagesFor(paths)[0].to}`;
+}
 
 /** Rounded to something a person would say out loud. Hebrew counts one and two. */
 function waited(ms: number): string {
@@ -53,6 +76,7 @@ export function Deploy({ onDone }: { onDone: () => void }): JSX.Element {
   }
 
   const elapsed = waited(Date.now() - watch.since);
+  const link = siteLink(store.siteUrl, watch.paths, watch.url);
   const done = watch.state === 'ready';
   const failed = watch.state === 'failed';
   const stalled = watch.state === 'unknown';
@@ -85,13 +109,13 @@ export function Deploy({ onDone }: { onDone: () => void }): JSX.Element {
       </section>
 
       <div className="save-row">
-        {done && watch.url && (
-          <a href={watch.url} target="_blank" rel="noopener noreferrer" className="as-button primary">
+        {done && link && (
+          <a href={link} target="_blank" rel="noopener noreferrer" className="as-button primary">
             צפייה באתר
           </a>
         )}
         <button
-          className={done && watch.url ? 'ghost' : 'primary'}
+          className={done && link ? 'ghost' : 'primary'}
           onClick={() => {
             if (done || failed) store.clearDeploy();
             onDone();

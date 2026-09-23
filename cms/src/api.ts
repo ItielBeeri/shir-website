@@ -14,6 +14,8 @@ export interface StartResult {
   login: string;
   /** "owner/repo" - the client needs it to build thumbnail URLs. */
   repo: string;
+  /** The published site's own address, when the deployment knows it. */
+  siteUrl?: string;
 }
 
 /** Mirrors DeploymentStatus in api/_lib/github.ts. */

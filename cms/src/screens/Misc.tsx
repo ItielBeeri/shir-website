@@ -184,31 +184,7 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
 /* -------------------------------- describing -------------------------------- */
 
 export { describePath } from '../model/describe';
-
-/**
- * The page on the site a content file produces, so a preview can open where
- * the change is rather than at the front door.
- *
- * `null` means "everywhere": the brand details, the menu, the image manifest
- * and the pictures themselves show up on every page, and no one of them is a
- * better place to look than the home page.
- */
-export function sitePathFor(path: string): string | null {
-  if (path === 'src/content/pages/home.toml') return '/';
-  if (path === 'src/content/pages/contact.toml') return '/contact';
-  if (path === 'src/content/pages/accessibility.toml') return '/accessibility';
-  if (path === 'src/content/pages/terms.toml') return '/terms';
-  if (path === 'src/content/recommendations.toml') return '/recommendations';
-  if (path.startsWith('src/content/about/')) return '/about';
-
-  const therapy = /^src\/content\/therapies\/(.+)\.mdx$/.exec(path);
-  if (therapy) return `/${encodeURIComponent(therapy[1])}`;
-
-  const post = /^src\/content\/blog\/(.+)\.mdx$/.exec(path);
-  if (post) return `/blog/${encodeURIComponent(post[1])}`;
-
-  return null;
-}
+export { sitePathFor } from '../model/pages';
 
 /**
  * A commit subject the owner can read.

@@ -25,6 +25,8 @@ export interface DeployWatch extends DeployState {
   sha: string;
   /** When the watch began, so the wait is a number even before GitHub says so. */
   since: number;
+  /** What this publish changed, for a link to the page rather than the site. */
+  paths: PathChange[];
 }
 
 const settled = (watch: DeployWatch): boolean =>
@@ -38,6 +40,8 @@ interface Store {
   role: Role;
   login: string;
   repo: string;
+  /** The published site's address, when this deployment was told it. */
+  siteUrl?: string;
   pending: PathChange[];
   gallery: GalleryImage[];
   /** Object URLs for images uploaded this session, keyed by id. */
@@ -54,7 +58,7 @@ interface Store {
   saved: (paths?: string[]) => void;
   /** The publish on its way to the site, or null when nothing is in flight. */
   deploy: DeployWatch | null;
-  watchDeploy: (sha: string) => void;
+  watchDeploy: (sha: string, paths: PathChange[]) => void;
   clearDeploy: () => void;
 }
 
@@ -70,12 +74,14 @@ export function StoreProvider({
   role,
   login,
   repo,
+  siteUrl,
   initialPending,
   children,
 }: {
   role: Role;
   login: string;
   repo: string;
+  siteUrl?: string;
   initialPending: PathChange[];
   children: ReactNode;
 }): JSX.Element {
@@ -157,8 +163,8 @@ export function StoreProvider({
     [freshPreviews, gallery, repo, derivatives, pending],
   );
 
-  const watchDeploy = useCallback((sha: string) => {
-    setDeploy({ sha, state: 'queued', since: Date.now() });
+  const watchDeploy = useCallback((sha: string, paths: PathChange[]) => {
+    setDeploy({ sha, state: 'queued', since: Date.now(), paths });
     setTick(0);
   }, []);
 
@@ -198,6 +204,7 @@ export function StoreProvider({
       role,
       login,
       repo,
+      siteUrl,
       pending,
       gallery,
       freshPreviews,
@@ -214,6 +221,7 @@ export function StoreProvider({
       role,
       login,
       repo,
+      siteUrl,
       pending,
       gallery,
       freshPreviews,
