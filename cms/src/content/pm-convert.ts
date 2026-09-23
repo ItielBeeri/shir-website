@@ -129,17 +129,16 @@ export function docToPm(doc: MdxDoc): PmNode {
 
 /* ------------------------------ from ProseMirror ----------------------------- */
 
-/** Marks nest outside-in, in a fixed order, so a document always serializes the same way. */
+/**
+ * A fixed order, so that nodes carrying the same marks compare equal. How the
+ * marks nest in the file is not decided here: `inlineToMarkdown` works that
+ * out from the characters, since markdown can close only some nestings.
+ */
 const MARK_ORDER = ['emphasis', 'italic', 'bold'] as const;
 
 const markSet = (node: PmNode): string[] =>
   MARK_ORDER.filter((name) => (node.marks ?? []).some((m) => m.type === name));
 
-/**
- * Consecutive inline nodes sharing a mark set become ONE wrapped span. Doing it
- * per node would turn a single emphasis that spans three lines into three
- * emphases, which changes both the markup and the meaning.
- */
 function pmToInline(nodes: PmNode[] = []): Inline[] {
   const out: Inline[] = [];
 

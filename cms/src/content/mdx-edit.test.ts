@@ -281,42 +281,64 @@ describe('body text the grammar would otherwise claim', () => {
     });
   });
 
-  /** A delimiter touching whitespace is not a delimiter, and ships as itself. */
-  describe('a mark with space at its edge', () => {
-    const read = (node: any): string => {
-      const inner = (node.children ?? []).map(read).join('');
-      if (node.type === 'text') return node.value;
-      if (node.type === 'strong') return `<b>${inner}</b>`;
-      if (node.type === 'emphasis') return `<i>${inner}</i>`;
-      return inner;
-    };
-    const shippedMarks = (inline: Inline[]): string =>
-      read(
-        fromMarkdown(`${blockToMarkdown({ kind: 'paragraph', source: '', inline })}\n`, {
+  /**
+   * A delimiter beside whitespace, between punctuation and a letter, or an
+   * underscore inside a word, is not a delimiter, and ships as itself.
+   */
+  describe('a mark where markdown cannot end one', () => {
+    const written = (inline: Inline[]): string => blockToMarkdown({ kind: 'paragraph', source: '', inline });
+    /** `<u>` is underscore italic, which the site styles apart from `<i>`. */
+    const page = (md: string): string => {
+      const read = (node: any): string => {
+        const inner = (node.children ?? []).map(read).join('');
+        if (node.type === 'text') return node.value;
+        if (node.type === 'strong') return `<b>${inner}</b>`;
+        if (node.type === 'emphasis') return md[node.position.start.offset] === '_' ? `<u>${inner}</u>` : `<i>${inner}</i>`;
+        return inner;
+      };
+      return read(
+        fromMarkdown(`${md}\n`, {
           extensions: [mdxjs(), gfm()],
           mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
         }),
       );
+    };
     const text = (value: string): Inline => ({ type: 'text', value });
     const bold = (...children: Inline[]): Inline => ({ type: 'strong', children });
     const em = (marker: '*' | '_', ...children: Inline[]): Inline => ({ type: 'emphasis', marker, children });
 
-    it.each<[string, Inline[], string]>([
+    const cases: Array<[string, Inline[], string]> = [
       ['a trailing space', [bold(text('מילה ')), text('אחרי')], '<b>מילה</b> אחרי'],
       ['a leading space', [text('לפני'), bold(text(' מילה'))], 'לפני <b>מילה</b>'],
       ['a line break', [bold(text('סוף.\n')), text('שורה')], '<b>סוף.</b>\nשורה'],
-      ['underscore italic', [text('א '), em('_', text('מילה ')), text('ב')], 'א <i>מילה</i> ב'],
+      ['underscore italic', [text('א '), em('_', text('מילה ')), text('ב')], 'א <u>מילה</u> ב'],
       ['a mark inside a mark', [bold(text('א '), em('*', text('ב ')))], '<b>א <i>ב</i></b>'],
       ['nothing but space', [text('א'), bold(text(' ')), text('ב')], 'א ב'],
-    ])('keeps the mark with %s', (_name, inline, page) => {
-      expect(shippedMarks(inline)).toBe(page);
+      ['quotes inside a word', [text('א'), bold(text('"ב"')), text('ג')], 'א"<b>ב</b>"ג'],
+      // Only the edge the parser refuses moves: the closing quote can stay bold.
+      ['a quote after a prefix letter', [text('ו'), bold(text('"שקט"'))], 'ו"<b>שקט"</b>'],
+      ['a full stop against the next word', [bold(text('סוף.')), text('הבא')], '<b>סוף</b>.הבא'],
+      ['an escaped character at its edge', [text('ב'), bold(text('*א'))], 'ב*<b>א</b>'],
+      ['a mark character marked alone', [bold(text('*')), text(' א')], '<b>*</b> א'],
+      ['italic after a prefix letter', [text('ב'), em('_', text('גוף'))], '<u>בגוף</u>'],
+      ['italic ending inside a word', [em('_', text('תנו')), text('עה שם')], '<u>תנועה</u> שם'],
+      ['italic inside a bold word', [bold(text('א'), em('_', text('ב')), text('ג'))], '<b>א</b><u><b>ב</b></u><b>ג</b>'],
+      // The editor hands over a tree wrapped run by run, which is this shape.
+      ['emphasis running on past bold', [bold(em('*', text('א'))), em('*', text('ב'))], '<i><b>א</b>ב</i>'],
+    ];
+
+    it.each(cases)('keeps the mark with %s', (_name, inline, shown) => {
+      expect(page(written(inline))).toBe(shown);
     });
 
-    it('writes it once, so a second save changes nothing', () => {
-      const once = blockToMarkdown({ kind: 'paragraph', source: '', inline: [bold(text('פחות. '))] });
-      expect(once).toBe('**פחות.** ');
-      const doc = parseMdx(`---\nt: 1\n---\n\n${once}\n`);
-      expect(serializeMdx(doc, allBlocks(doc))).toBe(`---\nt: 1\n---\n\n${once}\n`);
+    it.each(cases)('writes it once with %s, so a second save changes nothing', (_name, inline) => {
+      const once = `---\nt: 1\n---\n\n${written(inline)}\n`;
+      const doc = parseMdx(once);
+      expect(serializeMdx(doc, allBlocks(doc))).toBe(once);
+    });
+
+    it('moves the space out rather than escaping the asterisks', () => {
+      expect(written([bold(text('פחות. '))])).toBe('**פחות.** ');
     });
   });
 
