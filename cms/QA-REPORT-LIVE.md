@@ -3,49 +3,172 @@
 End-to-end execution of `cms/TEST-SPEC.md` against the **production deployment**, driven
 through a real browser as the owner would use it.
 
-| | Run 1 | Run 2 | Run 3 | Run 4 | Run 5 | Run 6 (current) |
-|---|---|---|---|---|---|---|
-| **Date** | 2026-09-22 | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 |
-| **Build** | `ce3ac9c` | post-`956bfdf` | `5d7fbdc` | `d7ef58f` | `d7ef58f` / `66968c4` | `356cee7` |
-| **Roles tested** | maintainer | maintainer | maintainer + owner | owner | owner | owner |
-| **Scope** | full | full | full | targeted | the build-dependent gap | **full, weighted to run-5 failures** |
-| **Verdict** | Fails; 1 critical | Critical fixed; 2 high | No open high or critical | Mechanism passes; build half unverifiable | Build half closed — one high defect | **No failing acceptance row for the first time** |
+| | Run 3 | Run 4 | Run 5 | Run 6 | Run 7 (current) |
+|---|---|---|---|---|---|
+| **Date** | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 | 2026-09-23 |
+| **Build** | `5d7fbdc` | `d7ef58f` | `d7ef58f` / `66968c4` | `356cee7` | `a569bea` / `8e235e7` |
+| **Roles tested** | maintainer + owner | owner | owner | owner | owner |
+| **Scope** | full | targeted | the build-dependent gap | full, weighted to run-5 failures | **targeted: the run-6 findings** |
+| **Verdict** | No open high or critical | Mechanism passes; build half unverifiable | Build half closed — one high defect | No failing acceptance row | **Two of three fixed; one fixed in code but inert in production** |
 
-Runs 1–3 re-tested everything. Run 4 covered commit `66968c4` and its blast radius. Run 5
-closed the build-dependent gap. Run 6 re-tests everything against `356cee7`, weighted toward
-what run 5 failed. Findings keep their original numbers across runs; run-6 findings are `R6-`.
+Runs 1–3 re-tested everything (runs 1 and 2 are summarised in §10). Run 4 covered `66968c4`,
+run 5 closed the build-dependent gap, run 6 re-tested everything against `356cee7`. Run 7 is
+focused on what run 6 found. Findings keep their original numbers; run-7 findings are `R7-`.
 
 ---
 
 ## 1. Verdict
 
-**Every finding carried into this round is fixed, and the acceptance matrix has no failing row
-for the first time in six runs.** `R5-1` — the high-severity defect that made a working preview
-look broken — is gone: the very commit that failed in run 5 now resolves to the site's own
-deployment, and four fresh builds resolved correctly during this run. `R3-1`, `R4-1` and `R3-2`
-are all closed, and the fuzz layer that `X-3` and `F-18` had been waiting on has landed (528
-unit tests, up from 195).
+**`R6-1` and `R6-3` are fixed, and `R6-1` is fixed better than it was reported.** The preview no
+longer sends the owner to a page the build does not have: a hidden post and a deletion both open
+on the listing, with a Hebrew panel naming what is missing and what to do about it, and a
+visible post opens on itself. The fix went further than the finding — several changed pages now
+produce a **picker**, so a session that touched two pages can look at both.
 
-Closing `R5-1` also did what closing a blocker usually does: it made the screen behind it
-visible, and that screen has its own defect. **The preview now renders — and for a new post or
-a deletion it renders a 404 while the CMS says *"התצוגה מוכנה"*** (`R6-1`). Every post the CMS
-creates starts hidden, so this is the *default* first-preview experience.
+**`R6-2` is fixed in code and inert in production.** `siteLink()` is correct and unit-tested,
+but it reads `SITE_PUBLIC_URL`, and that variable is **not set on the deployed CMS** —
+`/api/content/start` returns no `siteUrl` at all, while the same deployment demonstrably carries
+the new client code. Until someone sets it in Vercel, the owner still gets a frozen
+`…vercel.app` snapshot. Nothing in the repository will change that.
 
-| Exit criterion | Run 1 | Run 3 | Run 5 | Run 6 |
+**One new finding, and it surfaced on its own.** A publish this round produced no site build at
+all, and the CMS sat on *"מחכה שהבנייה תתחיל… כבר 150 דקות"* — two and a half hours, no timeout,
+no advice (`R7-1`). The missing build is an environment problem (below), but the unbounded wait
+is the product's.
+
+> **Needs a human at the Vercel dashboard.** The site's production deployments have stopped.
+> The last `Production – shir-amitai` is `98ef370b` at 10:12 UTC; the two publishes this round
+> produced none, while **four** preview deployments in the same window built normally. Replaying
+> `vercel-ignore.sh` locally against every plausible `VERCEL_GIT_PREVIOUS_SHA` says *build*, so
+> this is not the ignore step. Consequence for this report: `A-9.2` (a publish reaching `www`)
+> could not be re-verified, and `R6-2` could not be watched end to end. The live site itself is
+> fine — it is serving run 6's final state, and run 7 left no content change behind.
+
+| Exit criterion | Run 3 | Run 5 | Run 6 | Run 7 |
 |---|---|---|---|---|
-| All 58 acceptance rows pass | No — 6 fail | No fails; 3 blocked | No — 3 fail | **No failures**; 6 partial |
-| §4.1 fidelity gates pass live | Mostly | Yes | unchanged | **Yes** — re-proved on a built page and on `www` |
-| Build parity (§4.4) | No | No divergence found | Confirmed | **Confirmed** — 4 previews + 2 productions |
-| Every §7 guarantee passes | No — 6 fail | All but X-7 residual | X-10 via timeout only | **X-10 via its happy path**; X-3 now passes |
-| Zero `axe` violations | No | No contrast or naming failures | unchanged | **No contrast or naming failures**; 4 undersized targets (`R6-3`) |
+| All 58 acceptance rows pass | No fails; 3 blocked | No — 3 fail | No failures; 6 partial | **No failures**; 6 partial (different rows) |
+| §4.1 fidelity gates pass live | Yes | unchanged | Yes | **Yes** — TOML and MDX both re-proved on a real build |
+| Build parity (§4.4) | No divergence found | Confirmed | Confirmed | **Previews confirmed; production not observable** |
+| Every §7 guarantee passes | All but X-7 residual | X-10 via timeout only | X-10 via happy path | **X-10 now passes outright** |
+| Zero `axe` violations | No contrast or naming failures | unchanged | 4 undersized targets | **None** — `R6-3` closed |
 | Green in CI three times | n/a | n/a | n/a | n/a |
 
-Open after run 6: one medium (`R6-1`), two low (`R6-2`, `R6-3`), one residual by design
-(`R2-3`/`X-7`, now spec-consistent), one informational note (`R4-2`). No high or critical.
+Open after run 7: one medium (`R7-1`), one configuration item (`R6-2`, code done), one residual
+by design (`R2-3`/`X-7`), one informational note (`R4-2`), plus the Vercel question above. No
+high or critical.
 
 ---
 
-## 2. Round 6 — the fixes, verified
+## 2. Round 7 — the run-6 findings, re-tested
+
+`8e235e7` is live: the deployed bundle carries the new Hebrew absence strings, `is-absent` and
+`.switch label`. `pnpm test` is green at **591 passed** across 22 files (was 528/19) and
+`pnpm check` is clean. The growth is `toml-fuzz.test.ts`, which closes the half of `F-18` that
+run 6 listed as outstanding: 32 tests putting a hostile value in every slot of every TOML file
+the owner can reach.
+
+| Finding | Severity | Verdict |
+|---|---|---|
+| `R6-1` preview shows a 404 and calls it ready | MEDIUM | **Fixed** — all three cases, plus a page picker |
+| `R6-3` controls below the 44 px target | LOW | **Fixed** — all three measured at or above 44 |
+| `R6-2` publish link goes to a vercel.app snapshot | LOW | **Fixed in code, not in production** — `SITE_PUBLIC_URL` unset |
+| read rejection said "refusing to write" | cosmetic | **Fixed** — `read` / `write` / `move` |
+| `F-18` TOML half | gap | **Landed** — 32 fuzz tests over all six TOML files |
+
+### R6-1 — fixed, in all three shapes
+
+The fix is a new `src/model/pages.ts`: a path becomes the page it produces, and a page the build
+will not have becomes its listing plus an explanation. Tested live, each case its own build:
+
+| Case | Iframe target | Panel |
+|---|---|---|
+| New post, hidden (the default) | `/blog` — renders the real listing | *"…מוגדר כרגע כמוסתר, ולכן הוא לא מופיע באתר ואי אפשר לראות אותו כאן. אפשר להדליק «מוצג באתר» בעמוד הפוסט ולחזור לכאן."* |
+| Same post, made visible | `/blog/qa7-סיבוב-שביעי` — the post itself | none, correctly |
+| A deletion | `/blog` | *"…נמחק, ולכן הוא כבר לא באתר. זו הרשימה שהוא ירד ממנה."* |
+
+Both explanations say what is missing, why, and — for the hidden case — exactly which switch to
+flip. That is more than the finding asked for, which was only "do not show a 404 and call it
+ready".
+
+**The picker is new and was not requested.** With two files changed in one session
+(`contact.toml` and `psychotherapy.mdx`) the screen offered two buttons, opened on `/contact`,
+and switched to `/psychotherapy` on demand. Both pages returned 200 from the preview build and
+both carried the edit, so the TOML and MDX write paths are confirmed on a real build at the same
+time. `sitePathFor`'s table was checked against `src/pages/`: every route it names exists.
+
+### R6-3 — fixed
+
+| Control | Run 6 | Run 7 |
+|---|---|---|
+| Tag-remove `✕` button | 28 × 28 | **44 × 44** |
+| `מוצג באתר` checkbox | 22 × 22 box, no 44 px row | **24 × 24 box inside a clickable 647 × 44 label** |
+| `תאריך` input | 119 × 21 | **690 × 51** |
+
+A full sweep of the post editor now reports no interactive control under 44 px, and the home
+screen audit is clean on every axis: no contrast failure, no unnamed control, no heading jump,
+one `h1`, `lang="he" dir="rtl"`, no horizontal overflow.
+
+### R6-2 — the code is right, the deployment is not configured
+
+`siteLink()` prefers `SITE_PUBLIC_URL` + the changed page and falls back to the deployment URL,
+which is the correct shape and has its own test file. But the deployed CMS does not have the
+variable:
+
+```
+POST /api/content/start  →  {"draft":…,"pending":[],"role":"owner","login":…,"repo":…}
+                            no "siteUrl" key
+```
+
+The same deployment contains the new `pages.ts` strings, so this is not a stale build — the
+environment variable is simply missing. `cfg.siteUrl` is `undefined`, the key is dropped from
+the JSON, `store.siteUrl` is undefined, and `siteLink()` returns the deployment URL exactly as
+before. **This is one Vercel setting away from done**, and worth adding to `cms/README.md`'s
+variable list so the next deployment does not repeat it.
+
+### New in round 7
+
+#### R7-1 · The deploy screen waits forever — MEDIUM
+
+Publishing moves `master` and then watches for the site's build. When that build never appears,
+the screen counts up with no upper bound and no change of message. Observed live:
+
+```
+מעלה את השינוי לאתר
+מחכה שהבנייה תתחיל… כבר 150 דקות.
+אפשר להישאר כאן או להמשיך לעבוד - הסטטוס ימשיך להופיע בסרגל העליון.
+```
+
+The browser and the CMS server agreed on the time to the second, so the 150 minutes were real.
+
+`Deploy.tsx` handles `ready`, `failed` and `unknown`; `unknown` even says the reassuring thing
+(*"לא הצלחתי לקבל מצב בנייה. השינוי נשמר, וכדאי לבדוק באתר בעוד דקה."*). The state reached here
+is `none` — no deployment exists at all — and it has no terminal branch, so the one case where
+nothing is coming is the one case the owner is told to keep waiting. Her content is safe and the
+top-bar status persists, so this costs confidence rather than work; but "כבר 150 דקות" under a
+spinner is the screen telling her something untrue.
+
+Suggested shape: after a couple of minutes with no deployment, say the same thing `unknown`
+says. The publish succeeded either way, and that is the fact worth putting on screen.
+
+### Also re-confirmed in round 7
+
+- **`R3-1`** still holds: `src/content/.hidden.toml` is refused on write *and* on read.
+- **The verb fix.** Reads now say *refusing to read*, writes *refusing to write*, and a bad
+  branch *refusing to move*.
+- **`R5-1`** stays fixed: every status this round resolved `why: site` with the correct
+  `resolved` block.
+- **`G-13`** — four preview builds, each created within seconds of the sync and each serving the
+  right content. **`G-14`** — no build for a save.
+- **`R3-2`** — the two publishes this round read `הוספת הפוסט` and `מחיקת הפוסט`.
+- **`G-6`** — publish applied exactly the changed path, both times.
+- **`G-11`** — three discards, each verified byte-identical to `master` afterwards
+  (`contact.toml`, `psychotherapy.mdx`, and `_example.mdx` restored after a deletion probe).
+- **Escaping** — `|`, `~~…~~` and `[text](url)` all survived to a built page as literal text,
+  with no `<table>` and no `<del>`; only the bare URL autolinks, as `X-7` records.
+
+---
+
+## 3. Round 6 — the fixes, verified
 
 `356cee7` is live: the deployed client bundle carries its marker strings, and the server
 returns the `resolved` diagnostic that commit added. `pnpm test` is green (**528 passed**, 19
@@ -128,6 +251,9 @@ rewrites the file on every save.
 
 ### New in round 6
 
+> All three were addressed in `8e235e7` and re-tested in run 7 (§2): `R6-1` and `R6-3` are
+> fixed; `R6-2`'s code is merged but needs `SITE_PUBLIC_URL` set in Vercel. Kept as written.
+
 #### R6-1 · The preview shows a 404 and calls it ready — MEDIUM
 
 The preview iframe deep-links to the changed page's URL. For two common cases that URL cannot
@@ -206,7 +332,7 @@ than a regression — `356cee7` touched no component or stylesheet.
   jumps, one `h1`, `lang="he" dir="rtl"`. No horizontal overflow at 375 px.
 
 ---
-## 3. Round 5 — the build-dependent gap, closed
+## 4. Round 5 — the build-dependent gap, closed
 
 The seven-step checklist from run 4, executed once Vercel had headroom. Six steps pass. Step 3
 found a defect that had been hiding behind "no builds to look at".
@@ -301,7 +427,7 @@ byte-exact. **R2-4** — the publish subject named the net change (`פרסום �
 
 ---
 
-## 4. Round 4 — the preview-build change (`66968c4`)
+## 5. Round 4 — the preview-build change (`66968c4`)
 
 ### What the commit changes
 
@@ -415,7 +541,7 @@ probe was deleted.
 
 ---
 
-## 5. Round 3 — every run-2 finding re-tested
+## 6. Round 3 — every run-2 finding re-tested
 
 | Finding | Status | Evidence |
 |---|---|---|
@@ -431,7 +557,7 @@ probe was deleted.
 
 ---
 
-## 6. The owner role — closed at last, and it passes
+## 7. The owner role — closed at last, and it passes
 
 Deferred in runs 1 and 2. Tested this round under a genuine `shiramitai1` / `role: owner`
 session.
@@ -467,7 +593,7 @@ request affordance, exactly as required.
 
 ---
 
-## 7. New in run 3
+## 8. New in run 3
 
 > Both findings in this section were **fixed in `356cee7`** and re-tested in run 6 (§2). Kept
 > as written for the record.
@@ -500,7 +626,7 @@ The change list on screen says *"· נמחק"* correctly; only the commit subjec
 
 ---
 
-## 8. Regression sweep — everything from runs 1 and 2, re-verified
+## 9. Regression sweep — everything from runs 1 and 2, re-verified
 
 **The critical fix holds.** Re-typed the full hostile set plus new constructs. The serialized
 MDX escapes `#`, `[`, `]`, `-`, `*`, `` ` ``, `>`, `1.`, `<`, `{` **and** `![alt](x.png)`:
@@ -541,12 +667,12 @@ modal with focus return; drafts persist and are offered back after a hard reload
 
 ---
 
-## 9. Acceptance matrix — after run 6
+## 10. Acceptance matrix — after run 7
 
 `P` pass · `F` fail · `~` partial · `–` not exercised
 
-Rows below are run 3's full sweep, with the build-dependent rows resolved by run 5 and the
-three run-5 failures re-tested in run 6.
+Rows below are run 3's full sweep, carried through runs 5 and 6, with the rows run 7 touched
+re-scored.
 
 | Ch. 1 | | Ch. 2 | | Ch. 3 | | Ch. 4 | | Ch. 5 | |
 |---|---|---|---|---|---|---|---|---|---|
@@ -563,95 +689,102 @@ three run-5 failures re-tested in run 6.
 | Ch. 6 | | Ch. 7 | | Ch. 8 | | Ch. 9 | | Ch. 10 | |
 |---|---|---|---|---|---|---|---|---|---|
 | A-6.1 | **P** | A-7.1 | **P** | A-8.1 | **P** | A-9.1 | ~ | A-10.1 | **P** |
-| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | **P** | A-9.2 | **P** | A-10.2 | **P** |
-| A-6.3 | **P** | A-7.3 | **P** | A-8.3 | **P** | A-9.3 | ~ | A-10.3 | **P** |
+| A-6.2 | **P** | A-7.2 | **P** | A-8.2 | **P** | A-9.2 | ~ | A-10.2 | **P** |
+| A-6.3 | **P** | A-7.3 | **P** | A-8.3 | **P** | A-9.3 | **P** | A-10.3 | **P** |
 | A-6.4 | **P** | A-7.4 | **P** | A-8.4 | **P** | A-9.4 | **P** | A-10.4 | **P** |
 | A-6.5 | ~ | A-7.5 | ~ | A-8.5 | **P** | A-9.5 | ~ | A-10.5 | **P** |
 | | | | | | | | | A-10.6 | **P** |
 
 **Tally — 52 P · 0 F · 6 ~ · 0 – · 0 ⊘**
-(run 5: 50 P · 3 F · 5 ~ — run 3: 50 P · 0 F · 6 ~ · 2 ⊘ — run 2: 45 P · 0 F · 7 ~ · 1 – · 3 ⊘ —
-run 1: 34 P · 6 F · 15 ~ · 3 –)
+(run 6: 52 P · 0 F · 6 ~ — run 5: 50 P · 3 F · 5 ~ — run 3: 50 P · 0 F · 6 ~ · 2 ⊘ —
+run 2: 45 P · 0 F · 7 ~ · 1 – · 3 ⊘ — run 1: 34 P · 6 F · 15 ~ · 3 –)
 
-**No failing row, and nothing blocked.** The two run-5 failures that were purely about reporting
-state — **A-1.5** and **A-9.2** — now pass on the same evidence that condemned them.
+The totals are unchanged from run 6 but two rows swapped places, so the number hides the
+movement:
 
-**A-9.3** moves from fail to partial rather than to pass. Its second half, one-click restore
-from history, passes outright and was re-verified byte-exactly. Its first half, "preview
-precedes publish", now happens — but `R6-1` means that for a new post or a deletion what
-precedes publish is a 404 labelled *"התצוגה מוכנה"*. The mechanism is there; what it shows is
-not yet trustworthy in those two cases.
+**A-9.3 rises to pass.** It was partial only because `R6-1` meant the thing shown before
+publishing could be a 404. All three preview shapes now land on a page the build actually has,
+and the restore half was re-verified byte-exactly, so both halves of the row hold.
+
+**A-9.2 falls to partial**, and not because of the CMS. The site's production deployments have
+stopped (§1), so a publish reaching `www` could not be observed this round; and `R7-1` means
+that while nothing arrives the screen keeps promising it will. The git half of the row — master
+moves, only the changed paths, honest subject — passed both times.
 
 ### Guarantees
 
 | | | | | | |
 |---|---|---|---|---|---|
 | X-1 **P** | X-2 **P** | X-3 **P** | X-4 **P** | X-5 **P** | X-6 **P** |
-| X-7 ~ | X-8 **P** | X-9 **P** | X-10 ~ | X-11 **P** | X-12 **P** |
+| X-7 ~ | X-8 **P** | X-9 **P** | X-10 **P** | X-11 **P** | X-12 **P** |
 | X-13 **P** | X-14 **P** | X-15 **P** | X-16 ~ | R-1 **P** | R-2 **P** |
 
 X-3 now passes: the generated-document properties landed and were confirmed live — a second
 save writes the same bytes, every block stays its own block, and no heading, list, table or
 rule appeared on `www` that was not asked for. X-7 partial: link syntax neutralised, bare-URL
 autolink remains, now recorded in the spec as a GFM property rather than a defect (`R2-3`).
-X-10 moves to partial: its gate passes on the happy path, but `R6-1` means "something she has
-not seen" is still reachable — she can be shown a 404 and told it is her page. X-16 partial:
+X-10 returns to pass: the gate holds, and with `R6-1` fixed what she is shown before publishing
+is a page the build really has. X-16 partial:
 the only Latin in the UI is GitHub author logins in history and the `Enter` / `Shift + Enter`
 key names.
 
 ---
 
-## 10. Still not verified
+## 11. Still not verified
 
 | Area | Reason |
 |---|---|
 | **`vercel-ignore.sh`, site-skips-`cms/`** | The mirror direction is confirmed in production again this round; this one has had no qualifying commit since the script landed, and forcing one would mean pushing code to `master` purely for a test. |
 | **`axe` (N-5)** | The CMS's own CSP (`script-src 'self'`) blocks loading axe-core. Substituted a scripted audit: contrast ratios against computed backgrounds, accessible names, roles, focus visibility, target sizes, heading structure, unlabelled fields. It is what found `R6-3`. |
 | **N-16 / N-17 on 4G** | No throttling available. Eager payload is 174 KB across two chunks (entry 32.5 KB + react 142 KB), with the editor and vendor chunks lazy. |
-| **F-18's TOML half** | The MDX half landed and is verified. The TOML fuzzer is still unwritten, per TEST-SPEC §9. |
-| **Maintainer role, this round** | Run 6 ran as `owner` throughout. The owner-facing half of every lock is the security-relevant direction and passes; the maintainer-can-edit half is carried from run 3. |
+| **A publish reaching `www` (`A-9.2`)** | New this round, and environmental: the site's production deployments have stopped (§1). The git half passed twice; the serving half could not be observed. |
+| **`R6-2` end to end** | Blocked by the same thing, and by `SITE_PUBLIC_URL` being unset — there is nothing to observe until both are dealt with. |
+| **Maintainer role** | Runs 4–7 ran as `owner`. The owner-facing half of every lock is the security-relevant direction and passes; the maintainer-can-edit half is carried from run 3. |
 | **B-10** | Needs a second, non-allow-listed GitHub account. |
 | **B-11** | Verified by code: the cookie is AES-256-GCM sealed, HttpOnly, Secure, SameSite=Lax, so tampering fails the auth tag. |
 
-`L-2` leaves this table: it is assessable now, and the preview does open on the page that
-changed. Whether that page exists is `R6-1`, not `L-2`.
+`F-18`'s TOML half leaves this table: `toml-fuzz.test.ts` landed in `8e235e7` and is green.
+`L-2` left it in run 6.
 
 ---
 
-## 11. Repository state — clean
+## 12. Repository state — clean
 
 ```
-git diff --name-status 356cee7 origin/master -- src/content public/img
-  (empty — content byte-identical to the round-6 baseline)
+git diff --name-status a569bea origin/master -- src/content public/img
+  (empty — content byte-identical to the round-7 baseline)
 ```
 
-- Run 6 published a blog post and then published its deletion. `www.shir-amitai.com` was
-  checked afterwards: the post 404s, the blog index no longer lists it, home and contact are
-  200. Net content change: zero.
-- `content-draft` and `master` are the same commit (`98ef370`); `pending` and `conflicts` are
-  both empty and the local draft store is `{}`.
-- `content-preview` remains at the last previewed draft commit, which is the product's own
-  steady state (`R4-2`), not residue.
-- `git ls-tree` on master shows no `qa2`/`qa3`/`qa6`/`.hidden`/`X.TOML`/probe residue.
-- Every probe that landed during run 6 was reverted by the product's own mechanism: three
-  `discard` calls on `home.toml`, `site.toml` and `contact.toml`, and `delete` on
-  `x.TOML` and the second test post. Each was verified byte-identical to `master` afterwards.
-- Every dotfile probe was refused before it could land — that is `R3-1` being fixed.
-- The working tree is clean; runs 4–5's report edits landed in `356cee7`.
+- Run 7 published a blog post and then published its deletion, so `master` is back where it
+  started. `git ls-tree` shows no `qa7` residue.
+- Because the site has not built since 10:12 UTC, `www.shir-amitai.com` never carried the test
+  post at any point — it is serving run 6's final state, which is the correct content.
+- `content-draft` content matches `master`; `pending` and `conflicts` are both empty.
+- `content-preview` remains at the last previewed draft commit — the product's steady state
+  (`R4-2`), not residue.
+- Four probes were reverted through the product's own mechanism and each was then verified
+  byte-identical to `master`: `contact.toml`, `psychotherapy.mdx`, `_example.mdx` (deleted to
+  test the deletion preview, then discarded), and the published-then-deleted test post.
+- The dotfile probe was refused before it could land, on both read and write.
+- The working tree is clean.
 
 ---
 
-## 12. Suggested order of work
+## 13. Suggested order of work
 
-1. **R6-1** — the preview's URL choice. It is the only item that reaches the owner as a broken
-   feature, it blocks the main reason to preview at all, and it is what keeps `A-9.3` and
-   `X-10` off a clean pass. Cheapest correct fix: build the preview URL from what the change
-   will actually produce rather than from the path that changed.
-2. **R6-2** — point "צפייה באתר" at `https://www.shir-amitai.com` (plus the changed page's
-   path) instead of echoing the deployment URL GitHub reports.
-3. **R6-3** — bring the four small controls to 44 × 44, or state in the spec that the CMS
-   follows WCAG 2.2's 24 px rather than the site's 44 px.
-4. **F-18's TOML half** — the MDX fuzzer paid for itself immediately, by the fix session's own
-   account. The same argument applies to TOML, which is where the original live incident was.
-5. **Cosmetic** — the read-path rejection says "refusing to write"; `onTheSitesDomain()`'s
-   comment describes a production shape Vercel does not actually report (`R6-2`).
+1. **The Vercel question** — the site's production deployments stopped after `98ef370b`
+   (10:12 UTC) while previews kept building. Nothing in the repository explains it and the
+   ignore step replays to *build*. Until it is answered, publishing is a no-op that looks like
+   a success, which is worse than a failure that says so.
+2. **R6-2, the setting** — add `SITE_PUBLIC_URL=https://www.shir-amitai.com` to the CMS
+   project's Vercel environment. The code is already merged and tested; without the variable it
+   does nothing. Worth listing in `cms/README.md` beside the other variables so a fresh
+   deployment does not inherit the same gap.
+3. **R7-1** — give the deploy screen a terminal state. After a couple of minutes with no
+   deployment, say what the `unknown` branch already says. It is a few lines in `Deploy.tsx`
+   and it is the difference between "your change is saved, go and look" and a spinner that has
+   been running for two and a half hours.
+4. **X-7 / R2-3** — unchanged and still a decision rather than a defect: bare URLs autolink
+   because the site's markdown is GFM. The lever is the site's `markdown.gfm`, not the CMS.
+5. **Maintainer-role sweep** — four rounds have run as `owner`. One pass as `maintainer` would
+   close the half of `A-10.4` that has been carried since run 3.

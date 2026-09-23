@@ -539,9 +539,13 @@
 }
 .bar-deploy.is-ready { border-color: var(--ok); }
 .bar-deploy.is-failed { border-color: var(--danger); color: var(--danger); background: #fbecea; }
+/* Nothing is in flight any more, so it stops asking to be watched. */
+.bar-deploy.is-given-up { border-color: var(--line); color: var(--ink-soft); background: transparent; }
 
 .deploy-card.is-ready { border-inline-start: 3px solid var(--ok); }
 .deploy-card.is-failed { border-inline-start: 3px solid var(--danger); }
+/* Published, and that much is certain; only the build went unreported. */
+.deploy-card.is-given-up { border-inline-start: 3px solid var(--accent); }
 .deploy-state { font-size: 1.0625rem; margin-block: 4px 8px; }
 
 /* --- history, now that a row opens ----------------------------------------- */

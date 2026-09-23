@@ -14,6 +14,7 @@ import type { PathChange } from './git/engine';
 import { derivativeFor, rawUrl } from './lib/images';
 import type { Derivatives } from './lib/images';
 import type { GalleryImage } from './content/gallery';
+import { WATCH_LIMIT_MS, settled } from './model/deploy';
 
 const GALLERY_FILE = 'src/content/images.toml';
 const DERIVATIVES_FILE = 'public/img/_opt/manifest.json';
@@ -29,12 +30,7 @@ export interface DeployWatch extends DeployState {
   paths: PathChange[];
 }
 
-const settled = (watch: DeployWatch): boolean =>
-  watch.state === 'ready' || watch.state === 'failed';
-
 const POLL_MS = 5000;
-/** Long enough for a cold build, short enough not to poll into the evening. */
-const WATCH_LIMIT_MS = 10 * 60 * 1000;
 
 interface Store {
   role: Role;

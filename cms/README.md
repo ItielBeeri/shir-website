@@ -87,6 +87,11 @@ never in the client bundle.
 System Environment Variables" left on: it is where this deployment learns its
 own project name, and so which deployments are its own.
 
+Vercel injects these at deploy time, so **adding or changing one only reaches
+the functions on the next deployment** — the running one keeps the values it
+was built with. Redeploy after editing any of them, or the setting is saved and
+has no effect, which reads exactly like a bug in the feature that wanted it.
+
 There is deliberately no Vercel API token here; see the third rule below.
 
 A missing required variable fails the request with a Hebrew message rather than

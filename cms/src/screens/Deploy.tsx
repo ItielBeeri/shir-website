@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
-import { DEPLOY_WORDS } from '../model/deploy';
+import { DEPLOY_WORDS, gaveUp } from '../model/deploy';
 import { pagesFor } from '../model/pages';
 import type { PageInput } from '../model/pages';
 
@@ -79,49 +79,70 @@ export function Deploy({ onDone }: { onDone: () => void }): JSX.Element {
   const link = siteLink(store.siteUrl, watch.paths, watch.url);
   const done = watch.state === 'ready';
   const failed = watch.state === 'failed';
-  const stalled = watch.state === 'unknown';
+  // The watch is over and nothing came. The publish itself still happened, so
+  // this ends on what is true rather than on a wait that has stopped being one.
+  const givenUp = gaveUp(watch, Date.now());
+  const stalled = watch.state === 'unknown' && !givenUp;
+  const waiting = !done && !failed && !stalled && !givenUp;
+  // Only when the site's own address is known: the deployment URL this would
+  // otherwise fall back to is exactly the thing that never arrived.
+  const offerLink = (done || givenUp) && link;
 
   return (
     <>
-      <section className={`group deploy-card is-${watch.state}`}>
+      <section className={`group deploy-card is-${watch.state}${givenUp ? ' is-given-up' : ''}`}>
         <h2>
-          {done ? 'השינוי באתר' : failed ? 'הבנייה נכשלה' : 'מעלה את השינוי לאתר'}
+          {done
+            ? 'השינוי באתר'
+            : failed
+              ? 'הבנייה נכשלה'
+              : givenUp
+                ? 'השינוי פורסם'
+                : 'מעלה את השינוי לאתר'}
         </h2>
 
         <p className="deploy-state" role="status">
-          {!done && !failed && !stalled && <span className="spinner" aria-hidden="true" />}
+          {waiting && <span className="spinner" aria-hidden="true" />}
           {done
             ? 'אפשר לראות אותו עכשיו.'
             : failed
               ? 'השינוי נשמר ולא אבד, אבל הוא לא עלה לאתר.'
-              : stalled
-                ? 'לא הצלחתי לקבל מצב בנייה. השינוי נשמר, וכדאי לבדוק באתר בעוד דקה.'
-                : `${DEPLOY_WORDS[watch.state]} כבר ${elapsed}.`}
+              : givenUp
+                ? 'השינוי נשמר ופורסם. לא קיבלתי אישור שהבנייה באתר הסתיימה, אז כדאי להיכנס לאתר ולראות.'
+                : stalled
+                  ? 'לא הצלחתי לקבל מצב בנייה. השינוי נשמר, וכדאי לבדוק באתר בעוד דקה.'
+                  : `${DEPLOY_WORDS[watch.state]} כבר ${elapsed}.`}
         </p>
 
-        {!done && !failed && !stalled && (
+        {waiting && (
           <p className="muted">
             אפשר להישאר כאן או להמשיך לעבוד - הסטטוס ימשיך להופיע בסרגל העליון.
           </p>
         )}
 
         {failed && <p className="muted">שווה לפנות לאיתיאל עם השעה שבה זה קרה.</p>}
+
+        {givenUp && (
+          <p className="muted">
+            אם השינוי לא מופיע באתר בעוד כמה דקות, שווה לפנות לאיתיאל עם השעה שבה פרסמת.
+          </p>
+        )}
       </section>
 
       <div className="save-row">
-        {done && link && (
+        {offerLink && (
           <a href={link} target="_blank" rel="noopener noreferrer" className="as-button primary">
             צפייה באתר
           </a>
         )}
         <button
-          className={done && link ? 'ghost' : 'primary'}
+          className={offerLink ? 'ghost' : 'primary'}
           onClick={() => {
-            if (done || failed) store.clearDeploy();
+            if (done || failed || givenUp) store.clearDeploy();
             onDone();
           }}
         >
-          {done || failed ? 'חזרה למסך הראשי' : 'להמשיך לעבוד'}
+          {done || failed || givenUp ? 'חזרה למסך הראשי' : 'להמשיך לעבוד'}
         </button>
       </div>
     </>
@@ -132,15 +153,28 @@ export function Deploy({ onDone }: { onDone: () => void }): JSX.Element {
 export function DeployChip({ onOpen }: { onOpen: () => void }): JSX.Element | null {
   const store = useStore();
   const watch = store.deploy;
+  const [, setNow] = useState(Date.now());
+
+  // The watch running out is the one change the store does not announce - it
+  // stops polling, so nothing re-renders the bar and the spinner outlives it.
+  // Coarse on purpose: the limit is minutes, and this runs on every screen.
+  const spent = watch ? gaveUp(watch, Date.now()) : true;
+  useEffect(() => {
+    if (spent) return;
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, [spent]);
+
   if (!watch) return null;
 
   const done = watch.state === 'ready';
   const failed = watch.state === 'failed';
+  const givenUp = !done && !failed && spent;
 
   return (
-    <button className={`bar-deploy is-${watch.state}`} onClick={onOpen}>
-      {!done && !failed && <span className="spinner" aria-hidden="true" />}
-      {done ? 'עלה לאתר' : failed ? 'הפרסום נכשל' : 'מעלה לאתר…'}
+    <button className={`bar-deploy is-${watch.state}${givenUp ? ' is-given-up' : ''}`} onClick={onOpen}>
+      {!done && !failed && !givenUp && <span className="spinner" aria-hidden="true" />}
+      {done ? 'עלה לאתר' : failed ? 'הפרסום נכשל' : givenUp ? 'פורסם' : 'מעלה לאתר…'}
     </button>
   );
 }

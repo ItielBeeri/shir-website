@@ -309,7 +309,7 @@ asserts the absence of the concept rather than a user action.
 | ID | Retires | Test |
 |---|---|---|
 | A-9.1 | 9.1 what to check before publishing | **Structural:** the checklist is unnecessary. Assert each of its five items is machine-enforced (quotes, key names, date form, image registration, screenshot path) |
-| A-9.2 | 9.2 did it go up | Truthful publish state end to end |
+| A-9.2 | 9.2 did it go up | Truthful publish state end to end, *including when no build ever reports*: the watch has an upper bound, and reaching it ends on the publish having succeeded rather than on a wait. Vercel builds branch tips, so a second publish minutes after the first can leave the first commit without a deployment for good - ordinary use, and the screen may not imply one is still coming (`deploy.test.ts`) |
 | A-9.3 | 9.3 something looks broken | Preview precedes publish; history offers one-click restore |
 | A-9.4 | 9.4 which file for which task | **Structural:** the file map has no referent |
 | A-9.5 | 9.5 what not to do alone | Each of its six items is either impossible (B-*) or an explicit "בקשת שינוי מאיתיאל" affordance |
@@ -440,7 +440,8 @@ pull requests and nightly.
 **Implemented today (`pnpm test`):** all of §4.1 including both halves of F-18
 and X-3, all of §4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function
 level) and the whole engine layer (§5.2 G-1…G-13) against an in-memory git. G-14's second half - that a
-save costs no build - is only observable against real Vercel.
+save costs no build - is only observable against real Vercel. A-9.2's deploy-watch
+half is a unit test (`deploy.test.ts`); the serving half still needs a real build.
 
 **Not yet wired:** §4.3 validation · §4.4 parity · the live half of §5.3
 (B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·
