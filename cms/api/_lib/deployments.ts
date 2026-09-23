@@ -2,20 +2,20 @@
  * Which of a commit's deployments is the site's.
  *
  * Two Vercel projects build this repository, so one sha carries a deployment
- * from each and "the newest" is a coin toss. Getting it wrong shows the owner
- * *"התצוגה מוכנה"* next to a link to this editor instead of her site, and lets
- * the publish gate open on the wrong project's build.
+ * from each. Getting it wrong either shows the owner a link to this editor
+ * instead of her site, or - worse - discards her site's build and leaves the
+ * preview permanently blank.
  *
- * Neither of the obvious signals works on its own. GitHub's `environment` for
- * a Vercel deployment is `Production` or `Preview` - never a project name. And
- * the editor's own custom domain never appears in a deployment URL, because a
- * preview deploys to `<project>-<hash>-<scope>.vercel.app`.
+ * GitHub names the project in the deployment's `environment`: Vercel writes
+ * `Preview – shir-amitai`, not a bare `Preview`. That is the signal used here,
+ * matched **exactly** after stripping the environment word. An earlier version
+ * matched the project name as a prefix of the deployment's hostname, which is
+ * how `shir-amitai` came to swallow `shir-amitai-lq3sh9c5x-…` - the site's own
+ * build, discarded as though it were ours.
  *
- * What does work is the project slug that begins that host. Vercel hands this
- * deployment its own slug at runtime, so the editor can always recognise
- * itself; naming the site's project as well turns recognition into a positive
- * match. Exclusion runs first, so it stays correct even when one slug is a
- * prefix of the other - `shir-website` and `shir-website-editor`.
+ * Two rules keep a misconfiguration from costing the owner her preview:
+ * recognising the site wins over recognising ourselves, and an exclusion that
+ * removes *everything* is treated as wrong rather than as an answer.
  */
 export interface DeploymentCandidate {
   environment: string;
@@ -25,9 +25,9 @@ export interface DeploymentCandidate {
 }
 
 export interface ProjectIdentity {
-  /** The site's Vercel project slug, from SITE_VERCEL_PROJECT. */
+  /** The site's Vercel project, from SITE_VERCEL_PROJECT. */
   site?: string;
-  /** This app's own slug, from Vercel's system environment. */
+  /** This app's own, from Vercel's system environment. */
   self?: string;
   /** This app's own request host, e.g. admin.shir-amitai.com. */
   selfHost?: string;
@@ -41,19 +41,18 @@ const hostOf = (url: string): string => {
   }
 };
 
-const slugOf = (url: string): string => hostOf(url).split('.')[0];
+/** `Preview – shir-amitai` → `shir-amitai`; a bare `Production` → ''. */
+export const projectOf = (environment: string): string =>
+  environment.replace(/^\s*(production|preview)\b\s*[–—:-]?\s*/i, '').trim();
 
-const belongsTo = (slug: string, project: string): boolean =>
-  slug === project || slug.startsWith(`${project}-`);
-
-/** Everything after the first label: admin.shir-amitai.com -> shir-amitai.com */
+/** Everything after the first label: admin.shir-amitai.com → shir-amitai.com */
 const parentDomain = (host: string): string => host.split('.').slice(1).join('.');
 
 /**
- * A production deployment publishes to a custom domain, where no project slug
+ * A production deployment publishes to a custom domain, where no project name
  * appears at all. The editor lives at `admin.` of the site's own domain
- * (AGENTS.md §13), so a custom host under that same domain, which is not the
- * editor's, is the site's.
+ * (AGENTS.md §13), so a custom host under that domain which is not the
+ * editor's is the site's.
  */
 function onTheSitesDomain(url: string, selfHost: string | undefined): boolean {
   if (!selfHost) return false;
@@ -69,6 +68,8 @@ export interface Chosen {
   pick: DeploymentCandidate | null;
   /** Something that is not ours has started but cannot be named yet. */
   starting: boolean;
+  /** How the pick was reached, for a status response that can be diagnosed. */
+  why: 'site' | 'not-ours' | 'only-candidate' | 'none';
 }
 
 /** `candidates` newest first, as GitHub returns them. */
@@ -77,33 +78,36 @@ export function chooseDeployment(
   who: ProjectIdentity,
 ): Chosen {
   const isOurs = (c: DeploymentCandidate): boolean => {
+    if (who.self && projectOf(c.environment) === who.self) return true;
     const url = c.status?.environmentUrl;
-    if (!url) return false;
-    if (who.selfHost && hostOf(url) === who.selfHost) return true;
-    return Boolean(who.self && belongsTo(slugOf(url), who.self));
+    return Boolean(url && who.selfHost && hostOf(url) === who.selfHost);
   };
 
   const isTheSite = (c: DeploymentCandidate): boolean => {
+    if (who.site && projectOf(c.environment) === who.site) return true;
     const url = c.status?.environmentUrl;
-    if (url && onTheSitesDomain(url, who.selfHost)) return true;
-    if (!who.site) return false;
-    if (c.environment.includes(who.site)) return true;
-    return Boolean(url && belongsTo(slugOf(url), who.site));
+    return Boolean(url && onTheSitesDomain(url, who.selfHost));
   };
 
-  const others = candidates.filter((c) => !isOurs(c));
+  const published = candidates.filter((c) => c.status?.environmentUrl);
   // A deployment with no status has published no URL, so nothing about it can
   // be attributed yet. It still says that a build is under way.
-  const starting = others.some((c) => !c.status?.environmentUrl);
+  const starting = candidates.some((c) => !c.status?.environmentUrl && !isOurs(c));
 
-  if (who.site) {
-    const named = others.find(isTheSite);
-    return { pick: named ?? null, starting: starting && !named };
+  // Recognising the site is stronger evidence than recognising ourselves, and
+  // it is checked first so a wrong `self` cannot hide her own build.
+  const site = published.find(isTheSite);
+  if (site) return { pick: site, starting: false, why: 'site' };
+
+  const notOurs = published.find((c) => !isOurs(c));
+  if (notOurs) return { pick: notOurs, starting: false, why: 'not-ours' };
+
+  // Everything was excluded as ours. Some build published a URL for this
+  // commit, so the exclusion is likelier to be wrong than the deployment is to
+  // be absent - and a wrong link is a smaller failure than no preview at all.
+  if (published.length > 0) {
+    return { pick: published[0], starting: false, why: 'only-candidate' };
   }
 
-  // Without a name to match, the only thing known for certain is which
-  // deployment is ours. Vagueness about the state is the safe failure; a
-  // confident link to the wrong site is not.
-  const identified = others.find((c) => c.status?.environmentUrl);
-  return { pick: identified ?? null, starting: starting && !identified };
+  return { pick: null, starting, why: 'none' };
 }

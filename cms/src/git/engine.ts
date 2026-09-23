@@ -13,6 +13,7 @@ import {
   DRAFT_BRANCH,
   PREVIEW_BRANCH,
   TARGET_BRANCH,
+  assertMovableBranch,
   assertWritableBranch,
   assertWritablePath,
   assertWritablePaths,
@@ -144,10 +145,10 @@ const SUBJECT_LIMIT = 72;
  * subject claiming more than happened.
  */
 export function publishMessage(
-  paths: readonly string[],
+  changes: readonly PathChange[],
   messages: readonly string[] = [],
 ): string {
-  const names = [...new Set(paths.map(describePath))];
+  const names = [...new Set(changes.map(nameChange))];
   const log = [...new Set(messages.map((m) => m.split('\n')[0].trim()).filter(Boolean))];
   const body = log.length ? `\n\n${log.map((m) => `- ${m}`).join('\n')}` : '';
 
@@ -161,6 +162,20 @@ export function publishMessage(
   const listed = names.map((n) => `- ${n}`).join('\n');
   return `${PUBLISH_PREFIX}${counted}\n\n${listed}${body}`;
 }
+
+/**
+ * What happened to one path, in the words the subject line uses.
+ *
+ * A deletion read exactly like the addition of the same post, so the history
+ * could not tell "wrote it" from "took it down" - and the history is the one
+ * place she goes when something is missing from the site.
+ */
+const nameChange = (change: PathChange): string => {
+  const name = describePath(change.path);
+  if (change.status === 'removed') return `מחיקת ${name}`;
+  if (change.status === 'added') return `הוספת ${name}`;
+  return name;
+};
 
 /** Subjects of the draft's own commits, oldest first. */
 async function draftMessages(t: GitTransport, base: string): Promise<string[]> {
@@ -309,10 +324,7 @@ export async function publish(t: GitTransport): Promise<PublishResult> {
   const { master, base, changes, blobs } = await draftChanges(t);
   if (changes.length === 0) throw new GitError('empty', 'nothing to publish');
 
-  const message = publishMessage(
-    changes.map((c) => c.path),
-    await draftMessages(t, base),
-  );
+  const message = publishMessage(changes, await draftMessages(t, base));
 
   // A draft that somehow carries a change outside content is refused whole
   // rather than partially applied.
@@ -378,6 +390,7 @@ export async function pendingChanges(t: GitTransport): Promise<PathChange[]> {
  * Already there means already built, or building: no push, no build.
  */
 export async function syncPreview(t: GitTransport): Promise<{ sha: string; moved: boolean }> {
+  assertMovableBranch(PREVIEW_BRANCH);
   const draft = await requireSha(t, DRAFT_BRANCH);
   const preview = await t.getRefSha(PREVIEW_BRANCH);
   if (preview === draft) return { sha: draft, moved: false };

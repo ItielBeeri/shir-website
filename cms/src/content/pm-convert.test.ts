@@ -139,6 +139,43 @@ describe('separation between blocks', () => {
     expect(blocksOf(emit(pm, fm))).toEqual(['paragraph', 'paragraph', 'paragraph', 'paragraph']);
   });
 
+  /**
+   * Markdown has one list where the editor may hold two. Writing both left the
+   * file saying something the next read disagreed with, so the second save
+   * wrote different bytes than the first for an edit nobody made.
+   */
+  describe('two lists of the same kind', () => {
+    const list = (ordered: boolean, items: string[], gap: string): PmNode => ({
+      type: ordered ? 'orderedList' : 'bulletList',
+      attrs: { gap },
+      content: items.map((t) => ({
+        type: 'listItem',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: t }] }],
+      })),
+    });
+    const fm = '---\ntitle: "x"\n---\n';
+
+    it('become one list, and the file says the same thing twice', () => {
+      const pm: PmNode = {
+        type: 'doc',
+        content: [list(true, ['אחת', 'שתיים'], '\n'), list(true, ['שלוש'], '\n\n')],
+      };
+      const once = emit(pm, fm);
+      expect(blocksOf(once)).toEqual(['list']);
+      expect(once).toContain('3. שלוש');
+      const twice = serializeMdx(parseMdx(once), allBlocks(parseMdx(once)));
+      expect(twice).toBe(once);
+    });
+
+    it('stay two when the kinds differ, which markdown can say', () => {
+      const pm: PmNode = {
+        type: 'doc',
+        content: [list(false, ['אחת'], '\n'), list(true, ['שתיים'], '\n\n')],
+      };
+      expect(blocksOf(emit(pm, fm))).toEqual(['list', 'list']);
+    });
+  });
+
   it('a paragraph with no gap at all still separates', () => {
     const fm = '---\ntitle: "x"\n---\n';
     const pm: PmNode = { type: 'doc', content: [para('אחת', '\n'), para('שתיים', '')] };

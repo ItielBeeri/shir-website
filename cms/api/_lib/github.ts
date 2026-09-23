@@ -8,7 +8,7 @@
  * already seen.
  */
 import type { CommitInfo, GitTransport, NewTreeEntry, PathChange } from '../../src/git/engine.js';
-import { chooseDeployment } from './deployments.js';
+import { chooseDeployment, projectOf } from './deployments.js';
 import type { DeploymentCandidate, ProjectIdentity } from './deployments.js';
 
 const API = 'https://api.github.com';
@@ -26,6 +26,20 @@ export interface DeploymentStatus {
   /** ISO 8601, so the wait can be shown as a number rather than a spinner. */
   startedAt?: string;
   updatedAt?: string;
+  /**
+   * How this was decided. Nothing reads it, and the owner never sees it - it
+   * is here because the last time identification went wrong it took three QA
+   * rounds of black-box probing to work out which project name the function
+   * had resolved to. Now one authenticated call says so.
+   */
+  resolved?: {
+    site?: string;
+    self?: string;
+    selfHost?: string;
+    why: string;
+    /** Project names GitHub reported for this commit, in order. */
+    saw: string[];
+  };
 }
 
 const mapDeployState = (state: string): DeploymentStatus['state'] => {
@@ -271,14 +285,23 @@ export class GitHubTransport implements GitTransport {
         });
       }
 
-      const { pick, starting } = chooseDeployment(candidates, who);
-      if (!pick) return { state: starting ? 'queued' : 'unknown' };
-      if (!pick.status) return { state: 'queued', startedAt: pick.createdAt };
+      const { pick, starting, why } = chooseDeployment(candidates, who);
+      const resolved = {
+        site: who.site,
+        self: who.self,
+        selfHost: who.selfHost,
+        why,
+        saw: candidates.map((c) => projectOf(c.environment) || c.environment),
+      };
+
+      if (!pick) return { state: starting ? 'queued' : 'unknown', resolved };
+      if (!pick.status) return { state: 'queued', startedAt: pick.createdAt, resolved };
       return {
         state: mapDeployState(pick.status.state),
         url: pick.status.environmentUrl,
         startedAt: pick.createdAt,
         updatedAt: pick.status.createdAt,
+        resolved,
       };
     } catch {
       return { state: 'unknown' };

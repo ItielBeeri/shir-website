@@ -10,6 +10,9 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { gfm } from 'micromark-extension-gfm';
+import { gfmFromMarkdown } from 'mdast-util-gfm';
 import {
   allBlocks,
   blockToMarkdown,
@@ -101,5 +104,105 @@ describe('a second save changes nothing the first save did not', () => {
     expect(rewrite(src)).toBe(src);
     expect(rewrite(rewrite(src))).toBe(src);
     expect(readBack(src)).toContain('# לא כותרת');
+  });
+});
+
+/**
+ * R2-3, settled by experiment rather than by argument.
+ *
+ * The site's markdown is GFM, which turns a bare address into a link with no
+ * control involved. Escaping cannot stop it: GFM resolves character escapes
+ * before it scans for addresses, so `https:\/\/`, `www\.` and `https\://` all
+ * still autolink. These tests exist so the next person does not spend a round
+ * discovering that - the only lever left is the site's own `markdown.gfm`.
+ */
+describe('a bare address', () => {
+  const parse = (body: string) =>
+    fromMarkdown(body, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] });
+
+  const linksIn = (node: any, out: string[] = []): string[] => {
+    if (node.type === 'link') out.push(node.url);
+    (node.children ?? []).forEach((c: any) => linksIn(c, out));
+    return out;
+  };
+
+  it('becomes a link even after the escaper has run over it', () => {
+    const written = typedAs('ראו https://example.com כאן');
+    expect(linksIn(parse(written))).toEqual(['https://example.com']);
+  });
+
+  it('resists every escape that would work on anything else', () => {
+    for (const attempt of [
+      'https:\\/\\/example.com',
+      'https\\://example.com',
+      'www\\.example.com',
+    ]) {
+      expect(attempt.includes('\\'), 'the attempt must actually contain an escape').toBe(true);
+      expect(linksIn(parse(attempt)).length, attempt).toBe(1);
+    }
+  });
+
+  it('still reads back as the address she typed', () => {
+    const typed = 'ראו https://example.com כאן';
+    expect(readBack(`---\nt: 1\n---\n\n${typedAs(typed)}\n`)).toBe(typed);
+  });
+});
+
+/**
+ * The one thing a save changes: an indent at the head of a block.
+ *
+ * Markdown has no way to carry it - the parser strips up to three spaces and
+ * reads the fourth as a code block, and after a list marker the space is the
+ * marker's own padding. Left in, the file changes again on the next save for an
+ * edit nobody made, so it goes once, on the way out.
+ */
+describe('an indent markdown cannot carry', () => {
+  const item = (value: string): string =>
+    blockToMarkdown({
+      kind: 'list',
+      ordered: false,
+      source: '',
+      items: [[{ type: 'text', value }]],
+    });
+
+  it('goes from the head of a paragraph', () => {
+    expect(typedAs('   מרווח')).toBe('מרווח');
+  });
+
+  it('goes from a list item, where the space belongs to the marker', () => {
+    expect(item('\t מרווח')).toBe('- מרווח');
+  });
+
+  it('stays everywhere the file can hold it', () => {
+    expect(typedAs('שורה\n   מוזחת')).toBe('שורה\n   מוזחת');
+    expect(typedAs('מילה   ועוד')).toBe('מילה   ועוד');
+  });
+
+  it('leaves nothing for a second save to change', () => {
+    const first = `---\nt: 1\n---\n\n${typedAs('   מרווח')}\n`;
+    expect(rewrite(first)).toBe(first);
+  });
+});
+
+/** The GFM constructs that *can* be escaped, and now are. */
+describe('the wider GFM vocabulary', () => {
+  const parse = (body: string) =>
+    fromMarkdown(body, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] });
+
+  const kindsIn = (node: any, out: string[] = []): string[] => {
+    if (node.type !== 'root' && node.type !== 'paragraph' && node.type !== 'text') {
+      out.push(node.type);
+    }
+    (node.children ?? []).forEach((c: any) => kindsIn(c, out));
+    return out;
+  };
+
+  it.each([
+    ['strikethrough', 'טקסט ~~מחוק~~ כאן'],
+    ['a table', 'עמודה | עמודה'],
+    ['a task list', '- [ ] משימה'],
+  ])('keeps %s as text', (_name, typed) => {
+    expect(kindsIn(parse(typedAs(typed)))).toEqual([]);
+    expect(readBack(`---\nt: 1\n---\n\n${typedAs(typed)}\n`)).toBe(typed);
   });
 });

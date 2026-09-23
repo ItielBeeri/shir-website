@@ -1,6 +1,7 @@
 /** Gates G-1 … G-13 from TEST-SPEC.md, against the in-memory git. */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeGit } from './fake-git';
+import type { ChangeStatus, PathChange } from './engine';
 import {
   conflictingPaths,
   deleteFiles,
@@ -316,9 +317,10 @@ describe('pending, discard, restore, history', () => {
 
 describe('the published commit message', () => {
   const subjectOf = (message: string): string => message.split('\n')[0];
-  const HOME = 'src/content/pages/home.toml';
-  const ABOUT = 'src/content/about/about.mdx';
-  const IMAGE = 'public/img/content/a.jpg';
+  const changed = (path: string, status: ChangeStatus = 'modified'): PathChange => ({ path, status });
+  const HOME = changed('src/content/pages/home.toml');
+  const ABOUT = changed('src/content/about/about.mdx');
+  const IMAGE = changed('public/img/content/a.jpg');
 
   it('opens with the agreed prefix and names what changed', () => {
     expect(subjectOf(publishMessage([HOME]))).toBe('פרסום ממערכת הניהול: דף הבית');
@@ -356,17 +358,35 @@ describe('the published commit message', () => {
   });
 
   it('keeps the subject readable and moves a long list into the body', () => {
-    const many = Array.from({ length: 8 }, (_, i) => `src/content/blog/פוסט-מספר-${i + 1}.mdx`);
+    const many = Array.from({ length: 8 }, (_, i) => changed(`src/content/blog/פוסט-מספר-${i + 1}.mdx`));
     const out = publishMessage(many);
     expect(subjectOf(out).length).toBeLessThanOrEqual(72);
     expect(subjectOf(out)).toContain('8 שינויים');
-    for (const path of many) expect(out).toContain(path.split('/').pop()!.replace('.mdx', ''));
+    for (const c of many) expect(out).toContain(c.path.split('/').pop()!.replace('.mdx', ''));
     expect(out.split('\n')[1]).toBe('');
   });
 
   it('says "one change" rather than "1 changes"', () => {
-    const long = ['src/content/blog/' + 'פוסט-עם-שם-ארוך-במיוחד-שלא-נכנס-לשורה'.repeat(2) + '.mdx'];
+    const long = [changed('src/content/blog/' + 'פוסט-עם-שם-ארוך-במיוחד-שלא-נכנס-לשורה'.repeat(2) + '.mdx')];
     expect(subjectOf(publishMessage(long))).toContain('שינוי אחד');
+  });
+
+  /* R3-2: taking a post down read exactly like putting one up. */
+  it('says whether a thing was added, changed or taken down', () => {
+    const post = 'src/content/blog/מה-זה-צל.mdx';
+    expect(subjectOf(publishMessage([changed(post, 'added')]))).toContain('הוספת הפוסט');
+    expect(subjectOf(publishMessage([changed(post, 'removed')]))).toContain('מחיקת הפוסט');
+    expect(subjectOf(publishMessage([changed(post, 'modified')]))).not.toContain('הוספת');
+    expect(subjectOf(publishMessage([changed(post, 'modified')]))).not.toContain('מחיקת');
+  });
+
+  it('distinguishes the two even for the same path in one publish', () => {
+    const out = publishMessage([
+      changed('src/content/blog/a.mdx', 'added'),
+      changed('src/content/blog/b.mdx', 'removed'),
+    ]);
+    expect(subjectOf(out)).toContain('הוספת');
+    expect(subjectOf(out)).toContain('מחיקת');
   });
 
   it('uses only the first line of a save message in the body', () => {

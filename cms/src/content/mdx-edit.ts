@@ -15,23 +15,25 @@
  * spends them differently (§4.3), so the marker is read back off the source
  * exactly as scripts/remark-underscore-italic.mjs does.
  */
-import { fromMarkdown } from 'mdast-util-from-markdown';
-import { mdxFromMarkdown } from 'mdast-util-mdx';
-import { mdxjs } from 'micromark-extension-mdxjs';
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { mdxFromMarkdown } from "mdast-util-mdx";
+import { mdxjs } from "micromark-extension-mdxjs";
 
 export type Inline =
-  | { type: 'text'; value: string }
-  | { type: 'emphasis'; marker: '*' | '_'; children: Inline[] }
-  | { type: 'strong'; children: Inline[] }
-  | { type: 'opaque'; source: string };
+  | { type: "text"; value: string }
+  | { type: "emphasis"; marker: "*" | "_"; children: Inline[] }
+  | { type: "strong"; children: Inline[] }
+  | { type: "opaque"; source: string };
 
 export type Block =
-  | { kind: 'paragraph'; source: string; inline: Inline[] }
-  | { kind: 'heading'; depth: number; source: string; inline: Inline[] }
-  | { kind: 'list'; ordered: boolean; source: string; items: Inline[][] }
-  | { kind: 'opaque'; source: string };
+  | { kind: "paragraph"; source: string; inline: Inline[] }
+  | { kind: "heading"; depth: number; source: string; inline: Inline[] }
+  | { kind: "list"; ordered: boolean; source: string; items: Inline[][] }
+  | { kind: "opaque"; source: string };
 
-export type Segment = { type: 'gap'; text: string } | { type: 'block'; block: Block };
+export type Segment =
+  | { type: "gap"; text: string }
+  | { type: "block"; block: Block };
 
 export interface MdxDoc {
   /** Raw frontmatter including both `---` fences and the newline after. */
@@ -42,7 +44,10 @@ export interface MdxDoc {
 const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
 
 const parseBody = (body: string) =>
-  fromMarkdown(body, { extensions: [mdxjs()], mdastExtensions: [mdxFromMarkdown()] });
+  fromMarkdown(body, {
+    extensions: [mdxjs()],
+    mdastExtensions: [mdxFromMarkdown()],
+  });
 
 /**
  * `contentEnd` is where the parent's inline content stops - the end of a
@@ -54,7 +59,7 @@ const parseBody = (body: string) =>
 function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
   const out: Inline[] = [];
   const text = (from: number, to: number): Inline => ({
-    type: 'text',
+    type: "text",
     value: unescapeInlineText(body.slice(from, to)),
   });
 
@@ -65,21 +70,24 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
     if (start > cursor) out.push(text(cursor, start));
     cursor = end;
     switch (n.type) {
-      case 'text':
+      case "text":
         out.push(text(start, end));
         break;
-      case 'emphasis':
+      case "emphasis":
         out.push({
-          type: 'emphasis',
-          marker: body[start] === '_' ? '_' : '*',
+          type: "emphasis",
+          marker: body[start] === "_" ? "_" : "*",
           children: inlineFrom(n.children, body, end - 1),
         });
         break;
-      case 'strong':
-        out.push({ type: 'strong', children: inlineFrom(n.children, body, end - 2) });
+      case "strong":
+        out.push({
+          type: "strong",
+          children: inlineFrom(n.children, body, end - 2),
+        });
         break;
       default:
-        out.push({ type: 'opaque', source: body.slice(start, end) });
+        out.push({ type: "opaque", source: body.slice(start, end) });
     }
   }
   if (contentEnd > cursor) out.push(text(cursor, contentEnd));
@@ -99,7 +107,8 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
 /** CommonMark's escapable set - every ASCII punctuation mark, `\` included. */
 const ESCAPED = /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g;
 
-export const unescapeInlineText = (value: string): string => value.replace(ESCAPED, '$1');
+export const unescapeInlineText = (value: string): string =>
+  value.replace(ESCAPED, "$1");
 
 /**
  * Neutralise punctuation the markdown and MDX grammars would claim.
@@ -110,21 +119,30 @@ export const unescapeInlineText = (value: string): string => value.replace(ESCAP
  * read has to be escaped on the way out, or the editor is lying about what it
  * will publish.
  *
- * `*` and `_` are the exception, escaped only where they touch a non-space:
- * only there can they open or close a mark, and this copy uses a lone asterisk
- * on its own line as a divider. Escaping every one would rewrite body text the
- * moment an unrelated word changed.
+ * `*`, `_` and `~` are the exception, escaped only where they touch a
+ * non-space: only there can they open or close a mark, and this copy uses a
+ * lone asterisk on its own line as a divider. Escaping every one would rewrite
+ * body text the moment an unrelated word changed.
+ *
+ * The site's markdown is GFM, so the vocabulary is wider than CommonMark's:
+ * `~~` strikes text through and `|` builds a table, and `.prose` styles
+ * neither. A bare `https://…` is the one construct that cannot be escaped at
+ * all - GFM resolves character escapes before it looks for addresses, so
+ * `https:\/\/` still autolinks. `escaping.test.ts` records the attempt.
  */
 export function escapeInlineText(value: string): string {
   return (
     value
-      .replace(/\\/g, '\\\\')
-      .replace(/([*_])(?=\S)|(?<=\S)([*_])/g, (m) => `\\${m}`)
+      .replace(/\\/g, "\\\\")
+      .replace(/([*_~])(?=\S)|(?<=\S)([*_~])/g, (m) => `\\${m}`)
       // Links, images, code spans, autolinks and HTML - and `{`, which MDX
       // reads as the start of an expression rather than as a character.
       .replace(/[[\]`<{]/g, (m) => `\\${m}`)
+      // Any pipe can become a table cell, and a table is not something the
+      // editor offers or the site styles.
+      .replace(/\|/g, "\\|")
       // Only an `&` that completes an entity turns into another character.
-      .replace(/&(?=[a-zA-Z#][a-zA-Z0-9]*;)/g, '\\&')
+      .replace(/&(?=[a-zA-Z#][a-zA-Z0-9]*;)/g, "\\&")
   );
 }
 
@@ -134,103 +152,192 @@ export function escapeInlineText(value: string): string {
  * `remark-breaks` is on, so a paragraph is several lines and the block parser
  * looks at every one of them. A `#` the owner typed as punctuation has to be
  * neutralised wherever it lands, not only in the first line.
+ *
+ * Only what can interrupt a paragraph belongs here. A lone `-` is a setext
+ * underline and turns the line above it into a heading, which is why a single
+ * one counts; a lone `*` is only an empty list item, which cannot interrupt,
+ * so it is `escapeBlockHead`'s business and not every line's.
  */
 const BLOCK_START =
-  /^([ \t]*)(#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t])|(\d{1,9})([.)])(?=[ \t])|={2,}[ \t]*$|-{2,}[ \t]*$|~{3,})/;
+  /^([ \t]*)(#{1,6}(?=[ \t]|$)|>|[-+*](?=[ \t])|(\d{1,9})([.)])(?=[ \t])|={1,}[ \t]*$|-{1,}[ \t]*$|~{3,})/;
+
+/**
+ * A thematic break: three or more of `-`, `_` or `*` alone on a line, spaces
+ * allowed between them - so `--- -` is one, and a rule counting a run of
+ * identical characters never sees it. One backslash disqualifies the line.
+ */
+const THEMATIC_BREAK = /^([ \t]*)([-_*])(?:[ \t]*\2){2,}[ \t]*$/;
 
 const escapeLineStart = (line: string): string =>
-  line.replace(
-    BLOCK_START,
-    // Only ASCII punctuation is escapable, so an ordered list is broken at its
-    // delimiter: `1\.` is text, while `\1.` would ship a stray backslash.
-    (_m, indent: string, token: string, digits: string | undefined, delimiter: string) =>
-      digits ? `${indent}${digits}\\${delimiter}` : `${indent}\\${token}`,
+  THEMATIC_BREAK.test(line)
+    ? line.replace(
+        THEMATIC_BREAK,
+        (m: string, indent: string) => `${indent}\\${m.slice(indent.length)}`,
+      )
+    : line.replace(
+        BLOCK_START,
+        // Only ASCII punctuation is escapable, so an ordered list is broken at its
+        // delimiter: `1\.` is text, while `\1.` would ship a stray backslash.
+        (
+          _m,
+          indent: string,
+          token: string,
+          digits: string | undefined,
+          delimiter: string,
+        ) =>
+          digits ? `${indent}${digits}\\${delimiter}` : `${indent}\\${token}`,
+      );
+
+/**
+ * A marker alone on a line - an empty list item, and only where a block opens.
+ *
+ * It cannot interrupt a paragraph, so mid-paragraph it is punctuation and the
+ * owner's copy uses it that way: a lone `*` is her section divider. At the head
+ * of a block it opens a list, and everything after it becomes a second block.
+ */
+const EMPTY_MARKER = /^([ \t]*)([-+*]|(\d{1,9})([.)]))[ \t]*$/;
+
+const escapeBlockHead = (line: string): string =>
+  escapeLineStart(line).replace(
+    EMPTY_MARKER,
+    (
+      _m,
+      indent: string,
+      token: string,
+      digits: string | undefined,
+      delimiter: string,
+    ) => (digits ? `${indent}${digits}\\${delimiter}` : `${indent}\\${token}`),
+  );
+
+/**
+ * The closing `#` run of an ATX heading, which is punctuation and not content:
+ * `## ##` is an *empty* heading, not one that says `##`.
+ */
+const escapeHeadingEnd = (text: string): string =>
+  text.replace(
+    /(^|[ \t])(#+)([ \t]*)$/,
+    (_m, before: string, hashes: string, after: string) =>
+      `${before}\\${hashes}${after}`,
   );
 
 /** Every line, since every line of a paragraph is a line the parser reads. */
 const escapeBlockStarts = (text: string): string =>
-  text.split('\n').map(escapeLineStart).join('\n');
+  text.split("\n").map(escapeLineStart).join("\n");
+
+/**
+ * Whitespace markdown cannot carry, removed once rather than every save.
+ *
+ * A block's first line loses its indent whichever way it is written: up to
+ * three spaces are stripped by the parser and a fourth makes it a code block,
+ * and the space after a list marker is the marker's own padding. Leaving it in
+ * means the file changes again the next time it is saved, for an edit nobody
+ * made - so it goes on the way out, where it happens once.
+ */
+const dropUncarryableIndent = (line: string): string =>
+  line.replace(/^[ \t]+/, "");
 
 export function inlineToMarkdown(nodes: Inline[]): string {
   return nodes
     .map((n) => {
       switch (n.type) {
-        case 'text':
+        case "text":
           return escapeInlineText(n.value);
-        case 'emphasis':
+        case "emphasis":
           return `${n.marker}${inlineToMarkdown(n.children)}${n.marker}`;
-        case 'strong':
+        case "strong":
           return `**${inlineToMarkdown(n.children)}**`;
-        case 'opaque':
+        case "opaque":
           return n.source;
       }
     })
-    .join('');
+    .join("");
 }
 
 export function blockToMarkdown(block: Block): string {
   switch (block.kind) {
-    case 'paragraph':
-      return escapeBlockStarts(inlineToMarkdown(block.inline));
-    case 'heading':
+    case "paragraph": {
+      const [head, ...rest] = escapeBlockStarts(
+        inlineToMarkdown(block.inline),
+      ).split("\n");
+      return [escapeBlockHead(dropUncarryableIndent(head)), ...rest].join("\n");
+    }
+    case "heading":
       // The `##` is this function's own; what follows it is already inside a
-      // block, so only the marks needed escaping.
-      return `${'#'.repeat(block.depth)} ${inlineToMarkdown(block.inline)}`;
-    case 'list':
+      // block, so only the marks needed escaping - but an ATX heading is one
+      // line, and a break the owner put inside one would end it and ship the
+      // rest as a paragraph, so the break becomes the space it reads as.
+      return `${"#".repeat(block.depth)} ${escapeHeadingEnd(
+        dropUncarryableIndent(
+          inlineToMarkdown(block.inline).replace(/\s*\n\s*/g, " "),
+        ),
+      )}`;
+    case "list":
       return block.items
         .map((item, i) => {
-          const marker = block.ordered ? `${i + 1}.` : '-';
-          // The item's own first line follows the marker; a second line is at
-          // the start of one and could otherwise open a block of its own.
-          const [head, ...rest] = inlineToMarkdown(item).split('\n');
-          return [`${marker} ${head}`, ...rest.map(escapeLineStart)].join('\n');
+          const marker = block.ordered ? `${i + 1}.` : "-";
+          // What follows the marker is itself at the start of a block, so
+          // `- 1. x` opens a list inside the item and `- # x` a heading. Every
+          // line of an item needs escaping, its first included.
+          const [head, ...rest] = inlineToMarkdown(item).split("\n");
+          const first = escapeBlockHead(dropUncarryableIndent(head));
+          return [`${marker} ${first}`, ...rest.map(escapeLineStart)].join(
+            "\n",
+          );
         })
-        .join('\n');
-    case 'opaque':
+        .join("\n");
+    case "opaque":
       return block.source;
   }
 }
 
 function blockFrom(node: any, body: string): Block {
-  const source = body.slice(node.position.start.offset, node.position.end.offset);
+  const source = body.slice(
+    node.position.start.offset,
+    node.position.end.offset,
+  );
   switch (node.type) {
-    case 'paragraph':
+    case "paragraph":
       return {
-        kind: 'paragraph',
+        kind: "paragraph",
         source,
         inline: inlineFrom(node.children, body, node.position.end.offset),
       };
-    case 'heading':
+    case "heading":
       return {
-        kind: 'heading',
+        kind: "heading",
         depth: node.depth,
         source,
         inline: inlineFrom(node.children, body, node.position.end.offset),
       };
-    case 'list': {
+    case "list": {
       // Only flat, single-paragraph items occur; anything else stays opaque so
       // it round-trips rather than being flattened.
       const simple = node.children.every(
-        (li: any) => li.children.length === 1 && li.children[0].type === 'paragraph',
+        (li: any) =>
+          li.children.length === 1 && li.children[0].type === "paragraph",
       );
-      if (!simple) return { kind: 'opaque', source };
+      if (!simple) return { kind: "opaque", source };
       return {
-        kind: 'list',
+        kind: "list",
         ordered: Boolean(node.ordered),
         source,
         items: node.children.map((li: any) =>
-          inlineFrom(li.children[0].children, body, li.children[0].position.end.offset),
+          inlineFrom(
+            li.children[0].children,
+            body,
+            li.children[0].position.end.offset,
+          ),
         ),
       };
     }
     default:
-      return { kind: 'opaque', source };
+      return { kind: "opaque", source };
   }
 }
 
 export function parseMdx(raw: string): MdxDoc {
   const fm = raw.match(FRONTMATTER);
-  const frontmatter = fm ? fm[0] : '';
+  const frontmatter = fm ? fm[0] : "";
   const body = raw.slice(frontmatter.length);
   const tree = parseBody(body);
 
@@ -239,11 +346,13 @@ export function parseMdx(raw: string): MdxDoc {
   for (const node of tree.children as any[]) {
     const start = node.position.start.offset;
     const end = node.position.end.offset;
-    if (start > cursor) segments.push({ type: 'gap', text: body.slice(cursor, start) });
-    segments.push({ type: 'block', block: blockFrom(node, body) });
+    if (start > cursor)
+      segments.push({ type: "gap", text: body.slice(cursor, start) });
+    segments.push({ type: "block", block: blockFrom(node, body) });
     cursor = end;
   }
-  if (cursor < body.length) segments.push({ type: 'gap', text: body.slice(cursor) });
+  if (cursor < body.length)
+    segments.push({ type: "gap", text: body.slice(cursor) });
 
   return { frontmatter, segments };
 }
@@ -252,25 +361,32 @@ export function parseMdx(raw: string): MdxDoc {
  * `changed` names the segment indices whose block was edited; every other block
  * emits its original bytes. Passing an empty set is the identity transform.
  */
-export function serializeMdx(doc: MdxDoc, changed: ReadonlySet<number> = new Set()): string {
+export function serializeMdx(
+  doc: MdxDoc,
+  changed: ReadonlySet<number> = new Set(),
+): string {
   const body = doc.segments
     .map((seg, i) => {
-      if (seg.type === 'gap') return seg.text;
+      if (seg.type === "gap") return seg.text;
       return changed.has(i) ? blockToMarkdown(seg.block) : seg.block.source;
     })
-    .join('');
+    .join("");
   return doc.frontmatter + body;
 }
 
 /** Every block index, for a full re-serialization. */
 export const allBlocks = (doc: MdxDoc): Set<number> =>
   new Set(
-    doc.segments.map((s, i) => (s.type === 'block' ? i : -1)).filter((i) => i >= 0),
+    doc.segments
+      .map((s, i) => (s.type === "block" ? i : -1))
+      .filter((i) => i >= 0),
   );
 
 /** Index of every segment holding an editable (non-opaque) block. */
 export function editableBlocks(doc: MdxDoc): number[] {
   return doc.segments
-    .map((seg, i) => (seg.type === 'block' && seg.block.kind !== 'opaque' ? i : -1))
+    .map((seg, i) =>
+      seg.type === "block" && seg.block.kind !== "opaque" ? i : -1,
+    )
     .filter((i) => i >= 0);
 }

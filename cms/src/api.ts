@@ -22,6 +22,14 @@ export interface DeployState {
   url?: string;
   startedAt?: string;
   updatedAt?: string;
+  /** Diagnostic only - see DeploymentStatus in api/_lib/github.ts. */
+  resolved?: {
+    site?: string;
+    self?: string;
+    selfHost?: string;
+    why: string;
+    saw: string[];
+  };
 }
 
 export interface CommitInfo {

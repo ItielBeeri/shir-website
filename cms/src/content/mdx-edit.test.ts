@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { mdxFromMarkdown } from 'mdast-util-mdx';
 import { mdxjs } from 'micromark-extension-mdxjs';
+import { gfm } from 'micromark-extension-gfm';
+import { gfmFromMarkdown } from 'mdast-util-gfm';
 import {
   allBlocks,
   blockToMarkdown,
@@ -72,8 +74,8 @@ describe('mdx-edit', () => {
         if (seg.block.kind === 'heading') expect(seg.block.depth).toBeGreaterThanOrEqual(2);
       }
       const tree = fromMarkdown(src.slice(doc.frontmatter.length), {
-        extensions: [mdxjs()],
-        mdastExtensions: [mdxFromMarkdown()],
+        extensions: [mdxjs(), gfm()],
+        mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
       });
       const links: string[] = [];
       const walk = (node: any): void => {
@@ -149,8 +151,8 @@ describe('body text the grammar would otherwise claim', () => {
       inline: [{ type: 'text' as const, value: typed }],
     };
     const tree = fromMarkdown(`${blockToMarkdown(block)}\n`, {
-      extensions: [mdxjs()],
-      mdastExtensions: [mdxFromMarkdown()],
+      extensions: [mdxjs(), gfm()],
+      mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
     });
     return { kinds: (tree.children as any[]).map((n) => n.type), text: collect(tree) };
   };
@@ -158,8 +160,8 @@ describe('body text the grammar would otherwise claim', () => {
   const cases: Array<[string, string]> = [
     ['a heading', '# ניסיון כותרת ראשית'],
     ['a second-level heading', '## ניסיון כותרת שנייה'],
-    ['a link', '[קישור אסור](https://example.com)'],
-    ['an image', '![תמונה](https://example.com/a.png)'],
+    ['a link', '[קישור אסור](עמוד-אחר)'],
+    ['an image', '![תמונה](a.png)'],
     ['a bullet', '- פריט ברשימה'],
     ['a plus bullet', '+ פריט ברשימה'],
     ['a numbered item', '1. פריט ממוספר'],
@@ -167,12 +169,23 @@ describe('body text the grammar would otherwise claim', () => {
     ['a code span', 'קוד `כאן` בתוך שורה'],
     ['a tilde fence', '~~~'],
     ['raw html', 'טקסט <b>מודגש</b> ידנית'],
-    ['an autolink', 'כתובת <https://example.com> בתוך טקסט'],
+    ['an autolink', 'כתובת <example> בתוך טקסט'],
     ['an MDX expression', 'סוגריים {1 + 1} בתוך טקסט'],
     ['a JSX element', '<SoftImage id="x" />'],
     ['an entity', 'טקסט &amp; עוד'],
     ['a setext underline', 'שורה\n==='],
+    ['a single-character setext underline', 'שורה\n='],
+    ['a dash underline', 'שורה\n-'],
     ['a thematic break', '---'],
+    ['a spaced thematic break', '* * *'],
+    ['a break with a gap in it', '--- -'],
+    ['an underscore break', '___'],
+    ['a marker alone on the line', '*'],
+    ['a dash alone on the line', '-'],
+    ['a number alone on the line', '1.'],
+    ['strikethrough', 'טקסט ~~מחוק~~ כאן'],
+    ['a table row', 'עמודה | עמודה'],
+    ['a task list', '- [ ] משימה'],
   ];
 
   it.each(cases)('keeps %s as the words she typed', (_name, typed) => {
@@ -190,6 +203,55 @@ describe('body text the grammar would otherwise claim', () => {
   it('leaves the lone asterisk this copy uses as a divider alone', () => {
     expect(escapeInlineText('*')).toBe('*');
     expect(escapeInlineText('*\n*')).toBe('*\n*');
+  });
+
+  // An empty list item cannot interrupt a paragraph, so past the first line the
+  // divider is punctuation and escaping it would rewrite pages that use it.
+  it('keeps a divider inside a paragraph exactly as the owner wrote it', () => {
+    const block = {
+      kind: 'paragraph' as const,
+      source: '',
+      inline: [{ type: 'text' as const, value: 'שורה\n*\nשורה' }],
+    };
+    expect(blockToMarkdown(block)).toBe('שורה\n*\nשורה');
+    expect(shipped('שורה\n*\nשורה').kinds).toEqual(['paragraph']);
+  });
+
+  /**
+   * A run of `#` at the end of an ATX heading is its closing sequence, not
+   * content: `## ##` is an empty heading. And the heading is one line, so a
+   * break inside it would end it and ship the rest as a paragraph.
+   */
+  describe('a heading', () => {
+    const shippedHeading = (value: string): { kinds: string[]; text: string } => {
+      const src = blockToMarkdown({
+        kind: 'heading',
+        depth: 2,
+        source: '',
+        inline: [{ type: 'text', value }],
+      });
+      const tree = fromMarkdown(`${src}\n`, {
+        extensions: [mdxjs(), gfm()],
+        mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
+      });
+      const heads = (tree.children as any[]).filter((n) => n.type === 'heading');
+      return {
+        kinds: (tree.children as any[]).map((n) => n.type),
+        text: heads.flatMap((n: any) => n.children).map(collect).join(''),
+      };
+    };
+
+    it('that ends in hashes does not close itself', () => {
+      expect(shippedHeading('##')).toEqual({ kinds: ['heading'], text: '##' });
+      expect(shippedHeading('כותרת ##')).toEqual({ kinds: ['heading'], text: 'כותרת ##' });
+    });
+
+    it('holds a line break as the space it reads as, rather than ending', () => {
+      expect(shippedHeading('כותרת\nארוכה')).toEqual({
+        kinds: ['heading'],
+        text: 'כותרת ארוכה',
+      });
+    });
   });
 
   it('still escapes a mark character that touches a word', () => {

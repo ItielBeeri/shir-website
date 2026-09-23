@@ -218,6 +218,17 @@ export function separates(gap: string, prev: Block | null, next: Block): boolean
 
 const widen = (gap: string): string => (gap.includes('\n') ? `${gap}\n` : DEFAULT_GAP);
 
+/**
+ * Two lists of the same kind, one after the other, are one list.
+ *
+ * Markdown has no way to hold them apart - a blank line between items only
+ * loosens a list, it does not end one - so a file written from two of them
+ * reads back as one, renumbered, and the next save writes bytes the last one
+ * did not. The model reconciles to what the file will say.
+ */
+const joinable = (prev: Block | null, next: Block): boolean =>
+  prev?.kind === 'list' && next.kind === 'list' && prev.ordered === next.ordered;
+
 export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
   const segments: Segment[] = [];
   let prev: Block | null = null;
@@ -231,6 +242,12 @@ export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
     const block = pmToBlock(node);
     if (isEmptyParagraph(block)) {
       pending += own;
+      return;
+    }
+
+    if (prev?.kind === 'list' && block.kind === 'list' && joinable(prev, block)) {
+      prev.items.push(...block.items);
+      pending = '';
       return;
     }
 

@@ -65,8 +65,10 @@ export const roleFor = (login: string, cfg: Config): Role =>
 export function selfProject(): string | undefined {
   const label = (process.env.VERCEL_BRANCH_URL ?? '').split('.')[0];
   const at = label.indexOf('-git-');
-  if (at > 0) return label.slice(0, at);
-  return process.env.VERCEL_PROJECT_NAME || undefined;
+  // Absent on a deployment made outside the git integration, and that is fine:
+  // it only sharpens the check that tells this editor's builds from the site's,
+  // and the site is identified on its own evidence rather than by elimination.
+  return at > 0 ? label.slice(0, at) : undefined;
 }
 
 /** The origin this deployment is reachable at, for the OAuth redirect. */

@@ -100,8 +100,14 @@ moment it lands.
 | F-19 | The CMS reads content with the same parser majors the site does; a divergence fails rather than silently changing what the owner sees |
 
 F-18 is the cheapest insurance in the suite. The live incident (§7.4) was a
-newline in a basic string; a fuzzer finds that class in seconds. **Still to
-write** — everything else in §4.1 is implemented.
+newline in a basic string; a fuzzer finds that class in seconds.
+
+Its MDX half (`src/content/fuzz.test.ts`) earned its keep on the first run and
+kept earning it: a paragraph indent that made every second save rewrite the
+file, a list item whose own first line was never escaped, a lone `*` or `1.`
+opening an empty list, `--- -` read as a thematic break, `## ##` read as an
+empty heading, a break inside a heading ending it. Each is now also a named
+test, because a seed is a reproduction and not a description.
 
 F-19 is not hypothetical: `js-yaml` 5 rejects `psychotherapy.mdx` and
 `voice.mdx` outright, while the 4.x Astro pins folds them.
@@ -169,6 +175,8 @@ silently go dark.
 | G-10 | A failed publish leaves master untouched and the draft intact |
 | G-11 | Discarding a draft change restores the file to master's content exactly |
 | G-12 | History lists commits with Hebrew descriptions; restoring returns the file to a prior blob byte-exactly |
+| G-13 | Opening the preview points `content-preview` at the draft's exact commit, creating no commit, and a second open with no save in between pushes nothing (one Vercel build per draft commit) |
+| G-14 | A save alone moves nothing but `content-draft`: no deployment exists for the new commit until the preview is opened. With nothing pending, opening the preview syncs nothing - master's own content never costs a build |
 
 ### 5.3 The permission boundary
 
@@ -182,7 +190,7 @@ Tested against the **real** proxy, not a mock - it is the permission model.
 | B-4 | Write `src/content/config.ts` | rejected |
 | B-5 | Write outside the repo (another repo, same token) | rejected |
 | B-6 | Push to `master` directly, bypassing publish | rejected |
-| B-7 | Push to any branch other than `content-draft` / `master` | rejected |
+| B-7 | Write content to any branch other than `content-draft` / `master` | rejected. `content-preview` is the one exception and is not a content target: the server moves that ref to a commit the draft already holds, so nothing can be authored onto it |
 | B-8 | Path traversal: `src/content/../../etc/passwd`, encoded variants, `\` separators | rejected |
 | B-9 | Request with no session cookie | 401, no GitHub call made |
 | B-10 | Session for a GitHub login outside the allow-list | 403 |
@@ -323,14 +331,14 @@ requires it to fail. A guarantee with no failing-path test is marketing.
 |---|---|---|
 | X-1 | She cannot produce invalid TOML | Fuzz every field with hostile input (F-18); the file always parses |
 | X-2 | She cannot produce invalid frontmatter | Same for every MDX field; `pnpm check` passes on every result |
-| X-3 | She cannot break the build | For 200 generated edit sequences, `pnpm build` succeeds |
+| X-3 | She cannot break the build | For 500 generated documents, what she typed reads back unchanged, every block stays a block of its own, no heading appears that she did not ask for, and a second save writes the same bytes as the first |
 | X-4 | She cannot orphan an image reference | Delete is blocked while referenced; the blocking list is correct |
 | X-5 | She cannot author a dangling screenshot path | The path is derived, never entered |
 | X-6 | She cannot author a second `<h1>` | No h1 control exists; every built page has exactly one `<h1>` |
-| X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks — that is GFM, inherited from the site's own pipeline, and escaping it would break the byte-identity round trip on every file that already contains one. If unstyled links in body copy are unwanted, the fix belongs in `.prose` on the site, not here |
+| X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks: the site's markdown is GFM, which resolves character escapes **before** it scans for addresses, so `https:\/\/`, `https\://` and `www\.` all still become links - `escaping.test.ts` proves it. The only remaining lever is the site's own `markdown.gfm`, which is a content-dialect decision, not a CMS one |
 | X-8 | She cannot desynchronise `_href` from `_display` | Property-based: for any phone input, both derive from one source |
 | X-9 | She cannot lose work | Kill the tab mid-edit → the draft is restored on reopen |
-| X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready |
+| X-10 | She cannot publish something she has not seen | Publish is unreachable until a preview for the current draft SHA is ready. Opening the preview screen is what starts that build (G-13), so the hold must end on its own: a build that never arrives leaves her able to publish, told plainly that she is publishing unseen |
 
 ### 7.2 Legal guarantees
 
@@ -422,11 +430,12 @@ CI: L0/L1/L5-unit on every push touching `cms/**` **or** `src/content/**` - a
 content change can break a CMS test, which is the point of one repo. L2-L6 on
 pull requests and nightly.
 
-**Implemented today (195 tests, `pnpm test`):** all of §4.1 except F-18, all of
-§4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function level) and the
-whole engine layer (§5.2 G-1…G-12) against an in-memory git.
+**Implemented today (`pnpm test`):** all of §4.1 including F-18's MDX half and
+X-3, all of §4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function level)
+and the whole engine layer (§5.2 G-1…G-13) against an in-memory git. G-14's second half - that a
+save costs no build - is only observable against real Vercel.
 
-**Not yet wired:** F-18 · §4.3 validation · §4.4 parity · the live half of §5.3
+**Not yet wired:** F-18's TOML half · §4.3 validation · §4.4 parity · the live half of §5.3
 (B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·
 §8 non-functional. Playwright and `@axe-core/playwright` are not dependencies
 yet, and the sacrificial repo and its App installation do not exist.
