@@ -449,11 +449,13 @@ in-memory git. G-14's second half - that a save costs no build - is only
 observable against real Vercel. A-9.2's deploy-watch half is a unit test
 (`deploy.test.ts`); the serving half still needs a real build.
 
-V-6 and N-8a are gated in `pnpm test` too, both against sources rather than a
-rendered page: V-6 imports the site's own `socialLinks()`, since the site has
-no runner of its own and the guard belongs there, where it also covers a hand
-edit; N-8a reads the screens and fails on a *constant* `aria-label`, because a
-name built from the row can only arrive interpolated.
+V-6 and N-8a are gated in `pnpm test` too, both by reading sources rather than
+a rendered page. V-6's guard belongs to the site, where it also covers a hand
+edit, and the site has no runner of its own; this suite may not *import* it
+either, because `cms/` is installed without the site's dependencies (§13), so
+it reads `social.ts` and the three pages that render through it. N-8a reads the
+screens and fails on a *constant* `aria-label`, because a name built from the
+row can only arrive interpolated.
 
 **Not yet wired:** §4.3 validation · §4.4 parity · the live half of §5.3
 (B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·

@@ -8,60 +8,48 @@
  * of `X-4`, which guarantees she cannot author a dangling image reference; the
  * same guarantee has to cover a link.
  *
- * The site has no test runner of its own, so its function is imported here.
- * That is the point: the guard belongs to the site, where it also covers a
- * hand edit, and this is the suite that can say so.
+ * The guard belongs to the site, in `socialLinks()`, where it covers the
+ * footer, `/about`, `/contact` and a hand edit alike. The site has no test
+ * runner, and this suite may not import its source: `cms/` is not a workspace
+ * member (AGENTS.md §13), so the site's dependencies are not installed beside
+ * it and `tsc` cannot resolve them. So this reads, the way `pages.test.ts`
+ * reads the `.astro` filters - enough to fail loudly if the guard leaves,
+ * which is what a gate across a boundary can honestly promise.
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { socialLinks } from '../../../src/lib/social';
 import { screens } from './screens';
 
-const CONTENT = join(__dirname, '../../../src/content');
+const SITE = join(__dirname, '../../../src');
+const read = (p: string): string => readFileSync(join(SITE, p), 'utf8');
 
-const FULL = {
-  facebook_url: 'https://www.facebook.com/x',
-  facebook_label: 'פייסבוק',
-  youtube_url: 'https://www.youtube.com/x',
-  youtube_label: 'יוטיוב',
-  spotify_url: 'https://open.spotify.com/x',
-  spotify_label: 'ספוטיפיי',
-  biosynthesis_url: 'https://biosynthesis.co.il/x',
-  biosynthesis_label: 'ביוסינתזה',
-};
+describe('the site, on a social link the owner cleared', () => {
+  const social = read('lib/social.ts');
 
-describe('a social link the owner cleared', () => {
-  it('is not in the list at all', () => {
-    const links = socialLinks({ ...FULL, facebook_url: '' });
-    expect(links.map((l) => l.event)).toEqual(['youtube', 'spotify', 'biosynthesis']);
+  it('drops it rather than rendering it', () => {
+    expect(social).toMatch(/export function socialLinks[\s\S]*?\.filter\(/);
+    expect(social).toContain("href.trim() !== ''");
   });
 
-  it('counts whitespace as cleared, because a space is not an address', () => {
-    expect(socialLinks({ ...FULL, youtube_url: '   ' }).map((l) => l.event)).not.toContain('youtube');
-  });
+  /**
+   * The filter is only worth anything if every surface goes through it. A page
+   * reading `site.social` directly would render the empty link the function
+   * exists to remove.
+   */
+  it.each(['components/layout/Footer.astro', 'pages/about.astro', 'pages/contact.astro'])(
+    '%s renders through socialLinks()',
+    (page) => {
+      const source = read(page);
+      expect(source).toContain('socialLinks(site.social)');
+      expect(source).not.toMatch(/site\.social\.\w+_url/);
+    },
+  );
 
-  it('never yields a link with nowhere to go', () => {
-    const emptied = { ...FULL, facebook_url: '', youtube_url: '', spotify_url: '', biosynthesis_url: '' };
-    expect(socialLinks(emptied)).toEqual([]);
-  });
-
-  it('leaves a full set alone, in its order', () => {
-    expect(socialLinks(FULL).map((l) => l.event)).toEqual([
-      'facebook',
-      'youtube',
-      'spotify',
-      'biosynthesis',
-    ]);
-  });
-
-  it('reads the live file without dropping anything', () => {
-    const src = readFileSync(join(CONTENT, 'site.toml'), 'utf8');
-    const urls = [...src.matchAll(/^(\w+)_url\s*=\s*"([^"]*)"/gm)].filter(
-      ([, key]) => key !== 'whatsapp',
-    );
+  it('has no emptied link in the live file today', () => {
+    const urls = [...read('content/site.toml').matchAll(/^(\w+)_url\s*=\s*"([^"]*)"/gm)];
     expect(urls.length).toBeGreaterThan(0);
-    expect(urls.every(([, , value]) => value.trim() !== '')).toBe(true);
+    expect(urls.filter(([, , value]) => value.trim() === '')).toEqual([]);
   });
 });
 
@@ -73,7 +61,7 @@ describe('what the editor says about clearing one', () => {
   const socialFields = screens
     .flatMap((screen) => screen.groups ?? [])
     .flatMap((group) => group.fields)
-    .filter((field) => field.key.endsWith('_url') && field.key !== 'whatsapp_url');
+    .filter((field) => field.key.startsWith('social.') && field.key.endsWith('_url'));
 
   it('has the social URL fields to speak for', () => {
     expect(socialFields.length).toBeGreaterThanOrEqual(3);

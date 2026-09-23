@@ -10,6 +10,13 @@ Design: `log/cms-plan.md` · Tests: `TEST-SPEC.md` · Repo rules: `AGENTS.md` §
 `package.json` and lockfile so the site's dependency tree cannot move; the
 budgets in `AGENTS.md` §10 are measured against the current one.
 
+So **nothing here may import from `../src`.** Vercel installs only this
+package, and `tsc` following such an import lands in dependencies that are not
+there. Locally it resolves - the repo-root `node_modules` is one directory up -
+so the build breaks on Vercel and nowhere else. `src/boundary.test.ts` fails on
+any import that escapes `cms/`. Reading the site's files is fine, and is how
+several gates cross-check it.
+
 ```bash
 cd cms
 pnpm install
