@@ -11,6 +11,13 @@ import { THERAPY_OPTIONS } from './types.js';
 
 const CONTENT = 'src/content';
 
+/**
+ * A link she clears is dropped from the site rather than written as an empty
+ * one - `socialLinks()` in the site's own lib is what does it. She should know
+ * that emptying the field is how a platform is removed.
+ */
+const DROPS_IF_EMPTY = 'אפשר להשאיר ריק - אז הקישור פשוט לא יופיע באתר';
+
 export const screens: Screen[] = [
   {
     id: 'blog',
@@ -244,10 +251,10 @@ export const screens: Screen[] = [
       {
         title: 'קישורים',
         fields: [
-          { key: 'social.facebook_url', path: ['social', 'facebook_url'], label: 'קישור לפייסבוק', type: 'url' },
-          { key: 'social.youtube_url', path: ['social', 'youtube_url'], label: 'קישור ליוטיוב', type: 'url' },
-          { key: 'social.spotify_url', path: ['social', 'spotify_url'], label: 'קישור לספוטיפיי', type: 'url' },
-          { key: 'social.biosynthesis_url', path: ['social', 'biosynthesis_url'], label: 'קישור לבית הספר', type: 'url' },
+          { key: 'social.facebook_url', path: ['social', 'facebook_url'], label: 'קישור לפייסבוק', help: DROPS_IF_EMPTY, type: 'url' },
+          { key: 'social.youtube_url', path: ['social', 'youtube_url'], label: 'קישור ליוטיוב', help: DROPS_IF_EMPTY, type: 'url' },
+          { key: 'social.spotify_url', path: ['social', 'spotify_url'], label: 'קישור לספוטיפיי', help: DROPS_IF_EMPTY, type: 'url' },
+          { key: 'social.biosynthesis_url', path: ['social', 'biosynthesis_url'], label: 'קישור לבית הספר', help: DROPS_IF_EMPTY, type: 'url' },
         ],
       },
       {

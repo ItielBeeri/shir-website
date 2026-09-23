@@ -32,7 +32,18 @@ export interface SocialLink {
   event: string;
 }
 
+/**
+ * Dropping a platform is an ordinary thing to do, and the editor lets her do
+ * it by clearing the field - which leaves `facebook_url = ""` behind. Rendered,
+ * that is `<a href="">` in the footer of every page: a link that reloads where
+ * she already is, under a name promising a new tab. A link with nowhere to go
+ * is not a link, so it is not in the list.
+ */
 export function socialLinks(social: z.infer<typeof socialSchema>): SocialLink[] {
+  return links(social).filter((link) => link.href.trim() !== '');
+}
+
+function links(social: z.infer<typeof socialSchema>): SocialLink[] {
   return [
     { href: social.facebook_url, label: social.facebook_label, icon: 'facebook', event: 'facebook' },
     { href: social.youtube_url,  label: social.youtube_label,  icon: 'youtube',  event: 'youtube' },

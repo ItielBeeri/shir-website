@@ -52,6 +52,16 @@ interface Draft {
 
 const EMPTY: Draft = { alt: '', transcription: '', relatedTherapies: [], active: true };
 
+/**
+ * A recommendation has no title, so its opening words are its name. Not its
+ * position: the arrows change that, and a control whose name moves while she
+ * is using it is worse than one with no name.
+ */
+function nameOf(rec: { transcription: string; alt: string }): string {
+  const words = (rec.transcription || rec.alt).trim().split(/\s+/).slice(0, 5).join(' ');
+  return words.length > 0 ? `${words}…` : 'המלצה בלי טקסט';
+}
+
 const draftOf = (rec: Rec): Draft => ({
   alt: rec.alt,
   transcription: rec.transcription,
@@ -240,16 +250,47 @@ export function Recommendations(): JSX.Element {
                     .map((v) => THERAPY_OPTIONS.find((t) => t.value === v)?.label ?? v)
                     .join(', ')}`}
               </p>
+              {/* Fifteen rows, five controls each: without the row's own words
+                  that is seventy-five buttons with four names between them. */}
               <div className="rec-actions">
-                <button className="ghost" onClick={() => setEditing(rec)} disabled={busy}>
+                <button
+                  className="ghost"
+                  onClick={() => setEditing(rec)}
+                  disabled={busy}
+                  aria-label={`עריכת «${nameOf(rec)}»`}
+                >
                   עריכה
                 </button>
-                <button className="ghost" onClick={() => move(rec, -1)} disabled={i === 0 || busy} aria-label="העברה למעלה">↑</button>
-                <button className="ghost" onClick={() => move(rec, 1)} disabled={i === items.length - 1 || busy} aria-label="העברה למטה">↓</button>
-                <button className="ghost" onClick={() => toggleActive(rec)} disabled={busy}>
+                <button
+                  className="ghost"
+                  onClick={() => move(rec, -1)}
+                  disabled={i === 0 || busy}
+                  aria-label={`העברת «${nameOf(rec)}» למעלה`}
+                >
+                  ↑
+                </button>
+                <button
+                  className="ghost"
+                  onClick={() => move(rec, 1)}
+                  disabled={i === items.length - 1 || busy}
+                  aria-label={`העברת «${nameOf(rec)}» למטה`}
+                >
+                  ↓
+                </button>
+                <button
+                  className="ghost"
+                  onClick={() => toggleActive(rec)}
+                  disabled={busy}
+                  aria-label={`${rec.active ? 'הסתרת' : 'הצגת'} «${nameOf(rec)}»`}
+                >
                   {rec.active ? 'הסתרה' : 'הצגה'}
                 </button>
-                <button className="ghost danger" onClick={() => setConfirming(rec.id)} disabled={busy}>
+                <button
+                  className="ghost danger"
+                  onClick={() => setConfirming(rec.id)}
+                  disabled={busy}
+                  aria-label={`מחיקת «${nameOf(rec)}»`}
+                >
                   מחיקה
                 </button>
               </div>

@@ -78,6 +78,7 @@ moment it lands.
 | F-3 | A real TOML edit changes one value and leaves comment count and line count untouched |
 | F-4 | Hebrew comments survive an edit to the same file |
 | F-5 | A basic string gains a newline → promoted to `"""`, still parses |
+| F-5a | Body text survives parse → editor → serialize unchanged for the characters Hebrew copy actually carries: bidi marks and isolates, zero-width space and joiner, niqqud, a ZWJ emoji, NBSP, soft and non-breaking hyphens, and **both** NFD and NFC forms. Content is preserved as typed; only *paths* are required to be NFC |
 | F-6 | A value containing `"` is escaped without breaking the document |
 | F-7 | Every MDX file segments with no gaps; serializing reproduces it exactly |
 | F-8 | Every editable block re-serializes byte-identically, including with **all** blocks marked changed |
@@ -142,6 +143,7 @@ C-3 is parsed out of `config.ts` with the TypeScript compiler API - it imports
 | V-3 | A date is emitted as `YYYY-MM-DD` and parses via `z.coerce.date()` |
 | V-4 | `order` rejects zero, negatives and non-integers (schema says positive int) |
 | V-5 | Tags and `relatedTherapies` reject values outside their enums |
+| V-6 | An optional field cleared to empty may not become a broken artefact on the site. A social URL emptied in the editor must either be refused or omitted from the footer - not written as `""` and rendered as `<a href="">` with an accessible name promising a new tab |
 
 ### 4.4 Build parity - the strongest single test
 
@@ -203,6 +205,8 @@ Tested against the **real** proxy, not a mock - it is the permission model.
 | B-10 | Session for a GitHub login outside the allow-list | 403 |
 | B-11 | Tampered / re-signed session cookie | rejected |
 | B-12 | Token is never present in any response body, HTML, or client bundle | absent |
+| B-13 | `rename` onto a path that already exists | rejected **server-side**. The screen checks first and says so in Hebrew, but a move that lands on an occupant destroys it, and §5.3's premise is that the proxy is the model - a guard that lives only in the client is not one |
+| B-14 | `rename` whose source does not exist | a 4xx naming the problem, not a 502 from the layer underneath |
 
 B-12 runs as a build-artifact grep too: no secret-shaped string in `dist/`.
 
@@ -244,7 +248,7 @@ asserts the absence of the concept rather than a user action.
 | ID | Retires | Test |
 |---|---|---|
 | A-3.1 | 3.1 upload an image | Pick a 6 MB JPEG → downscaled client-side, size shown before and after, one commit |
-| A-3.2 | 3.2 register it in the list | **Structural:** registration is not a step. The id is generated; the owner never sees or types it |
+| A-3.2 | 3.2 register it in the list | **Structural:** registration is not a step. The id is generated; the owner never sees or types it. The generator is total and collision-free: a name that reduces to an id already taken gets a suffix, and one that reduces to nothing at all (an all-Hebrew filename) still yields a usable key |
 | A-3.3 | 3.3 what to write in alt | Save is blocked with a Hebrew reason until alt is provided; "זו תמונת קישוט" yields `alt = ""` |
 | A-3.4 | 3.4 use an existing image | A visual picker; selection is by thumbnail, never by id |
 | A-3.5 | 3.5 replace an existing image | Replace in place; every referring page still resolves |
@@ -291,7 +295,7 @@ asserts the absence of the concept rather than a user action.
 | A-7.1 | 7.1 add a recommendation | Drop screenshot + paste text → one commit. **`id` and `screenshot` are derived**, so the guide's build-breaking mismatch cannot occur |
 | A-7.2 | 7.2 their order | Drag; rendered order equals file order (`loadRecommendations` does not re-sort) |
 | A-7.3 | 7.3 hide one | Switch → `active = false`; disappears from the site, stays in the file |
-| A-7.4 | 7.4 relate to a therapy | Three Hebrew checkboxes → correct enum values |
+| A-7.4 | 7.4 relate to a therapy | One Hebrew toggle per modality → correct enum values. The count follows `config.ts`, so adding a modality (AGENTS.md §5) shows up here rather than being quietly missed |
 | A-7.5 | 7.5 edit or delete one | Text, alt, relations, screenshot replacement; delete removes block and file |
 
 ### Chapter 8 - קשר, תפריט, פוטר (5)
@@ -395,6 +399,7 @@ Each new production defect traceable to content adds a row here.
 | N-6 | Every task completable by keyboard alone, with visible focus |
 | N-7 | All controls ≥ 44×44 px. A checkbox or a date box is the target *with* its words, which carry the height; the box alone is smaller and that is what the row exists to fix |
 | N-8 | Every error is announced to assistive technology, not only coloured |
+| N-8a | A control repeated once per row names its row. A screen of posts offering five identical "העברה למעלה" buttons is a list nobody can navigate by control; the menu screen's `העברת «בית» למעלה` is the pattern the others owe |
 
 ### 8.3 Mobile
 
@@ -439,9 +444,16 @@ pull requests and nightly.
 
 **Implemented today (`pnpm test`):** all of §4.1 including both halves of F-18
 and X-3, all of §4.2, the path allowlist (§5.3 B-1…B-8 at the pure-function
-level) and the whole engine layer (§5.2 G-1…G-13) against an in-memory git. G-14's second half - that a
-save costs no build - is only observable against real Vercel. A-9.2's deploy-watch
-half is a unit test (`deploy.test.ts`); the serving half still needs a real build.
+level) and the whole engine layer (§5.2 G-1…G-14, B-13 and B-14) against an
+in-memory git. G-14's second half - that a save costs no build - is only
+observable against real Vercel. A-9.2's deploy-watch half is a unit test
+(`deploy.test.ts`); the serving half still needs a real build.
+
+V-6 and N-8a are gated in `pnpm test` too, both against sources rather than a
+rendered page: V-6 imports the site's own `socialLinks()`, since the site has
+no runner of its own and the guard belongs there, where it also covers a hand
+edit; N-8a reads the screens and fails on a *constant* `aria-label`, because a
+name built from the row can only arrive interpolated.
 
 **Not yet wired:** §4.3 validation · §4.4 parity · the live half of §5.3
 (B-9…B-12, which need the deployed functions) · §6 acceptance · §7 guarantees ·

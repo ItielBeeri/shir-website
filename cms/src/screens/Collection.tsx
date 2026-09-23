@@ -211,10 +211,13 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
                 </span>
               </button>
 
+              {/* Every row offers the same three, so each says whose row it is:
+                  a list of five identical "העברה למעלה" is not navigable by
+                  control. The menu screen is where this pattern comes from. */}
               <div className="entry-actions">
                 <button
                   className="ghost"
-                  aria-label="העברה למעלה"
+                  aria-label={`העברת «${entry.title}» למעלה`}
                   disabled={(i === 0 && (kind !== 'blog' || !!entry.order)) || busy === entry.file}
                   onClick={() => (kind === 'blog' ? reorderPost : reorderTherapy)(entry, -1)}
                 >
@@ -222,7 +225,7 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
                 </button>
                 <button
                   className="ghost"
-                  aria-label="העברה למטה"
+                  aria-label={`העברת «${entry.title}» למטה`}
                   disabled={
                     (kind === 'blog' ? !entry.order : i === entries.length - 1) ||
                     busy === entry.file
@@ -234,6 +237,7 @@ export function Collection({ dir, kind, fieldOrder, onOpen, onNew }: Props): JSX
                 {kind === 'blog' && (
                   <button
                     className="ghost"
+                    aria-label={`${entry.hidden ? 'הצגת' : 'הסתרת'} «${entry.title}»`}
                     disabled={busy === entry.file}
                     onClick={() => toggleHidden(entry)}
                   >

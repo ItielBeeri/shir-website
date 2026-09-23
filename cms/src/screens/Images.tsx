@@ -179,8 +179,12 @@ export function Images(): JSX.Element {
       />
 
       <ul className="gallery">
-        {store.gallery.map((image) => {
+        {store.gallery.map((image, i) => {
           const url = store.urlFor(image.id, 240);
+          // Thirty cards, three controls each. A decorative picture has no
+          // description to be named by, so its place in the grid stands in -
+          // nothing here reorders, so that place does not move under her.
+          const name = image.alt || `תמונה ${i + 1}`;
           return (
             <li key={image.id} className="gallery-card">
               {url ? <img src={url} alt="" loading="lazy" /> : <span className="image-empty">—</span>}
@@ -192,16 +196,20 @@ export function Images(): JSX.Element {
               <div className="gallery-actions">
                 <button
                   className="ghost"
+                  aria-label={`שינוי התיאור של «${name}»`}
                   onClick={() =>
                     setEditing({ id: image.id, alt: image.alt, decorative: image.alt === '' })
                   }
                 >
                   שינוי תיאור
                 </button>
+                {/* The input is the control, so the name goes on it - on the
+                    label it would name nothing. */}
                 <label className="ghost as-button">
                   <input
                     type="file"
                     accept="image/*"
+                    aria-label={`החלפת «${name}»`}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       e.target.value = '';
@@ -210,7 +218,12 @@ export function Images(): JSX.Element {
                   />
                   <span>החלפת התמונה</span>
                 </label>
-                <button className="ghost danger" onClick={() => askDelete(image.id)} disabled={busy}>
+                <button
+                  className="ghost danger"
+                  aria-label={`מחיקת «${name}»`}
+                  onClick={() => askDelete(image.id)}
+                  disabled={busy}
+                >
                   מחיקה
                 </button>
               </div>

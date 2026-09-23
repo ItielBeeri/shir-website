@@ -67,7 +67,7 @@ export interface GitTransport {
   listCommits(branch: string, limit: number): Promise<CommitInfo[]>;
 }
 
-export type GitErrorKind = 'conflict' | 'missing' | 'rejected' | 'empty';
+export type GitErrorKind = 'conflict' | 'missing' | 'rejected' | 'empty' | 'exists';
 
 export class GitError extends Error {
   constructor(
@@ -276,6 +276,19 @@ export async function renameFile(
   assertWritableBranch(branch);
   assertWritablePaths([options.from, options.to]);
   if (options.from === options.to) throw new GitError('empty', 'the name is unchanged');
+
+  // A move is not a save. It writes one path and deletes another, so a target
+  // that is already taken is destroyed with nothing to show for it - the tray
+  // reports the victim as `modified` and the owner has lost a post. The screen
+  // checks first and says so in Hebrew, but §5.3's permission model is the
+  // proxy, and a guard that lives only in the client is not one.
+  const head = await requireSha(t, branch);
+  if (!(await t.getBlobSha(head, options.from))) {
+    throw new GitError('missing', `nothing to rename at ${options.from}`);
+  }
+  if (await t.getBlobSha(head, options.to)) {
+    throw new GitError('exists', `${options.to} is already taken`);
+  }
 
   const sha = await t.createBlob(options.content, 'utf-8');
   return commitOnto(t, branch, options.message, [

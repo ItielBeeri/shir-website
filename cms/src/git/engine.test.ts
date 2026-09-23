@@ -11,6 +11,7 @@ import {
   pendingChanges,
   publish,
   publishMessage,
+  renameFile,
   restorePath,
   saveFiles,
   syncPreview,
@@ -163,6 +164,60 @@ describe('saveFiles', () => {
     const files = git.filesOn(DRAFT_BRANCH);
     expect(files['src/content/site.toml']).toBe('one');
     expect(files['src/content/pages/home.toml']).toBe('two');
+  });
+});
+
+/**
+ * B-13 and B-14. A rename is the one action that deletes a path it was not
+ * asked about: the target's old contents go, and nothing in the pending tray
+ * says more than `modified`. The screen checks first, but §5.3 says the proxy
+ * is the permission model, so the refusal has to live here.
+ */
+describe('renameFile', () => {
+  const POST = 'src/content/blog/ראשון.mdx';
+  const OTHER = 'src/content/blog/שני.mdx';
+
+  beforeEach(async () => {
+    await saveFiles(git, {
+      message: 'שני פוסטים',
+      files: [
+        { path: POST, content: '---\ntitle: ראשון\n---\n', encoding: 'utf-8' },
+        { path: OTHER, content: '---\ntitle: שני\n---\n', encoding: 'utf-8' },
+      ],
+    });
+  });
+
+  it('moves the file and leaves nothing behind', async () => {
+    const to = 'src/content/blog/חדש.mdx';
+    await renameFile(git, { from: POST, to, content: 'x', message: 'שינוי כתובת' });
+    const files = git.filesOn(DRAFT_BRANCH);
+    expect(files[to]).toBe('x');
+    expect(files[POST]).toBeUndefined();
+  });
+
+  it('B-13 refuses a target that already exists, and writes nothing', async () => {
+    const before = git.filesOn(DRAFT_BRANCH);
+    await expect(
+      renameFile(git, { from: POST, to: OTHER, content: 'x', message: 'שינוי' }),
+    ).rejects.toMatchObject({ kind: 'exists' });
+    expect(git.filesOn(DRAFT_BRANCH)).toEqual(before);
+  });
+
+  it('B-14 names a missing source instead of failing underneath', async () => {
+    await expect(
+      renameFile(git, {
+        from: 'src/content/blog/אין.mdx',
+        to: 'src/content/blog/חדש.mdx',
+        content: 'x',
+        message: 'שינוי',
+      }),
+    ).rejects.toMatchObject({ kind: 'missing' });
+  });
+
+  it('still refuses a path outside the allowlist', async () => {
+    await expect(
+      renameFile(git, { from: POST, to: 'src/pages/x.astro', content: 'x', message: 'שינוי' }),
+    ).rejects.toMatchObject({ name: 'PathRejected' });
   });
 });
 
