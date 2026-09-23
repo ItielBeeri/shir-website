@@ -19,7 +19,7 @@ import {
   parseMdx,
   serializeMdx,
 } from './mdx-edit';
-import type { Block } from './mdx-edit';
+import type { Block, Inline } from './mdx-edit';
 
 const CONTENT = join(__dirname, '../../../src/content');
 
@@ -278,6 +278,45 @@ describe('body text the grammar would otherwise claim', () => {
         kinds: ['heading'],
         text: 'כותרת ארוכה',
       });
+    });
+  });
+
+  /** A delimiter touching whitespace is not a delimiter, and ships as itself. */
+  describe('a mark with space at its edge', () => {
+    const read = (node: any): string => {
+      const inner = (node.children ?? []).map(read).join('');
+      if (node.type === 'text') return node.value;
+      if (node.type === 'strong') return `<b>${inner}</b>`;
+      if (node.type === 'emphasis') return `<i>${inner}</i>`;
+      return inner;
+    };
+    const shippedMarks = (inline: Inline[]): string =>
+      read(
+        fromMarkdown(`${blockToMarkdown({ kind: 'paragraph', source: '', inline })}\n`, {
+          extensions: [mdxjs(), gfm()],
+          mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
+        }),
+      );
+    const text = (value: string): Inline => ({ type: 'text', value });
+    const bold = (...children: Inline[]): Inline => ({ type: 'strong', children });
+    const em = (marker: '*' | '_', ...children: Inline[]): Inline => ({ type: 'emphasis', marker, children });
+
+    it.each<[string, Inline[], string]>([
+      ['a trailing space', [bold(text('מילה ')), text('אחרי')], '<b>מילה</b> אחרי'],
+      ['a leading space', [text('לפני'), bold(text(' מילה'))], 'לפני <b>מילה</b>'],
+      ['a line break', [bold(text('סוף.\n')), text('שורה')], '<b>סוף.</b>\nשורה'],
+      ['underscore italic', [text('א '), em('_', text('מילה ')), text('ב')], 'א <i>מילה</i> ב'],
+      ['a mark inside a mark', [bold(text('א '), em('*', text('ב ')))], '<b>א <i>ב</i></b>'],
+      ['nothing but space', [text('א'), bold(text(' ')), text('ב')], 'א ב'],
+    ])('keeps the mark with %s', (_name, inline, page) => {
+      expect(shippedMarks(inline)).toBe(page);
+    });
+
+    it('writes it once, so a second save changes nothing', () => {
+      const once = blockToMarkdown({ kind: 'paragraph', source: '', inline: [bold(text('פחות. '))] });
+      expect(once).toBe('**פחות.** ');
+      const doc = parseMdx(`---\nt: 1\n---\n\n${once}\n`);
+      expect(serializeMdx(doc, allBlocks(doc))).toBe(`---\nt: 1\n---\n\n${once}\n`);
     });
   });
 

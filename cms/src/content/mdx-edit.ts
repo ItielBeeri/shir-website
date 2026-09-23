@@ -254,6 +254,19 @@ const plainText = (nodes: Inline[]): string | null =>
     ? nodes.map((n) => (n as { value: string }).value).join("")
     : null;
 
+/**
+ * A mark's delimiters around its content, with the whitespace at either end
+ * moved outside them.
+ *
+ * A delimiter touching whitespace opens or closes nothing, so `**פחות. **`
+ * reaches the page as the asterisks themselves - and a double-click selects
+ * the space after a word, so bolding one routinely ends in a space.
+ */
+const wrap = (marker: string, inner: string): string => {
+  const [, lead, core, trail] = inner.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+  return core ? `${lead}${marker}${core}${marker}${trail}` : inner;
+};
+
 export function inlineToMarkdown(nodes: Inline[]): string {
   return nodes
     .map((n) => {
@@ -261,9 +274,9 @@ export function inlineToMarkdown(nodes: Inline[]): string {
         case "text":
           return escapeInlineText(n.value);
         case "emphasis":
-          return `${n.marker}${inlineToMarkdown(n.children)}${n.marker}`;
+          return wrap(n.marker, inlineToMarkdown(n.children));
         case "strong":
-          return `**${inlineToMarkdown(n.children)}**`;
+          return wrap("**", inlineToMarkdown(n.children));
         case "opaque":
           return n.source;
       }
