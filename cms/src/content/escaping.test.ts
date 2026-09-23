@@ -72,6 +72,16 @@ describe('escape and unescape are inverses', () => {
       expect(escapeInlineText(unescapeInlineText(once))).toBe(once);
     }
   });
+
+  /** A mark's own delimiter beside the text is a non-space, and would join the run. */
+  it('escapes a mark character a delimiter touches, and still inverts', () => {
+    expect(escapeInlineText('*')).toBe('*');
+    expect(escapeInlineText('*', { before: true })).toBe('\\*');
+    expect(escapeInlineText('מילה _', { after: true })).toBe('מילה \\_');
+    for (const value of ['*', '_ מילה', 'מילה ~', '* * *']) {
+      expect(unescapeInlineText(escapeInlineText(value, { before: true, after: true }))).toBe(value);
+    }
+  });
 });
 
 describe('a second save changes nothing the first save did not', () => {

@@ -122,7 +122,8 @@ export const unescapeInlineText = (value: string): string =>
  * `*`, `_` and `~` are the exception, escaped only where they touch a
  * non-space: only there can they open or close a mark, and this copy uses a
  * lone asterisk on its own line as a divider. Escaping every one would rewrite
- * body text the moment an unrelated word changed.
+ * body text the moment an unrelated word changed. A mark's delimiter just
+ * outside `value` is a non-space too, which is what `touching` says.
  *
  * The site's markdown is GFM, so the vocabulary is wider than CommonMark's:
  * `~~` strikes text through and `|` builds a table, and `.prose` styles
@@ -130,11 +131,18 @@ export const unescapeInlineText = (value: string): string =>
  * all - GFM resolves character escapes before it looks for addresses, so
  * `https:\/\/` still autolinks. `escaping.test.ts` records the attempt.
  */
-export function escapeInlineText(value: string): string {
+export function escapeInlineText(
+  value: string,
+  touching: { before?: boolean; after?: boolean } = {},
+): string {
+  const markChar = new RegExp(
+    `[*_~](?=\\S${touching.after ? "|$" : ""})|(?<=\\S${touching.before ? "|^" : ""})[*_~]`,
+    "g",
+  );
   return (
     value
       .replace(/\\/g, "\\\\")
-      .replace(/([*_~])(?=\S)|(?<=\S)([*_~])/g, (m) => `\\${m}`)
+      .replace(markChar, (m) => `\\${m}`)
       // Links, images, code spans, autolinks and HTML - and `{`, which MDX
       // reads as the start of an expression rather than as a character.
       .replace(/[[\]`<{]/g, (m) => `\\${m}`)
@@ -254,34 +262,229 @@ const plainText = (nodes: Inline[]): string | null =>
     ? nodes.map((n) => (n as { value: string }).value).join("")
     : null;
 
+/* ---------------------------------- marks ---------------------------------- */
+
+const ITALIC = 1;
+const EMPHASIS = 2;
+const STRONG = 4;
+const MARKS = [ITALIC, EMPHASIS, STRONG];
+const DELIMITER: Record<number, string> = { [ITALIC]: "_", [EMPHASIS]: "*", [STRONG]: "**" };
+
+/** One character of text, or a whole opaque inline, and the marks on it. */
+interface Atom {
+  source: string;
+  opaque: boolean;
+  marks: number;
+}
+
+function atomsOf(nodes: Inline[], marks = 0): Atom[] {
+  return nodes.flatMap((n): Atom[] => {
+    switch (n.type) {
+      case "text":
+        return Array.from(n.value, (source) => ({ source, opaque: false, marks }));
+      case "emphasis":
+        return atomsOf(n.children, marks | (n.marker === "_" ? ITALIC : EMPHASIS));
+      case "strong":
+        return atomsOf(n.children, marks | STRONG);
+      case "opaque":
+        return [{ source: n.source, opaque: true, marks }];
+    }
+  });
+}
+
+/** The delimiters between atom `i - 1` and atom `i`: closers innermost first, then openers. */
+interface Edge {
+  close: number[];
+  open: number[];
+}
+
 /**
- * A mark's delimiters around its content, with the whitespace at either end
- * moved outside them.
+ * How the marks nest, decided afresh from what each character carries.
  *
- * A delimiter touching whitespace opens or closes nothing, so `**פחות. **`
- * reaches the page as the asterisks themselves - and a double-click selects
- * the space after a word, so bolding one routinely ends in a space.
+ * Not the nesting of the tree handed in: the editor wraps run by run, and a
+ * mark that runs on past another's edge then stacks four asterisks there,
+ * which CommonMark pairs wrongly. Italic is outermost, closing and reopening
+ * whatever it cuts through, because an underscore opens only beside whitespace
+ * or punctuation and those asterisks are punctuation: `**א**_**ב**_**ג**`
+ * holds italic inside a bold word, `**א_ב_ג**` does not. Of the other two the
+ * longer goes outside, as a person would write it - emphasis on a tie - and
+ * one crossing the other's edge closes there and opens again.
  */
-const wrap = (marker: string, inner: string): string => {
-  const [, lead, core, trail] = inner.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
-  return core ? `${lead}${marker}${core}${marker}${trail}` : inner;
-};
+function edgesOf(atoms: Atom[]): Edge[] {
+  const edges = Array.from({ length: atoms.length + 1 }, (): Edge => ({ close: [], open: [] }));
+  const runEnd = (from: number, to: number, has: (marks: number) => boolean): number => {
+    let j = from;
+    while (j < to && has(atoms[j].marks)) j += 1;
+    return j;
+  };
+  const wrap = (mark: number, from: number, to: number, inside: () => void): void => {
+    edges[from].open.push(mark);
+    inside();
+    edges[to].close.push(mark);
+  };
+  const nest = (from: number, to: number, outer: number): void => {
+    let start = from;
+    while (start < to) {
+      const end = (mark: number): number => runEnd(start, to, (marks) => (marks & mark) !== 0);
+      const here = [EMPHASIS, STRONG].filter((mark) => atoms[start].marks & ~outer & mark);
+      if (!here.length) {
+        start += 1;
+        continue;
+      }
+      const mark = here.reduce((a, b) => (end(b) > end(a) ? b : a));
+      const stop = end(mark);
+      wrap(mark, start, stop, () => nest(start, stop, outer | mark));
+      start = stop;
+    }
+  };
+  let start = 0;
+  while (start < atoms.length) {
+    const italic = atoms[start].marks & ITALIC;
+    const stop = runEnd(start, atoms.length, (marks) => (marks & ITALIC) === italic);
+    if (italic) wrap(ITALIC, start, stop, () => nest(start, stop, ITALIC));
+    else nest(start, stop, 0);
+    start = stop;
+  }
+  return edges;
+}
+
+const WHITESPACE = 1;
+const PUNCTUATION = 2;
+
+/** micromark's classes; a block edge is whitespace, and a word character is 0. */
+const classOf = (ch: string | undefined): number =>
+  ch === undefined || /\s/u.test(ch) ? WHITESPACE : /[\p{P}\p{S}]/u.test(ch) ? PUNCTUATION : 0;
+
+/**
+ * Whether a run of delimiters can open and close, by micromark's own test
+ * (micromark-core-commonmark, `attention`). A `*` or `_` just after the run
+ * lets it open, and one just before lets it close; GFM adds `~` to those, but
+ * the editor reads files without GFM, and the two parsers have to agree on
+ * what she wrote.
+ */
+function flanking(marker: string, before?: string, after?: string): { open: boolean; close: boolean } {
+  const b = classOf(before);
+  const a = classOf(after);
+  const open = a === 0 || (a === PUNCTUATION && b !== 0) || after === "*" || after === "_";
+  const close = b === 0 || (b === PUNCTUATION && a !== 0) || before === "*" || before === "_";
+  return marker === "*"
+    ? { open, close }
+    : { open: open && (b !== 0 || !close), close: close && (a !== 0 || !open) };
+}
+
+/** An atom's last character, which escaping never changes. */
+const lastOf = (atom: Atom): string | undefined => atom.source.at(-1);
+
+/** An atom's first character as the parser meets it: a mark character beside a delimiter is always escaped. */
+const firstOf = (atom: Atom): string | undefined =>
+  !atom.opaque && /[*_~]/.test(atom.source) ? "\\" : atom.source[0];
+
+/** Every delimiter the parser would not read as one, and the marks it stands for. */
+function refused(atoms: Atom[]): Array<{ at: number; marks: number; closing: boolean }> {
+  const edges = edgesOf(atoms);
+  const out: Array<{ at: number; marks: number; closing: boolean }> = [];
+  for (let at = 0; at < edges.length; at += 1) {
+    const cells = [
+      ...edges[at].close.map((mark) => ({ mark, closing: true })),
+      ...edges[at].open.map((mark) => ({ mark, closing: false })),
+    ].flatMap((d) => Array.from(DELIMITER[d.mark], () => d));
+    const written = cells.map((c) => DELIMITER[c.mark][0]).join("");
+    for (const run of written.matchAll(/\*+|_+/g)) {
+      const from = run.index;
+      const to = from + run[0].length;
+      const can = flanking(
+        run[0][0],
+        from > 0 ? written[from - 1] : at > 0 ? lastOf(atoms[at - 1]) : undefined,
+        to < written.length ? written[to] : at < atoms.length ? firstOf(atoms[at]) : undefined,
+      );
+      let closing = 0;
+      let opening = 0;
+      for (const c of cells.slice(from, to)) {
+        if (c.closing) closing |= c.mark;
+        else opening |= c.mark;
+      }
+      if (closing && !can.close) out.push({ at, marks: closing, closing: true });
+      if (opening && !can.open) out.push({ at, marks: opening, closing: false });
+    }
+  }
+  return out;
+}
+
+/**
+ * Where each mark can begin and end.
+ *
+ * A delimiter beside whitespace opens or closes nothing, nor does one between
+ * punctuation and a letter, nor an underscore inside a word - so written where
+ * she put it, `**פחות. **` or `ו**"שקט"**` reaches the page as the asterisks
+ * themselves, and the next save escapes them for good. A double-click selects
+ * the space after a word, so this is the ordinary case, not the odd one.
+ *
+ * So a refused delimiter moves. Whitespace or punctuation at a mark's edge goes
+ * outside it, which the page barely shows; italic that begins or ends inside a
+ * word takes in the rest of the word instead, since shrinking it would cost
+ * letters; a mark left with nothing goes. A run of spaces, or the rest of a
+ * word, moves in one step, landing where a step per character would: each pass
+ * reads the whole paragraph, so stepping per character is quadratic in it.
+ * Marks only ever leave whitespace and punctuation and only italic
+ * joins letters, so no pass undoes another and the bound is never met - it is
+ * there so that a flaw in that reasoning costs a mark rather than a frozen tab.
+ */
+function settle(atoms: Atom[]): Atom[] {
+  for (let pass = 0; pass <= atoms.length * MARKS.length; pass += 1) {
+    const refusals = refused(atoms);
+    if (!refusals.length) break;
+    for (const { at, marks, closing } of refusals) {
+      const inward = closing ? -1 : 1;
+      const inside = closing ? at - 1 : at;
+      const outside = inside - inward;
+      const inner = (k: number): string | undefined => (closing ? lastOf(atoms[k]) : firstOf(atoms[k]));
+      const outer = (k: number): string | undefined => (closing ? firstOf(atoms[k]) : lastOf(atoms[k]));
+      if (marks === ITALIC && classOf(inner(inside)) === 0 && atoms[outside] && classOf(outer(outside)) === 0) {
+        for (let k = outside; ; k -= inward) {
+          atoms[k].marks |= ITALIC;
+          const next = atoms[k - inward];
+          if (!next || next.marks || classOf(outer(k - inward)) !== 0) break;
+        }
+      } else {
+        for (let k = inside; ; k += inward) {
+          atoms[k].marks &= ~marks;
+          const next = atoms[k + inward];
+          if (!next || !(next.marks & marks) || classOf(inner(k + inward)) !== WHITESPACE) break;
+        }
+      }
+    }
+  }
+  return atoms;
+}
 
 export function inlineToMarkdown(nodes: Inline[]): string {
-  return nodes
-    .map((n) => {
-      switch (n.type) {
-        case "text":
-          return escapeInlineText(n.value);
-        case "emphasis":
-          return wrap(n.marker, inlineToMarkdown(n.children));
-        case "strong":
-          return wrap("**", inlineToMarkdown(n.children));
-        case "opaque":
-          return n.source;
-      }
-    })
-    .join("");
+  const atoms = settle(atomsOf(nodes));
+  const edges = edgesOf(atoms);
+  let out = "";
+  let text = "";
+  let afterDelimiter = false;
+  const flush = (beforeDelimiter: boolean): void => {
+    if (text) out += escapeInlineText(text, { before: afterDelimiter, after: beforeDelimiter });
+    text = "";
+  };
+  edges.forEach(({ close, open }, at) => {
+    const delimiters = [...close, ...open].map((mark) => DELIMITER[mark]).join("");
+    if (delimiters) {
+      flush(true);
+      out += delimiters;
+    }
+    const atom = atoms[at];
+    if (!atom) return;
+    if (atom.opaque) {
+      flush(false);
+      out += atom.source;
+    } else {
+      if (!text) afterDelimiter = delimiters !== "";
+      text += atom.source;
+    }
+  });
+  flush(false);
+  return out;
 }
 
 export function blockToMarkdown(block: Block): string {
