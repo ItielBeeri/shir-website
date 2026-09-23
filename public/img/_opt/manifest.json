@@ -383,6 +383,19 @@
     ],
     "digest": "2d84ea10899562a2"
   },
+  "/img/content/file-00000000e80c82088f6693e177687fad.jpg": {
+    "key": "content/file-00000000e80c82088f6693e177687fad",
+    "width": 1448,
+    "height": 1086,
+    "widths": [
+      400,
+      640,
+      900,
+      1280,
+      1448
+    ],
+    "digest": "84eaaa6e1d6d9e0c"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
