@@ -127,6 +127,9 @@ export const api = {
   list: (dir: string) =>
     call<{ files: string[] }>('list', undefined, `?dir=${encodeURIComponent(dir)}`),
 
+  /** Starts the preview's build, unless the draft's commit already has one. */
+  preview: () => call<{ sha: string; moved: boolean }>('preview', {}),
+
   refs: () => call<{ draft: string | null; target: string | null }>('refs', undefined, ''),
 
   status: (sha?: string) =>

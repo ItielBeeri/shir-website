@@ -1,8 +1,10 @@
 /**
  * See it, then publish it.
  *
- * The draft branch gets its own build, and this is that build - the real site
- * with the real changes, not an approximation.
+ * The draft's commit gets its own build, and this is that build - the real
+ * site with the real changes, not an approximation. Saves do not build; this
+ * screen does, once per draft commit (`syncPreview`), which is what keeps a
+ * session of edits inside Vercel's daily deployment limit.
  *
  * The changes, the preview and the publish button are one screen, because they
  * are one question: is this right, and should it go out? Splitting them meant
@@ -68,6 +70,8 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   const [error, setError] = useState<string | null>(null);
   const [nudge, setNudge] = useState(0);
   const [impatient, setImpatient] = useState(false);
+  /** Bumped whenever a new build starts, so each one gets its own patience. */
+  const [round, setRound] = useState(0);
   /** Paths the site itself has changed since this draft started. */
   const [clashes, setClashes] = useState<string[]>([]);
 
@@ -97,12 +101,12 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
 
   const check = useCallback(async () => {
     try {
-      const { draft } = await api.refs();
-      if (!draft) {
-        setState('unknown');
-        return;
+      const { sha, moved } = await api.preview();
+      if (moved) {
+        setImpatient(false);
+        setRound((r) => r + 1);
       }
-      const status = await api.status(draft);
+      const status = await api.status(sha);
       setState(status.state);
       if (status.url) setUrl(status.url);
     } catch (e) {
@@ -111,9 +115,14 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
     }
   }, []);
 
+  const hasChanges = store.pending.length > 0;
+
+  // Rerun when the changes do: a discard here is a new draft commit, and the
+  // frame is showing the one before it. With nothing pending there is nothing
+  // to preview, and syncing would spend a build on master's own content.
   useEffect(() => {
-    void check();
-  }, [check, nudge]);
+    if (hasChanges) void check();
+  }, [check, nudge, hasChanges, store.pending]);
 
   const waiting = state === 'queued' || state === 'building' || state === 'none';
   /** Waiting is a reason to hold the button, not a reason to keep it forever. */
@@ -122,15 +131,15 @@ export function Preview({ onPublished }: { onPublished: (sha: string) => void })
   useEffect(() => {
     const id = window.setTimeout(() => setImpatient(true), PATIENCE_MS);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [round]);
 
   useEffect(() => {
-    if (!waiting) return;
+    if (!waiting || !hasChanges) return;
     timer.current = window.setTimeout(() => setNudge((n) => n + 1), POLL_MS);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [waiting, nudge]);
+  }, [waiting, hasChanges, nudge]);
 
   /**
    * A frame that never loads is almost always Vercel Deployment Protection: the

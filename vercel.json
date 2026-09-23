@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- :/src :/public :/astro.config.mjs :/tsconfig.json :/package.json :/pnpm-lock.yaml :/vercel.json :/.nvmrc",
+  "ignoreCommand": "sh scripts/vercel-ignore.sh :/src :/public :/scripts :/astro.config.mjs :/tsconfig.json :/package.json :/pnpm-lock.yaml :/vercel.json :/.nvmrc",
   "git": {
     "deploymentEnabled": {
       "**": false,
       "master": true,
-      "content-draft": true
+      "content-preview": true
     }
   },
   "headers": [

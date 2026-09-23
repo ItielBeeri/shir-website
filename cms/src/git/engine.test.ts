@@ -1,4 +1,4 @@
-/** Gates G-1 … G-12 from TEST-SPEC.md, against the in-memory git. */
+/** Gates G-1 … G-13 from TEST-SPEC.md, against the in-memory git. */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeGit } from './fake-git';
 import {
@@ -12,8 +12,9 @@ import {
   publishMessage,
   restorePath,
   saveFiles,
+  syncPreview,
 } from './engine';
-import { DRAFT_BRANCH, TARGET_BRANCH } from './paths';
+import { DRAFT_BRANCH, PREVIEW_BRANCH, TARGET_BRANCH } from './paths';
 
 const SEED = {
   'src/content/site.toml': '[brand]\nname = "שיר אמיתי"\n',
@@ -54,6 +55,41 @@ describe('ensureDraft', () => {
     const result = await ensureDraft(git);
     expect(result.movedTo).toBeUndefined();
     expect(await git.getRefSha(DRAFT_BRANCH)).toBe(before);
+  });
+});
+
+describe('syncPreview', () => {
+  const edit = (content: string) =>
+    saveFiles(git, {
+      message: 'edit',
+      files: [{ path: 'src/content/site.toml', content, encoding: 'utf-8' }],
+    });
+
+  it('G-13 points the preview at the draft commit itself, without a new commit', async () => {
+    await edit('mine');
+    const draft = await git.getRefSha(DRAFT_BRANCH);
+    const result = await syncPreview(git);
+    expect(result).toEqual({ sha: draft, moved: true });
+    expect(await git.getRefSha(PREVIEW_BRANCH)).toBe(draft);
+    expect(await git.getRefSha(DRAFT_BRANCH)).toBe(draft);
+  });
+
+  it('G-13 pushes nothing when the preview is already on the draft', async () => {
+    await edit('mine');
+    await syncPreview(git);
+    const writes = git.log.length;
+    expect((await syncPreview(git)).moved).toBe(false);
+    expect(git.log.length).toBe(writes);
+  });
+
+  it('follows a draft that was force-moved off the previewed commit', async () => {
+    await edit('mine');
+    await syncPreview(git);
+    await publish(git);
+    await edit('again');
+    const result = await syncPreview(git);
+    expect(result.moved).toBe(true);
+    expect(await git.getRefSha(PREVIEW_BRANCH)).toBe(await git.getRefSha(DRAFT_BRANCH));
   });
 });
 

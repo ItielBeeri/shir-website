@@ -11,6 +11,7 @@
  */
 import {
   DRAFT_BRANCH,
+  PREVIEW_BRANCH,
   TARGET_BRANCH,
   assertWritableBranch,
   assertWritablePath,
@@ -368,6 +369,24 @@ export async function conflictingPaths(t: GitTransport): Promise<string[]> {
 export async function pendingChanges(t: GitTransport): Promise<PathChange[]> {
   if (!(await t.getRefSha(DRAFT_BRANCH))) return [];
   return (await draftChanges(t)).changes;
+}
+
+/**
+ * Point the preview branch at the draft's exact commit, so the build it
+ * triggers is the draft's own and `status(draft)` finds it. Copying the
+ * changes onto it as a new commit would give the build a sha nothing looks up.
+ * Already there means already built, or building: no push, no build.
+ */
+export async function syncPreview(t: GitTransport): Promise<{ sha: string; moved: boolean }> {
+  const draft = await requireSha(t, DRAFT_BRANCH);
+  const preview = await t.getRefSha(PREVIEW_BRANCH);
+  if (preview === draft) return { sha: draft, moved: false };
+
+  // Forced: the draft is itself force-moved onto master, and the preview
+  // branch holds nothing of its own to lose.
+  if (preview) await t.updateRef(PREVIEW_BRANCH, draft, true);
+  else await t.createRef(PREVIEW_BRANCH, draft);
+  return { sha: draft, moved: true };
 }
 
 /** Put one path back to master's content, leaving other pending edits alone. */

@@ -26,6 +26,7 @@ import {
   renameFile,
   restorePath,
   saveFiles,
+  syncPreview,
 } from '../../src/git/engine.js';
 import {
   DRAFT_BRANCH,
@@ -228,6 +229,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             selfHost,
           }),
         );
+        return;
+      }
+
+      case 'preview': {
+        res.status(200).json(await syncPreview(git));
         return;
       }
 
