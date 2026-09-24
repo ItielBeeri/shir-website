@@ -19,6 +19,9 @@
  *   **A save settles.** Writing the same document twice produces the same
  *   bytes as writing it once, so nothing accumulates across saves.
  *
+ *   **A link goes where she pointed it.** Its address and the exact span of
+ *   text it covers come back unchanged, whatever marks run across its edges.
+ *
  * The generator is seeded, so a failure names a seed that reproduces it
  * exactly rather than a case that vanishes on the next run.
  */
@@ -77,7 +80,17 @@ function line(rng: () => number): string {
 const paragraphText = (rng: () => number): string =>
   Array.from({ length: 1 + Math.floor(rng() * 3) }, () => line(rng)).join('\n');
 
-/** Each character and its marks: `b` bold, `e` asterisk emphasis, `i` underscore italic. */
+/**
+ * Addresses a destination has to carry intact: spaces and parentheses, which
+ * need escaping or angle brackets, mark characters, Hebrew, and the empty one.
+ */
+const HREFS = [
+  'https://example.com', '/about', '/בלוג/פוסט', 'mailto:a@b.co', 'tel:+972501234567', '#top',
+  'https://example.com/a_b*c~d', 'https://x.com/a b', 'https://x.com/(paren)', 'https://x.com/a)b(',
+  'a\\b', '<x>', 'https://x.com/{y}', '',
+];
+
+/** Each character and its marks: `b` bold, `e` asterisk emphasis, `i` underscore italic, `l` a link. */
 type Marked = Array<[string, string]>;
 
 const withMark = (marks: string, mark: string): string =>
@@ -88,7 +101,16 @@ function markedOf(nodes: Inline[], marks = ''): Marked {
     if (n.type === 'text') return Array.from(n.value, (ch): [string, string] => [ch, marks]);
     if (n.type === 'strong') return markedOf(n.children, withMark(marks, 'b'));
     if (n.type === 'emphasis') return markedOf(n.children, withMark(marks, n.marker === '_' ? 'i' : 'e'));
+    if (n.type === 'link') return markedOf(n.children, withMark(marks, 'l'));
     return [[`«${n.type}»`, marks]];
+  });
+}
+
+/** Every link, in order: where it points, and the text it covers. */
+function linksOf(nodes: Inline[]): Array<[string, string | null, string]> {
+  return nodes.flatMap((n): Array<[string, string | null, string]> => {
+    if (n.type === 'link') return [[n.href, n.title, markedOf(n.children).map(([ch]) => ch).join('')]];
+    return 'children' in n ? linksOf(n.children) : [];
   });
 }
 
@@ -108,17 +130,46 @@ function marked(rng: () => number, value: string): Inline[] {
     if (to < chars.length && /\s/.test(chars[to]) && rng() < 0.5) to += 1;
     for (let k = from; k < to; k += 1) marks[k] = withMark(marks[k], mark);
   }
+  // A link is a span too, but never two at once: markdown cannot nest them.
+  const links = chars.map(() => -1);
+  for (let s = Math.floor(rng() * 3); s > 0; s -= 1) {
+    const from = Math.floor(rng() * chars.length);
+    const to = from + 1 + Math.floor(rng() * Math.min(12, chars.length - from));
+    if (links.slice(from, to).some((l) => l >= 0)) continue;
+    for (let k = from; k < to; k += 1) links[k] = s;
+  }
+  const hrefs = new Map<number, [string, string | null]>();
+  const hrefOf = (l: number): [string, string | null] => {
+    if (!hrefs.has(l)) hrefs.set(l, [pick(rng, HREFS), rng() < 0.2 ? 'כותרת "מצוטטת" \\ ו־*סימנים*' : null]);
+    return hrefs.get(l)!;
+  };
+
+  const runs = (from: number, to: number): Inline[] => {
+    const inline: Inline[] = [];
+    for (let k = from; k < to; ) {
+      let end = k;
+      while (end < to && marks[end] === marks[k]) end += 1;
+      let node: Inline = { type: 'text', value: chars.slice(k, end).join('') };
+      for (const m of ['e', 'i', 'b'].filter((m) => marks[k].includes(m))) {
+        node = m === 'b'
+          ? { type: 'strong', children: [node] }
+          : { type: 'emphasis', marker: m === 'i' ? '_' : '*', children: [node] };
+      }
+      inline.push(node);
+      k = end;
+    }
+    return inline;
+  };
+
   const inline: Inline[] = [];
   for (let k = 0; k < chars.length; ) {
     let end = k;
-    while (end < chars.length && marks[end] === marks[k]) end += 1;
-    let node: Inline = { type: 'text', value: chars.slice(k, end).join('') };
-    for (const m of ['e', 'i', 'b'].filter((m) => marks[k].includes(m))) {
-      node = m === 'b'
-        ? { type: 'strong', children: [node] }
-        : { type: 'emphasis', marker: m === 'i' ? '_' : '*', children: [node] };
+    while (end < chars.length && links[end] === links[k]) end += 1;
+    if (links[k] < 0) inline.push(...runs(k, end));
+    else {
+      const [href, title] = hrefOf(links[k]);
+      inline.push({ type: 'link', href, title, children: runs(k, end) });
     }
-    inline.push(node);
     k = end;
   }
   return inline;
@@ -191,11 +242,25 @@ function siteMarks(mdx: string): Marked {
     if (node.type === 'text') for (const ch of node.value) out.push([ch, marks]);
     const own = node.type === 'strong' ? 'b'
       : node.type === 'emphasis' ? (body[node.position.start.offset] === '_' ? 'i' : 'e')
+      : node.type === 'link' ? 'l'
       : '';
     for (const child of node.children ?? []) walk(child, withMark(marks, own));
   };
-  walk(fromMarkdown(body, { extensions: [mdxjs(), gfm()], mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()] }), '');
+  walk(siteTree(mdx), '');
   return out.filter(([ch]) => /\S/.test(ch));
+}
+
+const siteTree = (mdx: string): any =>
+  fromMarkdown(mdx.slice(parseMdx(mdx).frontmatter.length), {
+    extensions: [mdxjs(), gfm()],
+    mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
+  });
+
+/** Where the site's links point, in order. */
+function siteHrefs(node: any, out: string[] = []): string[] {
+  if (node.type === 'link') out.push(node.url);
+  for (const child of node.children ?? []) siteHrefs(child, out);
+  return out;
 }
 
 const isLetter = (ch: string): boolean => !/[\s\p{P}\p{S}]/u.test(ch);
@@ -252,6 +317,16 @@ describe('generated documents', () => {
     }
   });
 
+  it('keeps every link where she put it and pointing where she pointed it', () => {
+    for (const seed of seeds) {
+      const { doc } = document(random(seed));
+      const typed = runsOf(doc).flatMap(linksOf);
+      const mdx = write(doc);
+      expect(runsOf(parseMdx(mdx)).flatMap(linksOf), `seed ${seed}`).toEqual(typed);
+      expect(siteHrefs(siteTree(mdx)), `seed ${seed}`).toEqual(typed.map(([href]) => href));
+    }
+  });
+
   it('settles after one save', () => {
     for (const seed of seeds) {
       const { doc } = document(random(seed));
@@ -288,6 +363,7 @@ describe('generated documents', () => {
     const escaped = sample.filter((mdx) => mdx.includes('\\')).length;
     expect(escaped).toBeGreaterThan(30);
     expect(sample.some((mdx) => mdx.includes('\n\n'))).toBe(true);
+    expect(sample.filter((mdx) => mdx.includes('](')).length).toBeGreaterThan(10);
 
     // Nor one whose marks never needed to move.
     let spaceAtEdge = 0;

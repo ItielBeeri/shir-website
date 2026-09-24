@@ -68,23 +68,37 @@ describe('mdx-edit', () => {
     });
 
     // Link syntax in the source may be escaped text; only the parser can say
-    // whether the page actually has a link on it.
-    it('offers no h1 and no links', () => {
+    // whether the page actually has a link on it. A reference-style link or
+    // one inside a JSX element is kept verbatim, where she cannot edit it.
+    it('offers no h1, and every link as one the editor can edit', () => {
       for (const seg of doc.segments) {
         if (seg.type !== 'block') continue;
         if (seg.block.kind === 'heading') expect(seg.block.depth).toBeGreaterThanOrEqual(2);
       }
-      const tree = fromMarkdown(src.slice(doc.frontmatter.length), {
+      const body = src.slice(doc.frontmatter.length);
+      const tree = fromMarkdown(body, {
         extensions: [mdxjs(), gfm()],
         mdastExtensions: [mdxFromMarkdown(), gfmFromMarkdown()],
       });
-      const links: string[] = [];
+      const site: string[] = [];
       const walk = (node: any): void => {
-        if (node.type === 'link' || node.type === 'linkReference') links.push(node.url ?? '');
+        if (node.type === 'linkReference') site.push(`[${node.label}]`);
+        // A bare address is GFM's link, not one written as a link.
+        if (node.type === 'link' && body[node.position.start.offset] === '[') site.push(node.url);
         (node.children ?? []).forEach(walk);
       };
       walk(tree);
-      expect(links, `${_name} has links`).toEqual([]);
+
+      const hrefs = (nodes: Inline[]): string[] =>
+        nodes.flatMap((n) => (n.type === 'link' ? [n.href] : 'children' in n ? hrefs(n.children) : []));
+      const editor = doc.segments.flatMap((seg) => {
+        if (seg.type !== 'block') return [];
+        const { block } = seg;
+        if (block.kind === 'paragraph' || block.kind === 'heading') return hrefs(block.inline);
+        if (block.kind === 'list') return block.items.flatMap(hrefs);
+        return [];
+      });
+      expect(editor, `${_name} has a link the editor cannot edit`).toEqual(site);
     });
   });
 

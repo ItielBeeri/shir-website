@@ -2,10 +2,10 @@
  * The editor's vocabulary, and nothing else.
  *
  * AGENTS.md §13: the editor may only offer constructs `.prose` styles - h2, h3,
- * `ul`, `ol`, the three emphasis marks and `SoftImage`. Everything StarterKit
- * would otherwise hand us (blockquote, code, strike, rules, h1, h4-h6) is
- * turned off here rather than merely hidden from the toolbar, so a paste or a
- * keyboard shortcut cannot introduce it either.
+ * `ul`, `ol`, the three emphasis marks, links and `SoftImage`. Everything
+ * StarterKit would otherwise hand us (blockquote, code, strike, underline,
+ * rules, h1, h4-h6) is turned off here rather than merely hidden from the
+ * toolbar, so a paste or a keyboard shortcut cannot introduce it either.
  *
  * Markdown gives `*x*` and `_x_` the same node; the site spends them
  * differently (§4.3), so they are two marks with two tags: `em` carries
@@ -13,6 +13,7 @@
  */
 import { Extension, Mark, Node, mergeAttributes, wrappingInputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { isLinkable } from '../lib/links';
 
 /**
  * A lone `*` is the owner's divider, kept as the character she typed
@@ -133,8 +134,21 @@ export const extensions = [
     code: false,
     strike: false,
     horizontalRule: false,
+    underline: false,
     // Replaced by the two marks above.
     italic: false,
+    link: {
+      // A click places the caret, as it does on any other word she edits.
+      openOnClick: false,
+      // Also what makes the mark non-inclusive, so the words she types after
+      // a link are not swallowed into it. A typed address needs no mark: the
+      // site's GFM links a bare one anyway.
+      autolink: false,
+      defaultProtocol: 'https',
+      isAllowedUri: isLinkable,
+      // The site decides where a link opens (scripts/rehype-links.mjs).
+      HTMLAttributes: { target: null, rel: null, class: null },
+    },
   }),
   Emphasis,
   Italic,

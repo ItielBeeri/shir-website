@@ -15,6 +15,7 @@ import {
 import type { Editor } from '@tiptap/react';
 import { extensions, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
+import { LinkDialog } from './LinkDialog';
 import { ASPECTS, DEFAULT_WIDTH, PLACEMENTS, place, placementOf } from '../lib/softimage';
 import { useStore } from '../store';
 import { useEffect, useId, useState } from 'react';
@@ -162,7 +163,7 @@ const withViews = [
 
 /* ---------------------------------- toolbar ---------------------------------- */
 
-function Toolbar({ editor }: { editor: Editor }): JSX.Element {
+function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JSX.Element {
   const [picking, setPicking] = useState(false);
 
   /**
@@ -178,6 +179,7 @@ function Toolbar({ editor }: { editor: Editor }): JSX.Element {
       emphasis: e.isActive('emphasis'),
       italic: e.isActive('italic'),
       bold: e.isActive('bold'),
+      link: e.isActive('link'),
       h2: e.isActive('heading', { level: 2 }),
       h3: e.isActive('heading', { level: 3 }),
       bullet: e.isActive('bulletList'),
@@ -202,6 +204,9 @@ function Toolbar({ editor }: { editor: Editor }): JSX.Element {
       </button>
       <button {...toggle(on.bold)} onClick={() => editor.chain().focus().toggleBold().run()}>
         <b>מודגש</b>
+      </button>
+      <button {...toggle(on.link)} onClick={onLink} aria-haspopup="dialog">
+        קישור
       </button>
 
       <span className="tools-sep" aria-hidden="true" />
@@ -265,12 +270,21 @@ interface Props {
  * history for that file means.
  */
 export function BodyEditor({ value, onChange }: Props): JSX.Element {
+  const [linking, setLinking] = useState(false);
   const editor = useEditor(
     {
       extensions: withViews,
       content: value as never,
       editorProps: {
         attributes: { class: 'prose-edit', dir: 'rtl', 'aria-label': 'גוף הטקסט' },
+        // By the key's place rather than its letter: on a Hebrew layout Ctrl+K
+        // reports `ל`.
+        handleKeyDown: (_view, event) => {
+          if (!(event.ctrlKey || event.metaKey) || event.code !== 'KeyK') return false;
+          event.preventDefault();
+          setLinking(true);
+          return true;
+        },
       },
       onUpdate: ({ editor: e }) => onChange(e.getJSON() as PmNode),
     },
@@ -281,7 +295,7 @@ export function BodyEditor({ value, onChange }: Props): JSX.Element {
 
   return (
     <div className="editor">
-      <Toolbar editor={editor} />
+      <Toolbar editor={editor} onLink={() => setLinking(true)} />
       {/* What is not visible by looking at it: both keys make a line, and only
           the spacing tells them apart - and an empty line is space she can add. */}
       <p className="editor-help">
@@ -290,6 +304,7 @@ export function BodyEditor({ value, onChange }: Props): JSX.Element {
         כל שורה ריקה בין פסקאות מוסיפה עוד רווח.
       </p>
       <EditorContent editor={editor} />
+      {linking && <LinkDialog editor={editor} onClose={() => setLinking(false)} />}
     </div>
   );
 }

@@ -23,7 +23,12 @@ export interface PmNode {
   attrs?: Record<string, unknown>;
   content?: PmNode[];
   text?: string;
-  marks?: Array<{ type: string }>;
+  marks?: PmMark[];
+}
+
+export interface PmMark {
+  type: string;
+  attrs?: Record<string, unknown>;
 }
 
 const MARK_OF: Record<string, string> = { '*': 'emphasis', _: 'italic' };
@@ -31,7 +36,7 @@ const MARKER_OF: Record<string, '*' | '_'> = { emphasis: '*', italic: '_' };
 
 /* ------------------------------- to ProseMirror ------------------------------ */
 
-function inlineToPm(nodes: Inline[], marks: string[] = []): PmNode[] {
+function inlineToPm(nodes: Inline[], marks: PmMark[] = []): PmNode[] {
   const out: PmNode[] = [];
   for (const node of nodes) {
     switch (node.type) {
@@ -40,7 +45,7 @@ function inlineToPm(nodes: Inline[], marks: string[] = []): PmNode[] {
         // The break carries the surrounding marks too: emphasis in this copy
         // routinely spans several lines, and an unmarked break would split one
         // span into two on the way back.
-        const applied = marks.length ? { marks: marks.map((type) => ({ type })) } : {};
+        const applied = marks.length ? { marks } : {};
         const parts = node.value.split('\n');
         parts.forEach((part, i) => {
           if (i > 0) out.push({ type: 'hardBreak', ...applied });
@@ -49,13 +54,16 @@ function inlineToPm(nodes: Inline[], marks: string[] = []): PmNode[] {
         break;
       }
       case 'emphasis':
-        out.push(...inlineToPm(node.children, [...marks, MARK_OF[node.marker]]));
+        out.push(...inlineToPm(node.children, [...marks, { type: MARK_OF[node.marker] }]));
         break;
       case 'strong':
-        out.push(...inlineToPm(node.children, [...marks, 'bold']));
+        out.push(...inlineToPm(node.children, [...marks, { type: 'bold' }]));
+        break;
+      case 'link':
+        out.push(...inlineToPm(node.children, [...marks, { type: 'link', attrs: { href: node.href, title: node.title } }]));
         break;
       case 'opaque':
-        out.push({ type: 'rawInline', attrs: { source: node.source } });
+        out.push({ type: 'rawInline', attrs: { source: node.source }, ...(marks.length ? { marks } : {}) });
         break;
     }
   }
@@ -139,7 +147,31 @@ const MARK_ORDER = ['emphasis', 'italic', 'bold'] as const;
 const markSet = (node: PmNode): string[] =>
   MARK_ORDER.filter((name) => (node.marks ?? []).some((m) => m.type === name));
 
+/** Which link a node belongs to, if any: the same address and title is the same link. */
+const linkOf = (node: PmNode): string | null => {
+  const link = node.marks?.find((m) => m.type === 'link');
+  return link ? JSON.stringify([link.attrs?.href ?? '', link.attrs?.title ?? null]) : null;
+};
+
+/** Each run of nodes in one link becomes that link, its marks inside it. */
 function pmToInline(nodes: PmNode[] = []): Inline[] {
+  const out: Inline[] = [];
+  for (let start = 0; start < nodes.length; ) {
+    const link = linkOf(nodes[start]);
+    let end = start + 1;
+    while (end < nodes.length && linkOf(nodes[end]) === link) end += 1;
+    const children = marked(nodes.slice(start, end));
+    if (link === null) out.push(...children);
+    else {
+      const [href, title] = JSON.parse(link) as [string, string | null];
+      out.push({ type: 'link', href: String(href), title: title === null ? null : String(title), children });
+    }
+    start = end;
+  }
+  return out;
+}
+
+function marked(nodes: PmNode[]): Inline[] {
   const out: Inline[] = [];
 
   const flush = (marks: string[], children: Inline[]): void => {

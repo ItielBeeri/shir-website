@@ -23,6 +23,7 @@ export type Inline =
   | { type: "text"; value: string }
   | { type: "emphasis"; marker: "*" | "_"; children: Inline[] }
   | { type: "strong"; children: Inline[] }
+  | { type: "link"; href: string; title: string | null; children: Inline[] }
   | { type: "opaque"; source: string };
 
 export type Block =
@@ -86,12 +87,33 @@ function inlineFrom(nodes: any[], body: string, contentEnd: number): Inline[] {
           children: inlineFrom(n.children, body, end - 2),
         });
         break;
+      case "link":
+        out.push({
+          type: "link",
+          href: n.url,
+          title: n.title ?? null,
+          children: inlineFrom(n.children, body, labelEnd(n, body)),
+        });
+        break;
       default:
         out.push({ type: "opaque", source: body.slice(start, end) });
     }
   }
   if (contentEnd > cursor) out.push(text(cursor, contentEnd));
   return out;
+}
+
+/**
+ * The `]` that closes a link's text. MDX has no autolinks, so every link is
+ * `[text](destination)`, and a `]` inside the text is either escaped or inside
+ * a child - so the first one past the last child is the closer.
+ */
+function labelEnd(link: any, body: string): number {
+  let at = link.children.length
+    ? link.children[link.children.length - 1].position.end.offset
+    : link.position.start.offset + 1;
+  while (body[at] !== "]") at += 1;
+  return at;
 }
 
 /**
@@ -270,26 +292,79 @@ const STRONG = 4;
 const MARKS = [ITALIC, EMPHASIS, STRONG];
 const DELIMITER: Record<number, string> = { [ITALIC]: "_", [EMPHASIS]: "*", [STRONG]: "**" };
 
-/** One character of text, or a whole opaque inline, and the marks on it. */
+/** One character of text, a whole opaque inline or a whole link, and the marks on it. */
 interface Atom {
   source: string;
   opaque: boolean;
   marks: number;
+  link?: Link;
 }
 
-function atomsOf(nodes: Inline[], marks = 0): Atom[] {
+/** A link's text, as atoms of its own: brackets bound every mark inside them. */
+interface Link {
+  href: string;
+  title: string | null;
+  inner: Atom[];
+}
+
+function atomsOf(nodes: Inline[], marks = 0, link?: Link): Atom[] {
   return nodes.flatMap((n): Atom[] => {
     switch (n.type) {
       case "text":
-        return Array.from(n.value, (source) => ({ source, opaque: false, marks }));
+        return Array.from(n.value, (source) => ({ source, opaque: false, marks, link }));
       case "emphasis":
-        return atomsOf(n.children, marks | (n.marker === "_" ? ITALIC : EMPHASIS));
+        return atomsOf(n.children, marks | (n.marker === "_" ? ITALIC : EMPHASIS), link);
       case "strong":
-        return atomsOf(n.children, marks | STRONG);
+        return atomsOf(n.children, marks | STRONG, link);
+      case "link":
+        return atomsOf(n.children, marks, { href: n.href, title: n.title, inner: [] });
       case "opaque":
-        return [{ source: n.source, opaque: true, marks }];
+        return [{ source: n.source, opaque: true, marks, link }];
     }
   });
+}
+
+/**
+ * Each link's characters, folded into one atom.
+ *
+ * Markdown pairs no delimiter across a bracket, so a mark cannot begin inside
+ * a link and end outside it. A mark the link's neighbours share wraps the whole
+ * link; one that stops at its edge goes inside the brackets, where a delimiter
+ * always stands beside punctuation and so always counts: `[**א**](u)ב` is bold,
+ * `**[א](u)**ב` is not.
+ */
+function foldLinks(atoms: Atom[]): Atom[] {
+  const out: Atom[] = [];
+  for (let start = 0; start < atoms.length; ) {
+    const link = atoms[start].link;
+    if (!link) {
+      out.push(atoms[start]);
+      start += 1;
+      continue;
+    }
+    let end = start;
+    while (end < atoms.length && atoms[end].link === link) end += 1;
+    const run = atoms.slice(start, end);
+    const shared = run.reduce((all, atom) => all & atom.marks, ITALIC | EMPHASIS | STRONG);
+    const outside = shared & ((atoms[start - 1]?.marks ?? 0) | (atoms[end]?.marks ?? 0));
+    link.inner = run.map((atom) => ({ ...atom, marks: atom.marks & ~outside, link: undefined }));
+    out.push({ source: "", opaque: true, marks: outside, link });
+    start = end;
+  }
+  return out;
+}
+
+/**
+ * A link destination the parser reads back as `href`. The bare form takes
+ * backslash escapes; one with a space, or an empty one, needs angle brackets.
+ */
+function destination(raw: string, title: string | null): string {
+  // Neither form can hold a line break; a pasted `href` attribute can.
+  const href = raw.replace(/[\x00-\x1f\x7f]/g, encodeURIComponent);
+  const url = /[\s<>]/.test(href) || href === ""
+    ? `<${href.replace(/[\\<>]/g, (m) => `\\${m}`)}>`
+    : href.replace(/[\\()]/g, (m) => `\\${m}`);
+  return title === null ? url : `${url} "${title.replace(/["\\]/g, (m) => `\\${m}`)}"`;
 }
 
 /** The delimiters between atom `i - 1` and atom `i`: closers innermost first, then openers. */
@@ -373,11 +448,11 @@ function flanking(marker: string, before?: string, after?: string): { open: bool
 }
 
 /** An atom's last character, which escaping never changes. */
-const lastOf = (atom: Atom): string | undefined => atom.source.at(-1);
+const lastOf = (atom: Atom): string | undefined => (atom.link ? ")" : atom.source.at(-1));
 
 /** An atom's first character as the parser meets it: a mark character beside a delimiter is always escaped. */
 const firstOf = (atom: Atom): string | undefined =>
-  !atom.opaque && /[*_~]/.test(atom.source) ? "\\" : atom.source[0];
+  atom.link ? "[" : !atom.opaque && /[*_~]/.test(atom.source) ? "\\" : atom.source[0];
 
 /** Every delimiter the parser would not read as one, and the marks it stands for. */
 function refused(atoms: Atom[]): Array<{ at: number; marks: number; closing: boolean }> {
@@ -422,7 +497,8 @@ function refused(atoms: Atom[]): Array<{ at: number; marks: number; closing: boo
  * So a refused delimiter moves. Whitespace or punctuation at a mark's edge goes
  * outside it, which the page barely shows; italic that begins or ends inside a
  * word takes in the rest of the word instead, since shrinking it would cost
- * letters; a mark left with nothing goes. A run of spaces, or the rest of a
+ * letters; a mark left with nothing goes. A link at the edge keeps the mark
+ * inside its brackets rather than losing it. A run of spaces, or the rest of a
  * word, moves in one step, landing where a step per character would: each pass
  * reads the whole paragraph, so stepping per character is quadratic in it.
  * Marks only ever leave whitespace and punctuation and only italic
@@ -447,6 +523,8 @@ function settle(atoms: Atom[]): Atom[] {
         }
       } else {
         for (let k = inside; ; k += inward) {
+          const { link } = atoms[k];
+          if (link) for (const atom of link.inner) atom.marks |= atoms[k].marks & marks;
           atoms[k].marks &= ~marks;
           const next = atoms[k + inward];
           if (!next || !(next.marks & marks) || classOf(inner(k + inward)) !== WHITESPACE) break;
@@ -457,14 +535,58 @@ function settle(atoms: Atom[]): Atom[] {
   return atoms;
 }
 
-export function inlineToMarkdown(nodes: Inline[]): string {
-  const atoms = settle(atomsOf(nodes));
+export const inlineToMarkdown = (nodes: Inline[]): string => render(layout(atomsOf(nodes)));
+
+/** Links folded, every mark settled - a link's text last, once it has what its edges pushed in. */
+function place(unfolded: Atom[]): Atom[] {
+  const atoms = settle(foldLinks(unfolded));
+  for (const { link } of atoms) if (link) link.inner = settle(link.inner);
+  return atoms;
+}
+
+/** The characters a second save would read back, each with the marks this layout gives it. */
+const reread = (atoms: Atom[]): Atom[] =>
+  atoms.flatMap((atom) => {
+    if (!atom.link) return [{ ...atom }];
+    const link: Link = { href: atom.link.href, title: atom.link.title, inner: [] };
+    return atom.link.inner.map((a) => ({ ...a, marks: a.marks | atom.marks, link }));
+  });
+
+const shape = (atoms: Atom[]): string =>
+  atoms.map((a) => (a.link ? `[${a.marks}:${shape(a.link.inner)}]` : a.marks)).join(",");
+
+/**
+ * Where a link's marks go depends on its neighbours' marks, and settling
+ * changes those - it moves a space out of a mark, or stretches italic over a
+ * whole word. The file then reads back as characters this layout never saw,
+ * and the next save folds them differently. So this lays out what it would
+ * read back, until that is what it already has.
+ */
+function layout(unfolded: Atom[]): Atom[] {
+  let atoms = place(unfolded);
+  for (let pass = 0; pass < 8; pass += 1) {
+    const again = place(reread(atoms));
+    if (shape(again) === shape(atoms)) break;
+    atoms = again;
+  }
+  return atoms;
+}
+
+/**
+ * `bracketed` is a link's text, where the brackets stand beside the first and
+ * last character just as a delimiter would.
+ */
+function render(atoms: Atom[], bracketed = false): string {
   const edges = edgesOf(atoms);
   let out = "";
   let text = "";
   let afterDelimiter = false;
-  const flush = (beforeDelimiter: boolean): void => {
-    if (text) out += escapeInlineText(text, { before: afterDelimiter, after: beforeDelimiter });
+  const flush = (beforeDelimiter: boolean, beforeLink = false): void => {
+    if (text) {
+      const escaped = escapeInlineText(text, { before: afterDelimiter, after: beforeDelimiter });
+      // `![` opens an image.
+      out += beforeLink ? escaped.replace(/!$/, "\\!") : escaped;
+    }
     text = "";
   };
   edges.forEach(({ close, open }, at) => {
@@ -475,15 +597,18 @@ export function inlineToMarkdown(nodes: Inline[]): string {
     }
     const atom = atoms[at];
     if (!atom) return;
-    if (atom.opaque) {
+    if (atom.link) {
+      flush(true, true);
+      out += `[${render(atom.link.inner, true)}](${destination(atom.link.href, atom.link.title)})`;
+    } else if (atom.opaque) {
       flush(false);
       out += atom.source;
     } else {
-      if (!text) afterDelimiter = delimiters !== "";
+      if (!text) afterDelimiter = delimiters !== "" || (at === 0 ? bracketed : Boolean(atoms[at - 1].link));
       text += atom.source;
     }
   });
-  flush(false);
+  flush(bracketed);
   return out;
 }
 

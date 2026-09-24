@@ -258,6 +258,10 @@
 .prose-edit em { font-style: normal; font-weight: 600; }
 .prose-edit i { font-style: italic; }
 .prose-edit b, .prose-edit strong { font-weight: 700; }
+.prose-edit a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; cursor: text; }
+
+.field-error { margin-block: 6px 0; color: var(--danger); font-size: var(--fs-small); }
+.link-try { margin-block: 8px 0; }
 
 .nv-image, .nv-raw {
   border: 1px dashed var(--line);

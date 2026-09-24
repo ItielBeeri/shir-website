@@ -262,7 +262,7 @@ asserts the absence of the concept rather than a user action.
 | A-4.2 | 4.2 fill the details | All frontmatter fields via labelled Hebrew inputs; `---` fences never seen |
 | A-4.3 | 4.3 cover image | Chosen from the picker; written as an id |
 | A-4.4 | 4.4 image in body | Inserted as a block with visual shape and side controls; emits a valid `SoftImage` |
-| A-4.5 | 4.5 headings and paragraphs | Each of the 8 constructs in §4 of the plan produces exactly its markdown; **no h1, no link, no h4 control exists** |
+| A-4.5 | 4.5 headings and paragraphs | Each construct the toolbar offers - the 8 in §4 of the plan, and links - produces exactly its markdown; **no h1 and no h4 control exists** |
 | A-4.6 | 4.6 post order | Drag to pin; resulting order matches `sortBlogPosts()` exactly (asserted against the real function) |
 | A-4.7 | 4.7 hide a post | Switch → `draft: true`; post leaves the index |
 | A-4.8 | 4.8 change a post's URL | Rename; old and new slug behaviour matches the site's routing |
@@ -346,7 +346,7 @@ requires it to fail. A guarantee with no failing-path test is marketing.
 | X-4 | She cannot orphan an image reference | Delete is blocked while referenced; the blocking list is correct |
 | X-5 | She cannot author a dangling screenshot path | The path is derived, never entered |
 | X-6 | She cannot author a second `<h1>` | No h1 control exists; every built page has exactly one `<h1>` |
-| X-7 | She cannot author link *syntax* | No link control, and `[text](url)` typed into the body ships escaped, as text. A bare `https://…` still autolinks: the site's markdown is GFM, which resolves character escapes **before** it scans for addresses, so `https:\/\/`, `https\://` and `www\.` all still become links - `escaping.test.ts` proves it. The only remaining lever is the site's own `markdown.gfm`, which is a content-dialect decision, not a CMS one |
+| X-7 | She authors links only through the link control | The control checks the address in Hebrew - an email becomes `mailto:`, a phone `tel:+972…`, her own site a path, and any other scheme is refused (`links.test.ts`) - and every address and linked span reads back exactly, whatever marks cross its edges (`fuzz.test.ts`). `[text](url)` typed into the body still ships escaped, as text. A bare `https://…` still autolinks: the site's markdown is GFM, which resolves character escapes **before** it scans for addresses, so `https:\/\/`, `https\://` and `www\.` all still become links - `escaping.test.ts` proves it. The only remaining lever is the site's own `markdown.gfm`, which is a content-dialect decision, not a CMS one |
 | X-8 | She cannot desynchronise `_href` from `_display` | Property-based: for any phone input, both derive from one source |
 | X-9 | She cannot lose work | Kill the tab mid-edit → the draft is restored on reopen |
 | X-10 | Publishing never waits on a preview | Publish is enabled the moment the screen opens and applies straight from `content-draft`. The preview is hers to ask for: until she does, nothing moves `content-preview` (G-14), and publishing mid-build neither waits for it nor lets it resync onto what was just published. Once asked, the frame goes only to a page the build will serve - a hidden post and a deleted page have none, and are named as absent rather than shown as the site's 404 (`pages.test.ts`) |
