@@ -63,17 +63,15 @@
   },
   "/img/content/placeholder-ceremonies.jpg": {
     "key": "content/placeholder-ceremonies",
-    "width": 2048,
-    "height": 2048,
+    "width": 1024,
+    "height": 558,
     "widths": [
       400,
       640,
       900,
-      1280,
-      1600,
-      2048
+      1024
     ],
-    "digest": "c2383b6d3977364a"
+    "digest": "30896db976cad58c"
   },
   "/img/content/shiatsu-2.jpeg": {
     "key": "content/shiatsu-2",
