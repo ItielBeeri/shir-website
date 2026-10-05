@@ -13,6 +13,10 @@ interface Props {
 
 const { posts, label, ctaLabel, ctaHref } = Astro.props;
 
+const title = 'מהבלוג';
+// A kicker that repeats the title says nothing twice.
+const kicker = label.trim() === title ? undefined : label;
+
 function formatDate(date: Date): string {
   return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
@@ -21,8 +25,8 @@ function formatDate(date: Date): string {
 <section class="blog-teaser container" aria-labelledby="blog-teaser-heading">
   <div class="blog-teaser-header" data-reveal>
     <SectionHeading
-      kicker={label}
-      title="מהבלוג"
+      kicker={kicker}
+      title={title}
       id="blog-teaser-heading"
     />
     <a
