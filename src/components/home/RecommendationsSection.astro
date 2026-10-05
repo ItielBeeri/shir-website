@@ -212,9 +212,8 @@ const items = await Promise.all(
     box-shadow: 0 4px 18px rgba(34, 51, 42, 0.08);
   }
 
-  /* Horizontal strip. The breakpoint is the blog teaser's on purpose: the two
-     sit one above the other, and resizing past a width where one scrolls
-     sideways and the other does not reads as a bug. */
+  /* Horizontal strip below 600px. The blog teaser is a strip at every width,
+     so the two differ on wider screens by design. */
   @media (max-width: 599px) {
     .recommendations-wall {
       flex-wrap: nowrap;

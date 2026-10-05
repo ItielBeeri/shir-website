@@ -121,7 +121,7 @@ const currentPath = Astro.url.pathname;
     position: sticky;
     inset-block-start: 0;
     z-index: 100;
-    block-size: 72px;
+    block-size: var(--header-h);
     display: flex;
     align-items: center;
     isolation: isolate;
@@ -355,7 +355,6 @@ const currentPath = Astro.url.pathname;
   }
 
   @media (max-width: 767px) {
-    .site-header { block-size: 56px; }
     .desktop-nav { display: none; }
 
     /* Fixed independently of the header so it floats above the drawer. */

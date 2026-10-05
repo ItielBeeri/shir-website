@@ -268,7 +268,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
    * container's own padding is taken off.
    */
   .therapy-body {
-    padding-block: var(--space-section);
+    padding-block: 0 var(--space-section);
     max-inline-size: 104ch;
   }
 
@@ -285,6 +285,12 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     font-weight: 300;
     color: var(--color-ink);
     margin-block: 2.5rem 1rem;
+  }
+
+  /* The intro's bottom padding is the whole gap above the body; whatever opens
+     it (an h2 here, a paragraph there) must not add its own on top. */
+  .prose > :global(:first-child) {
+    margin-block-start: 0;
   }
 
   .prose :global(h3) {

@@ -69,6 +69,9 @@ const slug = entry.slug;
     padding-block: var(--space-section);
     text-decoration: none;
     color: inherit;
+    /* The identity chips link here. Only the padding may sit under the
+       header; the content lands where any other #fragment target does. */
+    scroll-margin-block-start: calc(-1 * var(--space-section));
   }
 
   .accent-overlay {

@@ -39,7 +39,7 @@ const recommendations = loadRecommendations();
 const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order - b.data.order);
 const blogPosts = sortBlogPosts(
   (await getCollection('blog')).filter((p) => !p.data.draft),
-).slice(0, 3);
+);
 ---
 
 <BaseLayout

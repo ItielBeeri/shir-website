@@ -25,8 +25,11 @@ function initReveal() {
       });
     },
     {
-      threshold: 0.08,
-      rootMargin: '0px 0px -3% 0px',
+      // Not a ratio: that is a fraction of the element's own height, so a tall
+      // one (the therapy body) needs hundreds of px on screen before it fires
+      // and stays hidden while its first paragraph is already in view.
+      threshold: 0,
+      rootMargin: '0px 0px -5% 0px',
     },
   );
 

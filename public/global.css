@@ -86,7 +86,12 @@
   --bp-xl:  1280px;
   --bp-xxl: 1600px;
 
+  --header-h: 72px;
+
   --dir-x: -1;
+}
+@media (max-width: 767px) {
+  :root { --header-h: 56px; }
 }
 
 /* ============================================================
@@ -128,8 +133,11 @@
   padding: 0;
 }
 
+/* The sticky header overlays the top of the viewport, so a #fragment link
+   would otherwise land its heading underneath it. */
 html {
   scroll-behavior: smooth;
+  scroll-padding-block-start: calc(var(--header-h) + 1rem);
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -274,6 +282,14 @@ blockquote {
     transform var(--dur-slow) var(--ease-soft);
 }
 [data-reveal].is-visible { opacity: 1; transform: translateY(0); }
+/* A #fragment jump measures its target before the reveal runs, so the offset
+   would then ease away under it and leave the target 40px too high. Dropping
+   it must not transition either: the scroll is aimed at the start value. */
+[data-reveal]:target,
+[data-reveal]:has(:target) {
+  transform: none;
+  transition: opacity var(--dur-slow) var(--ease-soft);
+}
 
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] { transform: none; transition: opacity 200ms ease; }

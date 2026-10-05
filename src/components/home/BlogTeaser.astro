@@ -39,6 +39,7 @@ function formatDate(date: Date): string {
   {posts.length === 0 ? (
     <p class="blog-empty">פוסטים יתווספו בקרוב.</p>
   ) : (
+    <div class="blog-strip">
     <div class="blog-grid" data-reveal data-stagger="80">
       {posts.map((post) => (
         <a
@@ -80,6 +81,17 @@ function formatDate(date: Date): string {
         </a>
       ))}
     </div>
+    {posts.length > 1 && (
+      <div class="blog-arrows" hidden>
+        <button type="button" class="blog-arrow blog-arrow--prev" data-dir="-1" aria-label="הפוסטים הקודמים">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button type="button" class="blog-arrow blog-arrow--next" data-dir="1" aria-label="הפוסטים הבאים">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    )}
+    </div>
   )}
 </section>
 
@@ -95,18 +107,70 @@ function formatDate(date: Date): string {
     gap: 1rem;
   }
 
+  .blog-strip { position: relative; }
+
+  /* Only where there is no touch scroll: a fine pointer that can hover. */
+  .blog-arrows { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .blog-arrows:not([hidden]) { display: block; }
+  }
+
+  .blog-arrow {
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--color-glass-stroke);
+    box-shadow: var(--shadow-soft);
+    color: var(--color-ink);
+    cursor: pointer;
+    opacity: 0.55;
+    position: absolute;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    z-index: 1;
+    transition: opacity var(--dur-base) var(--ease-soft),
+                scale var(--dur-base) var(--ease-soft);
+  }
+  .blog-strip:hover .blog-arrow,
+  .blog-arrow:focus-visible { opacity: 1; }
+  .blog-arrow:hover:not(:disabled) { scale: 1.08; }
+  .blog-arrow--prev { inset-inline-start: max(-22px, calc(-1 * clamp(1rem, 5vw, 4rem))); }
+  .blog-arrow--next { inset-inline-end: max(-22px, calc(-1 * clamp(1rem, 5vw, 4rem))); }
+  .blog-strip:hover .blog-arrow:disabled,
+  .blog-arrow:disabled { opacity: 0.12; cursor: default; }
+  @media (prefers-reduced-motion: reduce) {
+    .blog-arrow:hover:not(:disabled) { scale: 1; }
+  }
+  .blog-arrow svg { inline-size: 1.25rem; block-size: 1.25rem; }
+  /* The icon points right; "back" keeps that in RTL, "next" mirrors to ← */
+  .blog-arrow--prev svg { transform: scaleX(calc(-1 * var(--dir-x, -1))); }
+  .blog-arrow--next svg { transform: scaleX(var(--dir-x, -1)); }
+
   .blog-see-all {
     font-size: var(--fs-small);
     color: var(--color-ink-soft);
   }
 
+  /* Horizontal strip at every width; all posts are reachable by scrolling. */
   .blog-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
     gap: 1.5rem;
+    padding-block-end: 0.5rem;
+    scrollbar-width: none;
   }
+  .blog-grid::-webkit-scrollbar { display: none; }
 
-  .blog-tile { display: block; }
+  .blog-tile {
+    display: block;
+    flex: 0 0 calc((100% - 3rem) / 3);
+    scroll-snap-align: start;
+  }
   /* :global because the card's root element carries GlassCard's scope, not ours */
   .blog-tile :global(.glass-card) { block-size: 100%; }
 
@@ -178,25 +242,53 @@ function formatDate(date: Date): string {
     padding-block: 3rem;
   }
 
-  @media (max-width: 1023px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 1023px) { .blog-tile { flex-basis: calc((100% - 1.5rem) / 2); } }
   @media (max-width: 599px) {
     .blog-grid {
-      grid-template-columns: unset;
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
       gap: 1rem;
       /* Negative margin lets the strip bleed past the container padding. */
       padding-inline: clamp(1rem, 5vw, 4rem);
       margin-inline: calc(-1 * clamp(1rem, 5vw, 4rem));
-      scrollbar-width: none;
     }
-    .blog-grid::-webkit-scrollbar { display: none; }
     .blog-tile {
       flex: 0 0 80vw;
       max-inline-size: 320px;
-      scroll-snap-align: start;
     }
   }
 </style>
+
+<script>
+  const grid = document.querySelector<HTMLElement>('.blog-grid');
+  const arrows = document.querySelector<HTMLElement>('.blog-arrows');
+
+  if (grid && arrows) {
+    const prev = arrows.querySelector<HTMLButtonElement>('[data-dir="-1"]')!;
+    const next = arrows.querySelector<HTMLButtonElement>('[data-dir="1"]')!;
+
+    const update = () => {
+      const max = grid.scrollWidth - grid.clientWidth;
+      // Shown only when the strip overflows; scrollLeft is negative in RTL.
+      arrows.hidden = max <= 1;
+      const pos = Math.abs(grid.scrollLeft);
+      prev.disabled = pos <= 1;
+      next.disabled = pos >= max - 1;
+    };
+
+    arrows.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('.blog-arrow');
+      if (!btn) return;
+      const tile = grid.querySelector<HTMLElement>('.blog-tile');
+      const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+      const step = (tile ? tile.offsetWidth + gap : grid.clientWidth) * Number(btn.dataset.dir);
+      const sign = getComputedStyle(grid).direction === 'rtl' ? -1 : 1;
+      const reduced =
+        matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.documentElement.dataset.motion === 'off';
+      grid.scrollBy({ left: sign * step, behavior: reduced ? 'auto' : 'smooth' });
+    });
+
+    grid.addEventListener('scroll', update, { passive: true });
+    new ResizeObserver(update).observe(grid);
+    update();
+  }
+</script>
