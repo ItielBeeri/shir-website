@@ -448,6 +448,18 @@
     ],
     "digest": "bfccaebe616a4ea6"
   },
+  "/img/content/gentle-spiral-of-shared-energy.jpg": {
+    "key": "content/gentle-spiral-of-shared-energy",
+    "width": 1254,
+    "height": 1254,
+    "widths": [
+      400,
+      640,
+      900,
+      1254
+    ],
+    "digest": "01dbbe74b271dc3c"
+  },
   "/img/recommendations/recommendation-01.jpeg": {
     "key": "recommendations/recommendation-01",
     "width": 1080,
