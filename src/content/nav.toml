@@ -41,7 +41,7 @@ theme = "ceremonies"
 [[items]]
 label  = "המלצות"
 href   = "/recommendations"
-header = false
+header = true
 
 [[items]]
 label = "בלוג"
