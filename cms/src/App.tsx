@@ -344,10 +344,12 @@ function Screen({
 
   switch (screen.kind) {
     case 'toml':
+      // Keyed: React would otherwise reuse one form across screens, and what
+      // was typed into one would show up in the next.
       return screen.id === 'site' ? (
         <SiteDetails onSaved={saved} />
       ) : (
-        <TomlForm screen={screen} role={store.role} onSaved={saved} />
+        <TomlForm key={screen.id} screen={screen} role={store.role} onSaved={saved} />
       );
 
     case 'mdx':

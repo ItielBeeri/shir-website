@@ -3,9 +3,13 @@
  * which toml-edit's value splices cannot express.
  *
  * `images.toml` carries owner comments, so entries are appended and never
- * rewritten. `recommendations.toml` has none, which is what lets its blocks be
- * cut and recomposed for drag-to-reorder; if a comment is ever added to that
- * file this approach has to change, and the round-trip gate will say so.
+ * rewritten. `recommendations.toml` has none inside its entries, which is what
+ * lets its blocks be cut and recomposed for drag-to-reorder; if a comment is
+ * ever added to one this approach has to change, and the round-trip gate will
+ * say so. Everything above the first entry - its comments and the `[kicker]`
+ * settings - is the untouched `head`, and has to stay above it: a block runs
+ * to the next block or the end of the file, so a table after the last entry
+ * would travel with that entry.
  */
 import { parseTOML } from 'toml-eslint-parser';
 

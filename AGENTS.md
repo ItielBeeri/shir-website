@@ -110,7 +110,7 @@ Editable content lives in `src/content/` and is parsed at build time. **Componen
 | `site.toml` | **The single source of truth for brand name and contact details.** `seo.ts` and every layout component read it - never hardcode a phone number, address or URL. |
 | `nav.toml` | The single source of truth for page names and their order, for **both** the header and the footer. `header = false` makes an item footer-only. |
 | `images.toml` | Image manifest: stable id → `file` under `public/`, Hebrew `alt`, optional `credit`. Components take an **id** and render via `SoftImage`, never a raw path. This is why alt text is content, not a prop. |
-| `recommendations.toml` | Self-contained recommendations - screenshot path, alt, transcription, `relatedTherapies`, `active`. **File order is display order**; `loadRecommendations()` preserves it and callers must not re-sort. Retire one with `active = false` rather than deleting it. |
+| `recommendations.toml` | Self-contained recommendations - screenshot path, alt, transcription, `relatedTherapies`, `active`. **File order is display order**; `loadRecommendations()` preserves it and callers must not re-sort. Retire one with `active = false` rather than deleting it. Its `[kicker]` tables set the line over every recommendations heading, shared and per place, via `recommendationsKicker()`; they must stay above the first entry (`cms/src/content/toml-struct.ts`). |
 | `pages/*.toml` | Per-page copy: home, about, contact, 404, accessibility, terms. |
 | `therapies/*.mdx` | One per modality; filename is the slug and the URL. |
 | `blog/*.mdx` | Hebrew filenames. Ordering is centralized in `sortBlogPosts()` (`src/lib/blog.ts`) and shared by the blog index and home teaser - never re-sort at a call site. |

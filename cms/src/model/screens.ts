@@ -6,7 +6,7 @@
  * site copy - it is the one place in this repo where Hebrew is written by a
  * maintainer rather than by the owner.
  */
-import type { Screen } from './types.js';
+import type { FieldGroup, Screen } from './types.js';
 import { THERAPY_OPTIONS } from './types.js';
 
 const CONTENT = 'src/content';
@@ -17,6 +17,24 @@ const CONTENT = 'src/content';
  * that emptying the field is how a platform is removed.
  */
 const DROPS_IF_EMPTY = 'אפשר להשאיר ריק - אז הקישור פשוט לא יופיע באתר';
+
+/**
+ * One kind of page's own say over the line above its recommendations heading.
+ * The precedence is `recommendationsKicker()` in the site's own lib.
+ */
+const kickerPlace = (place: string, title: string, where: string): FieldGroup => ({
+  title,
+  fields: [
+    { key: `kicker.${place}.shown`, path: ['kicker', place, 'shown'], label: `המשפט ${where}`, type: 'boolean' },
+    {
+      key: `kicker.${place}.text`,
+      path: ['kicker', place, 'text'],
+      label: `נוסח אחר ${where}`,
+      help: 'אפשר להשאיר ריק - אז יופיע כאן המשפט הכללי',
+      type: 'text',
+    },
+  ],
+});
 
 export const screens: Screen[] = [
   {
@@ -67,6 +85,32 @@ export const screens: Screen[] = [
     icon: 'quote',
     kind: 'recommendations',
     file: `${CONTENT}/recommendations.toml`,
+    // The cards are the screen's own list; these are the line above them.
+    groups: [
+      {
+        title: 'המשפט מעל הכותרת «המלצות»',
+        help: 'מופיע בדף הבית, בעמודי הטיפולים ובעמוד ההמלצות',
+        fields: [
+          {
+            key: 'kicker.shown',
+            path: ['kicker', 'shown'],
+            label: 'בכל האתר',
+            help: 'כיבוי מסתיר את המשפט בכל המקומות בבת אחת, גם איפה שנכתב נוסח אחר',
+            type: 'boolean',
+          },
+          {
+            key: 'kicker.text',
+            path: ['kicker', 'text'],
+            label: 'המשפט הכללי',
+            help: 'נכתב כאן פעם אחת ומופיע בכל המקומות, חוץ ממקום שנכתב לו נוסח אחר',
+            type: 'text',
+          },
+        ],
+      },
+      kickerPlace('home', 'דף הבית', 'בדף הבית'),
+      kickerPlace('therapy_pages', 'עמודי הטיפולים', 'בעמודי הטיפולים'),
+      kickerPlace('recommendations_page', 'עמוד ההמלצות', 'בעמוד ההמלצות'),
+    ],
   },
   {
     id: 'images',

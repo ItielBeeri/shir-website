@@ -10,7 +10,7 @@ import SectionHeading from '../components/ui/SectionHeading.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
 import { loadToml } from '../lib/content';
-import { loadRecommendations } from '../lib/recommendations';
+import { loadRecommendations, recommendationsKicker } from '../lib/recommendations';
 import { imageSources } from '../lib/images';
 import { z } from 'zod';
 import { personSchema, jsonLd } from '../lib/seo';
@@ -28,6 +28,7 @@ const recommendations = loadRecommendations().map((rec) => ({
   ...rec,
   sources: imageSources(rec.screenshot),
 }));
+const kicker = recommendationsKicker('recommendations_page');
 
 /** Card width in the masonry: near-full-bleed on a phone, ~420px in the grid. */
 const REC_SIZES = '(max-width: 767px) 92vw, 420px';
@@ -46,7 +47,7 @@ const REC_SIZES = '(max-width: 767px) 92vw, 420px';
   <main id="main">
     <section class="recs-page-intro container" aria-labelledby="recommendations-page-h1">
       <div class="recs-page-intro__content">
-        <p class="text-kicker">מילים מאנשים שפגשו את הדרך</p>
+        {kicker && <p class="text-kicker">{kicker}</p>}
         <h1 id="recommendations-page-h1" class="recs-page-title">המלצות</h1>
         <div class="recs-rule" aria-hidden="true">
           <svg viewBox="0 0 320 12" preserveAspectRatio="none" class="hero-rule-svg">

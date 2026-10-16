@@ -13,7 +13,7 @@ import SectionHeading from '../components/ui/SectionHeading.astro';
 import ScrollReveal from '../components/ui/ScrollReveal.astro';
 import { getCollection } from 'astro:content';
 import { loadToml } from '../lib/content';
-import { loadRecommendations } from '../lib/recommendations';
+import { loadRecommendations, recommendationsKicker } from '../lib/recommendations';
 import { sortBlogPosts } from '../lib/blog';
 import { z } from 'zod';
 import { personSchema, localBusinessSchema, jsonLd } from '../lib/seo';
@@ -76,7 +76,10 @@ const blogPosts = sortBlogPosts(
 
     <BreathDivider />
 
-    <RecommendationsSection recommendations={recommendations} />
+    <RecommendationsSection
+      recommendations={recommendations}
+      kicker={recommendationsKicker('home')}
+    />
 
     <BreathDivider />
 

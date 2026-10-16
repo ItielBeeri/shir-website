@@ -52,13 +52,15 @@ describe('content model', () => {
     }
   });
 
+  // The third column: keys a screen edits as its own list rather than as fields.
   describe.each([
-    ['src/content/pages/home.toml', 'home'],
-    ['src/content/pages/contact.toml', 'contact'],
-    ['src/content/pages/404.toml', 'notfound'],
-    ['src/content/site.toml', 'site'],
-  ])('%s', (file, screenId) => {
-    const live = leafKeys(parseToml(read(file))).filter(Boolean);
+    ['src/content/pages/home.toml', 'home', []],
+    ['src/content/pages/contact.toml', 'contact', []],
+    ['src/content/pages/404.toml', 'notfound', []],
+    ['src/content/site.toml', 'site', []],
+    ['src/content/recommendations.toml', 'recommendations', ['recommendations']],
+  ])('%s', (file, screenId, lists: string[]) => {
+    const live = leafKeys(parseToml(read(file))).filter((key) => key && !lists.includes(key));
     const screen = screens.find((s) => s.id === screenId)!;
     const modelled = new Set(
       (screen.groups ?? []).flatMap((g) => g.fields.map((f) => (f.path ?? []).join('.'))),

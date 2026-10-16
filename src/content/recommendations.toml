@@ -1,3 +1,30 @@
+# המשפט הקטן שמעל הכותרת «המלצות» - בדף הבית, בעמודי הטיפולים ובעמוד ההמלצות.
+# text הוא המשפט, ונכתב כאן פעם אחת לכל המקומות.
+# shown = false מסתיר אותו בכל המקומות בבת אחת, גם איפה שנכתב נוסח אחר.
+[kicker]
+shown = true
+text  = "מילים מאנשים שפגשו את הדרך"
+
+# ולכל מקום הגדרה משלו: shown = false מסתיר את המשפט רק שם,
+# ו-text שאינו ריק מופיע שם במקום המשפט הכללי. text ריק - המשפט הכללי.
+
+# דף הבית
+[kicker.home]
+shown = true
+text  = ""
+
+# עמודי הטיפולים
+[kicker.therapy_pages]
+shown = true
+text  = ""
+
+# עמוד ההמלצות
+[kicker.recommendations_page]
+shown = true
+text  = ""
+
+# ההמלצות עצמן, בסדר שבו הן מוצגות באתר.
+
 [[recommendations]]
 id = "recommendation-01"
 screenshot = "/img/recommendations/recommendation-01.jpeg"

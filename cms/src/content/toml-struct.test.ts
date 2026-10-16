@@ -161,6 +161,23 @@ describe('recommendations.toml', () => {
     expect(() => replaceRecommendation(src, target, rec('something-else'))).toThrow();
   });
 
+  it('keeps everything above the first entry byte-identical', () => {
+    const src = recs();
+    const head = src.slice(0, src.indexOf('[[recommendations]]'));
+    // Settings below the entries would ride along with the last one.
+    expect((parseSmol(head) as any).kicker).toEqual((parseSmol(src) as any).kicker);
+
+    const ids = recommendationIds(src);
+    for (const out of [
+      appendRecommendation(src, rec('recommendation-92')),
+      reorderRecommendations(src, [...ids].reverse()),
+      replaceRecommendation(src, ids[0], { ...rec(ids[0]), transcription: 'טקסט חדש' }),
+      deleteRecommendation(src, ids[0]),
+    ]) {
+      expect(out.startsWith(head)).toBe(true);
+    }
+  });
+
   it('derives the next id so the owner never invents one', () => {
     const src = recs();
     const next = nextRecommendationId(src);

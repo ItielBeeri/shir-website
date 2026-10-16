@@ -14,10 +14,14 @@
  * File order is display order (`loadRecommendations` does not re-sort), so the
  * list here is the list a visitor sees.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, FriendlyError } from '../api';
 import { useStore } from '../store';
 import { setValue } from '../content/toml-edit';
+import { FieldInput } from '../components/Fields';
+import { DraftOffer } from '../lib/unsaved';
+import { useTomlFields } from '../lib/toml-fields';
+import { screenById } from '../model/screens';
 import {
   appendRecommendation,
   deleteRecommendation,
@@ -32,6 +36,8 @@ import { THERAPY_OPTIONS } from '../model/types';
 
 const FILE = 'src/content/recommendations.toml';
 const DIR = 'public/img/recommendations';
+/** The `Trouble` id of the kicker settings, which belong to no card. */
+const KICKER = 'kicker';
 
 interface Rec {
   id: string;
@@ -209,6 +215,13 @@ export function Recommendations(): JSX.Element {
     if (ok) setConfirming(null);
   }
 
+  const saveKicker = (splice: (src: string) => string): Promise<boolean> =>
+    act(KICKER, 'לא הצלחתי לשמור.', async () => {
+      const next = splice(source!);
+      await api.save('עדכון המשפט מעל הכותרת', [{ path: FILE, content: next }]);
+      adopt(next);
+    });
+
   const shotUrl = (rec: Rec): string =>
     fresh[rec.id] ?? rawUrl(store.repo, 'content-draft', rec.screenshot);
 
@@ -236,6 +249,13 @@ export function Recommendations(): JSX.Element {
         />
         <span>+ הוספת המלצה</span>
       </label>
+
+      <KickerSettings
+        source={source}
+        busy={busy}
+        error={trouble?.id === KICKER ? trouble.message : null}
+        onSave={saveKicker}
+      />
 
       <ul className="recs">
         {items.map((rec, i) => (
@@ -505,5 +525,94 @@ function RecForm({
         {missing && <p className="invalid">צריך גם את הטקסט וגם תיאור קצר.</p>}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------ the kicker line ------------------------------ */
+
+const KICKER_GROUPS = screenById('recommendations').groups ?? [];
+
+/**
+ * The line above the heading wherever recommendations show. One row until it
+ * is opened, because the screen is for the cards; the row says what the
+ * visitor sees now, so most visits need not open it at all.
+ */
+function KickerSettings({
+  source,
+  busy,
+  error,
+  onSave,
+}: {
+  source: string;
+  busy: boolean;
+  error: string | null;
+  onSave: (splice: (src: string) => string) => Promise<boolean>;
+}): JSX.Element | null {
+  const [general, ...places] = KICKER_GROUPS;
+  const fields = useMemo(() => KICKER_GROUPS.flatMap((g) => g.fields), []);
+  const form = useTomlFields(FILE, fields, source);
+  const [open, setOpen] = useState(false);
+
+  // Work kept from an earlier visit is offered inside; a closed row would hide it.
+  const offered = form.draft.offered !== null;
+  useEffect(() => {
+    if (offered) setOpen(true);
+  }, [offered]);
+
+  // A draft begun before the file had these settings has nothing to splice into.
+  if (!general || fields.every((f) => form.values[f.key] === undefined)) return null;
+
+  const [shownField, textField] = general.fields;
+  const shared = String(form.values[textField.key] ?? '').trim();
+  const exceptions = places.flatMap((g) => {
+    const [placeShown, placeText] = g.fields;
+    if (form.values[placeShown.key] === false) return [`${g.title}: מוסתר`];
+    if (String(form.values[placeText.key] ?? '').trim()) return [`${g.title}: נוסח אחר`];
+    return [];
+  });
+  const state = form.values[shownField.key] === false
+    ? 'מוסתר בכל האתר'
+    : [shared ? `«${shared}»` : 'בלי משפט כללי', ...exceptions].join(' · ');
+
+  const field = (f: (typeof fields)[number]): JSX.Element => (
+    <FieldInput key={f.key} field={f} value={form.values[f.key]} onChange={(v) => form.set(f.key, v)} />
+  );
+
+  return (
+    <details
+      className="group kicker-settings"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary>
+        {general.title}
+        <span className="muted">{state}</span>
+      </summary>
+
+      <DraftOffer keeper={form.draft} onRestore={form.restore} />
+      {general.help && <p className="help muted">{general.help}</p>}
+      {general.fields.map(field)}
+
+      {places.map((group) => (
+        <div key={group.title}>
+          <h3 className="section-heading">{group.title}</h3>
+          {group.fields.map(field)}
+        </div>
+      ))}
+
+      {error && <p className="banner error" role="alert">{error}</p>}
+      <div className="save-row">
+        <button
+          className="primary"
+          disabled={!form.dirty || busy}
+          onClick={async () => {
+            if (await onSave(form.splice)) form.settle();
+          }}
+        >
+          {busy ? 'שומר…' : 'שמירה'}
+        </button>
+        {!form.dirty && !busy && <span className="muted">אין שינויים לשמור.</span>}
+      </div>
+    </details>
   );
 }

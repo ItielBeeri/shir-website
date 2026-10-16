@@ -379,6 +379,8 @@
   flex-wrap: wrap;
   margin-block: 8px 16px;
 }
+.kicker-settings > summary { cursor: pointer; font-weight: 600; padding-block: 8px; }
+.kicker-settings > summary .muted { display: block; font-weight: 400; margin-block-start: 2px; }
 
 .pending-list li, .history li, .nav-items li {
   display: flex;
