@@ -217,6 +217,29 @@ const resolvedSizes = authoredSizes
     display: none;
   }
 
+  /* While floating: the complement of the query below. */
+  @media not all and (max-width: 768px) {
+    /*
+     * A list beside a float shares its top: level with the letters of its
+     * first line, which stand about an x-height tall mid-way down a taller
+     * line box. The margin a page's prose gives a bare <img> would push the
+     * picture down inside its own frame. Not every float: beside a blank line
+     * or a heading, this would lift the picture above the text.
+     */
+    .soft-image--float:has(+ :is(ul, ol)) {
+      margin-block-start: calc((var(--lh-body) * 1em - 1ex) / 2);
+    }
+
+    .soft-image--float:has(+ :is(ul, ol)) .soft-image__img {
+      margin-block: 0;
+    }
+
+    /* Markers hang outside a list's text, into the indent its page declares. */
+    .soft-image--float-start:has(+ :is(ul, ol)) {
+      margin-inline-end: calc(1.5rem + var(--list-indent, 0px));
+    }
+  }
+
   @media (max-width: 768px), (max-inline-size: 600px) {
     .soft-image--float {
       float: none;

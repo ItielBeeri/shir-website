@@ -277,6 +277,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     line-height: var(--lh-body);
     color: var(--color-ink-soft);
     display: flow-root;
+    --list-indent: 1.5rem;
   }
 
   .prose :global(h2) {
@@ -309,7 +310,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 
   .prose :global(ol),
   .prose :global(ul) {
-    padding-inline-start: 1.5rem;
+    padding-inline-start: var(--list-indent);
     margin-block-end: 1.25rem;
   }
 
