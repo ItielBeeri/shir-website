@@ -240,6 +240,7 @@ function pmToBlock(node: PmNode): Block {
           aspect: String(node.attrs?.aspect ?? '4/3'),
           float: (node.attrs?.float as 'start' | 'end' | undefined) || undefined,
           width: node.attrs?.width ? String(node.attrs.width) : undefined,
+          stack: node.attrs?.stack === 'after' ? 'after' : undefined,
         }),
       };
     case 'rawBlock':

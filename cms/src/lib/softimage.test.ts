@@ -26,9 +26,21 @@ describe('SoftImage props', () => {
     expect(place('start', undefined)).toEqual({ float: 'start', width: '360' });
   });
 
+  it('writes the phone position only with a float, and keeps it across a change of placement', () => {
+    const props = parseSoftImage('<SoftImage id="a" aspect="3/4" float="start" width="360" stack="after" />')!;
+    expect(props.stack).toBe('after');
+    expect(renderSoftImage({ ...props, ...place('centre', props.width) })).toBe(
+      '<SoftImage id="a" aspect="3/4" width="360" />',
+    );
+    expect(renderSoftImage({ ...props, ...place('end', props.width) })).toBe(
+      '<SoftImage id="a" aspect="3/4" float="end" width="360" stack="after" />',
+    );
+  });
+
   it.each([
     '<SoftImage id="a" aspect="3/4" width="360" />',
     '<SoftImage id="a" aspect="3/4" float="end" width="340" />',
+    '<SoftImage id="a" aspect="3/4" float="start" width="360" stack="after" />',
     '<SoftImage id="a" aspect="16/9" />',
   ])('round-trips %s', (source) => {
     expect(renderSoftImage(parseSoftImage(source)!)).toBe(source);

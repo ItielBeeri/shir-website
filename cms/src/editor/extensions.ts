@@ -67,6 +67,7 @@ export const SoftImageNode = Node.create({
     aspect: { default: '4/3' },
     float: { default: undefined },
     width: { default: undefined },
+    stack: { default: undefined },
   }),
   parseHTML: () => [{ tag: 'div[data-soft-image]' }],
   renderHTML: ({ HTMLAttributes }) => ['div', mergeAttributes(HTMLAttributes, { 'data-soft-image': '' })],

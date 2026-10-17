@@ -288,8 +288,10 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   }
 
   /* The intro's bottom padding is the whole gap above the body; whatever opens
-     it (an h2 here, a paragraph there) must not add its own on top. */
-  .prose > :global(:first-child) {
+     it (an h2 here, a paragraph there) must not add its own on top - nor what
+     follows an opening image that phones do not show there. */
+  .prose > :global(:first-child),
+  .prose > :global(.soft-image--wide-only:first-child + *) {
     margin-block-start: 0;
   }
 

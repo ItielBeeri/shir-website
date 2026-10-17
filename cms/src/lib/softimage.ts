@@ -10,6 +10,11 @@ export interface SoftImageProps {
   float?: 'start' | 'end';
   /** In px. Absent, with no float, means the full width of the text. */
   width?: string;
+  /**
+   * A phone has no room beside a float, so the site stacks it above its text;
+   * "after" puts it after the next paragraph instead. Written only with a float.
+   */
+  stack?: 'after';
 }
 
 export const ASPECTS = [
@@ -59,6 +64,7 @@ export function parseSoftImage(source: string): SoftImageProps | null {
     // The site reads `floatWidth` as `width` too: the retired editing guide
     // teaches it, so a file can still carry it.
     width: attr(source, 'width') ?? attr(source, 'floatWidth'),
+    stack: attr(source, 'stack') === 'after' ? 'after' : undefined,
   };
 }
 
@@ -66,5 +72,6 @@ export function renderSoftImage(props: SoftImageProps): string {
   const parts = [`id="${props.id}"`, `aspect="${props.aspect}"`];
   if (props.float) parts.push(`float="${props.float}"`);
   if (props.float || props.width) parts.push(`width="${props.width || DEFAULT_WIDTH}"`);
+  if (props.float && props.stack) parts.push(`stack="${props.stack}"`);
   return `<SoftImage ${parts.join(' ')} />`;
 }

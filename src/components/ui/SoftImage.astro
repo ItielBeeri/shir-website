@@ -32,6 +32,11 @@ interface Props {
   width?: string;
   /** The same as `width`: the name the owner's editing guide teaches. */
   floatWidth?: string;
+  /**
+   * Set by scripts/remark-stack-after.mjs, never authored: this copy renders
+   * only while floats float (`wide`) or only once they stack (`narrow`).
+   */
+  only?: 'wide' | 'narrow';
 }
 
 const imagesSchema = z.record(z.string(), z.object({
@@ -54,6 +59,7 @@ const {
   float,
   width: authoredWidth,
   floatWidth,
+  only,
 } = Astro.props;
 
 const slotWidth = authoredWidth ?? floatWidth ?? (float ? '280' : undefined);
@@ -107,6 +113,7 @@ const resolvedSizes = authoredSizes
     float && 'soft-image--float',
     float && `soft-image--float-${float}`,
     centred && 'soft-image--centred',
+    only && `soft-image--${only}-only`,
     className
   ]}
   style={`
@@ -206,12 +213,24 @@ const resolvedSizes = authoredSizes
     clear: both;
   }
 
+  .soft-image--narrow-only {
+    display: none;
+  }
+
   @media (max-width: 768px), (max-inline-size: 600px) {
     .soft-image--float {
       float: none;
       width: 100%;
       margin-inline: 0;
       margin-block-end: 1.5rem;
+    }
+
+    .soft-image--wide-only {
+      display: none;
+    }
+
+    .soft-image--narrow-only {
+      display: block;
     }
   }
 

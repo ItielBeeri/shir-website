@@ -63,6 +63,7 @@ function WidthField({ value, onChange }: { value: string; onChange: (width: stri
 
 function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element {
   const store = useStore();
+  const id = useId();
   const [picking, setPicking] = useState(false);
   const url = store.urlFor(node.attrs.id, 80);
   const alt = store.gallery.find((g) => g.id === node.attrs.id)?.alt;
@@ -111,6 +112,17 @@ function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element
             value={node.attrs.width || DEFAULT_WIDTH}
             onChange={(width) => updateAttributes({ width })}
           />
+        )}
+        {(placement === 'start' || placement === 'end') && (
+          <div className="switch">
+            <input
+              id={`${id}-stack`}
+              type="checkbox"
+              checked={node.attrs.stack === 'after'}
+              onChange={(e) => updateAttributes({ stack: e.target.checked ? 'after' : undefined })}
+            />
+            <label htmlFor={`${id}-stack`}>בטלפון, להציג אחרי הפסקה הבאה (במחשב היא נשארת בצד)</label>
+          </div>
         )}
       </div>
 

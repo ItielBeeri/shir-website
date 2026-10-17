@@ -7,13 +7,14 @@ import remarkBreaks from 'remark-breaks';
 import remarkUnderscoreItalic from './scripts/remark-underscore-italic.mjs';
 import remarkBlankLines from './scripts/remark-blank-lines.mjs';
 import remarkExternalLinks from './scripts/remark-external-links.mjs';
+import remarkStackAfter from './scripts/remark-stack-after.mjs';
 
 const site = 'https://www.shir-amitai.com';
 
 export default defineConfig({
   site,
   markdown: {
-    remarkPlugins: [remarkBreaks, remarkUnderscoreItalic, remarkBlankLines, [remarkExternalLinks, { site }]],
+    remarkPlugins: [remarkBreaks, remarkUnderscoreItalic, remarkBlankLines, remarkStackAfter, [remarkExternalLinks, { site }]],
   },
   integrations: [
     mdx(),
