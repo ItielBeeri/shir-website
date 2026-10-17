@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { allBlocks, parseMdx, serializeMdx } from './mdx-edit';
 import { docToPm, pmToDoc } from './pm-convert';
 import type { PmNode } from './pm-convert';
+import { getSchema } from '@tiptap/core';
 import { extensions } from '../editor/extensions';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { mdxFromMarkdown } from 'mdast-util-mdx';
@@ -319,4 +320,150 @@ describe('blank lines', () => {
       expect(editor).toEqual(site);
     },
   );
+});
+
+/**
+ * A framed section is a body within the body: everything above holds inside
+ * one too, and its tags stand on lines of their own, a blank line inside each.
+ */
+describe('framed sections', () => {
+  const fm = '---\ntitle: "x"\n---\n';
+  const FRAMED = `${fm}
+פתיחה
+
+<FramedSection tone="lavender" width="narrow">
+
+## הכשרה והסמכות
+
+שורה ראשונה
+שורה *שנייה*
+
+
+- ביוסינתזה
+- שיאצו
+
+<SoftImage id="shiatsu-1" aspect="3/4" float="start" width="360" />
+
+אחרי התמונה
+
+</FramedSection>
+
+באמצע
+
+<FramedSection align="center">
+
+רק פסקה
+
+</FramedSection>
+`;
+  const emit = (pm: PmNode): string => {
+    const doc = pmToDoc(pm, fm);
+    return serializeMdx(doc, allBlocks(doc));
+  };
+  const para = (text: string, gap?: string): PmNode => ({
+    type: 'paragraph',
+    ...(gap === undefined ? {} : { attrs: { gap } }),
+    content: [{ type: 'text', text }],
+  });
+  const frame = (content: PmNode[], attrs: Record<string, unknown> = {}): PmNode => ({ type: 'framedSection', attrs, content });
+  const shape = (nodes: PmNode[] = []): string[] =>
+    nodes.map((n) => (n.type === 'paragraph' && !n.content?.length ? 'blank' : n.type));
+  const kinds = (segments: ReturnType<typeof parseMdx>['segments']): string[] =>
+    segments.flatMap((s) => (s.type === 'block' ? [s.block.kind] : []));
+  const schema = getSchema(extensions);
+
+  it('survives a full round trip byte-identically', () => {
+    expect(serializeMdx(parseMdx(FRAMED))).toBe(FRAMED);
+    expect(roundTrip(FRAMED)).toBe(FRAMED);
+  });
+
+  it('opens as a frame node holding editable blocks, its props as attributes', () => {
+    const pm = docToPm(parseMdx(FRAMED));
+    expect(shape(pm.content)).toEqual(['paragraph', 'framedSection', 'paragraph', 'framedSection']);
+    const [, first, , second] = pm.content!;
+    expect(first.attrs).toMatchObject({ tone: 'lavender', width: 'narrow' });
+    expect(second.attrs).toMatchObject({ align: 'center' });
+    expect(shape(first.content)).toEqual(['heading', 'paragraph', 'blank', 'bulletList', 'softImage', 'paragraph']);
+    expect(() => schema.nodeFromJSON(pm).check()).not.toThrow();
+  });
+
+  it('may stand only in the body itself, never in a list item or another frame', () => {
+    const item = { type: 'listItem', content: [para('א'), frame([para('ב')])] };
+    expect(() => schema.nodeFromJSON({ type: 'doc', content: [{ type: 'bulletList', content: [item] }] }).check()).toThrow();
+    expect(() => schema.nodeFromJSON({ type: 'doc', content: [frame([frame([para('ב')])])] }).check()).toThrow();
+  });
+
+  it('writes a frame made in the editor with its tags on lines of their own, and settles', () => {
+    const out = emit({
+      type: 'doc',
+      content: [para('לפני', '\n'), frame([para('אחת'), para('שתיים')], { tone: 'rose' }), para('אחרי')],
+    });
+    expect(out).toBe(`${fm}\nלפני\n\n<FramedSection tone="rose">\n\nאחת\n\nשתיים\n\n</FramedSection>\n\nאחרי\n`);
+    expect(roundTrip(out)).toBe(out);
+  });
+
+  it('widens a gap just inside either tag to a blank line', () => {
+    const out = emit({
+      type: 'doc',
+      content: [frame([para('אחת', '\n'), para('שתיים', '\n')], { trailing: '\n' })],
+    });
+    expect(out).toBe(`${fm}<FramedSection>\n\nאחת\n\nשתיים\n\n</FramedSection>\n`);
+  });
+
+  it('reads back a frame that ends in a list as that frame, and what follows as outside it', () => {
+    const list: PmNode = {
+      type: 'bulletList',
+      content: ['א', 'ב'].map((t) => ({ type: 'listItem', content: [para(t)] })),
+    };
+    const out = emit({ type: 'doc', content: [frame([list], { trailing: '\n' }), para('אחרי', '\n')] });
+    const doc = parseMdx(out);
+    expect(kinds(doc.segments)).toEqual(['frame', 'paragraph']);
+    const framed = doc.segments.find((s) => s.type === 'block' && s.block.kind === 'frame');
+    expect(framed?.type === 'block' && framed.block.kind === 'frame' && kinds(framed.block.segments)).toEqual(['list']);
+  });
+
+  it('keeps a frame she emptied, look and all, and opens it again with a line to type on', () => {
+    const out = emit({
+      type: 'doc',
+      content: [para('אחת', '\n'), frame([{ type: 'paragraph', attrs: { gap: '' } }], { tone: 'rose' }), para('שתיים')],
+    });
+    expect(out).toBe(`${fm}\nאחת\n\n<FramedSection tone="rose">\n\n</FramedSection>\n\nשתיים\n`);
+    expect(roundTrip(out)).toBe(out);
+    const pm = docToPm(parseMdx(out));
+    expect(shape(pm.content)).toEqual(['paragraph', 'framedSection', 'paragraph']);
+    expect(pm.content![1].attrs).toMatchObject({ tone: 'rose' });
+    expect(shape(pm.content![1].content)).toEqual(['blank']);
+    expect(() => schema.nodeFromJSON(pm).check()).not.toThrow();
+  });
+
+  it('carries the props the controls set, and only those', () => {
+    const out = emit({ type: 'doc', content: [frame([para('א')], { tone: 'moss', width: 'wide', align: 'center' })] });
+    expect(out).toContain('<FramedSection tone="moss" align="center">');
+  });
+
+  it.each([
+    ['an attribute the controls do not offer', '<FramedSection id="x">\n\nא\n\n</FramedSection>'],
+    ['a frame inside a frame', '<FramedSection>\n\n<FramedSection>\n\nא\n\n</FramedSection>\n\n</FramedSection>'],
+    ['no closing tag of its own', '<FramedSection />'],
+  ])('keeps a frame with %s as written, untouchable', (_label, body) => {
+    const src = `${fm}\nלפני\n\n${body}\n`;
+    const pm = docToPm(parseMdx(src));
+    expect(shape(pm.content)).toEqual(['paragraph', 'rawBlock']);
+    expect(roundTrip(src)).toBe(src);
+  });
+
+  /** As 'agrees with the site' above, one level down. */
+  it('agrees with the site on where every line of space goes inside a frame', async () => {
+    const plugin = readFileSync(join(__dirname, '../../../scripts/remark-blank-lines.mjs'), 'utf8');
+    const { default: remarkBlankLines } = await import(
+      /* @vite-ignore */ `data:text/javascript,${encodeURIComponent(plugin)}`
+    );
+    const tree = fromMarkdown(FRAMED.slice(fm.length), { extensions: [mdxjs()], mdastExtensions: [mdxFromMarkdown()] });
+    remarkBlankLines()(tree);
+    const site = (nodes: any[]): unknown[] =>
+      nodes.map((n) => (n.type === 'blankLine' ? 'blank' : n.name === 'FramedSection' ? site(n.children) : 'block'));
+    const editor = (nodes: PmNode[] = []): unknown[] =>
+      nodes.map((n) => (n.type === 'framedSection' ? editor(n.content) : shape([n])[0] === 'blank' ? 'blank' : 'block'));
+    expect(editor(docToPm(parseMdx(FRAMED)).content)).toEqual(site(tree.children));
+  });
 });

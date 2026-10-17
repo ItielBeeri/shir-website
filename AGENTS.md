@@ -128,7 +128,7 @@ UI primitives (`ui/`, `layout/`) are the building blocks; page-level components 
 - **Icon** takes either `label` (→ `role="img"`) or `decorative` (→ `aria-hidden`). New icons: single color, `stroke="currentColor"`, no fills, `stroke-width="1.5"`, rounded caps.
 - **ContactPill** and **BackgroundField** are singletons - reuse, don't reimplement.
 - **TherapyPage** and **LegalPage** are shared templates; their pages are thin wrappers. Add a page of that kind by adding a wrapper, not a new template.
-- **MDX body components** are passed in via `<Content components={{ SoftImage }} />` in `TherapyPage.astro` and `blog/[slug].astro`. To use another component inside body copy, add it to both maps.
+- **MDX body components** are passed in via `<Content components={{ SoftImage, FramedSection }} />` in `TherapyPage.astro`, `blog/[slug].astro` and `about.astro`; another one goes in all three maps. **FramedSection** is the GlassCard look as a block the owner wraps around her own copy; `remark-blank-lines` and `remark-stack-after` treat its contents as a body of their own, and so must any plugin that walks the body's blocks.
 
 ### 6.1 Responsive images
 
@@ -195,4 +195,4 @@ Two layers, gated differently because the law treats them differently. **Vercel 
 
 It commits to `content-draft`, previews, then applies only the paths it changed onto `master` - never a whole-tree swap, which would revert the `images.yml` bot. Its server-side proxy is the permission model: writes outside `src/content/**` and `public/img/**` are rejected there, so §1.7-style "don't touch" rules need no owner discipline.
 
-**Anything owner-editable that changes shape - a TOML key, a frontmatter field, a folder layout, a `.prose` rule - must update `cms/` in the same commit**, or the editor writes content the site no longer renders. Its rich-text editor may only offer constructs `.prose` styles: h2, h3, `ul`, `ol`, the three emphasis marks, links and `SoftImage`. No `h1` (the page template owns it), no fourth level. A link is made only through its link control - `[text](url)` typed as text still ships escaped - and one that leaves the site opens in a new tab and says so (`scripts/remark-external-links.mjs`), like every other outbound link.
+**Anything owner-editable that changes shape - a TOML key, a frontmatter field, a folder layout, a `.prose` rule - must update `cms/` in the same commit**, or the editor writes content the site no longer renders. Its rich-text editor may only offer constructs `.prose` styles: h2, h3, `ul`, `ol`, the three emphasis marks, links, `SoftImage` and `FramedSection` (in the body only, never nested). No `h1` (the page template owns it), no fourth level. A link is made only through its link control - `[text](url)` typed as text still ships escaped - and one that leaves the site opens in a new tab and says so (`scripts/remark-external-links.mjs`), like every other outbound link.

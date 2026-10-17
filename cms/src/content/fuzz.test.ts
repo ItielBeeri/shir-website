@@ -33,6 +33,7 @@ import { gfm } from 'micromark-extension-gfm';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { allBlocks, parseMdx, serializeMdx } from './mdx-edit';
 import type { Block, Inline, MdxDoc, Segment } from './mdx-edit';
+import { TONES, frameProps } from '../lib/frame';
 
 /** mulberry32 - small, seeded, and good enough to shuffle punctuation. */
 function random(seed: number): () => number {
@@ -179,7 +180,7 @@ const typedAs = (rng: () => number, value: string): Inline[] =>
   rng() < 0.6 ? marked(rng, value) : [{ type: 'text', value }];
 
 /** Never an opaque block: those are the file's own bytes, not hers to type. */
-function block(rng: () => number): Exclude<Block, { kind: 'opaque' }> {
+function block(rng: () => number): Exclude<Block, { kind: 'opaque' | 'frame' }> {
   const roll = rng();
   if (roll < 0.55) return { kind: 'paragraph', source: '', inline: typedAs(rng, paragraphText(rng)) };
   if (roll < 0.75) {
@@ -193,13 +194,19 @@ function block(rng: () => number): Exclude<Block, { kind: 'opaque' }> {
   };
 }
 
+/** Every block, a frame's in its place. */
+const blocksOf = (segments: Segment[]): Block[] =>
+  segments.flatMap((s) => {
+    if (s.type !== 'block') return [];
+    return s.block.kind === 'frame' ? blocksOf(s.block.segments) : [s.block];
+  });
+
 /** Every run of text she typed, block by block and item by item. */
 const runsOf = (doc: MdxDoc): Inline[][] =>
-  doc.segments.flatMap((s) => {
-    if (s.type !== 'block') return [];
-    if (s.block.kind === 'paragraph' || s.block.kind === 'heading') return [s.block.inline];
-    if (s.block.kind === 'list') return s.block.items;
-    return [[{ type: 'opaque' as const, source: s.block.source }]];
+  blocksOf(doc.segments).flatMap((b) => {
+    if (b.kind === 'paragraph' || b.kind === 'heading') return [b.inline];
+    if (b.kind === 'list') return b.items;
+    return [[{ type: 'opaque' as const, source: b.source }]];
   });
 
 function document(rng: () => number): { doc: MdxDoc; typed: string[] } {
@@ -228,6 +235,27 @@ function document(rng: () => number): { doc: MdxDoc; typed: string[] } {
   const doc = { frontmatter: '---\ntitle: "בדיקה"\n---\n', segments };
   for (const run of runsOf(doc)) typed.push(markedOf(run).map(([ch]) => ch).join(''));
   return { doc, typed };
+}
+
+/**
+ * The same document with a run of its blocks framed, as the frame button
+ * does it. It draws on the generator after `document` has, so every seed's
+ * text is the text the unframed run tested.
+ */
+function framedDocument(rng: () => number): { doc: MdxDoc; typed: string[] } {
+  const { doc, typed } = document(rng);
+  const at = doc.segments.flatMap((s, i) => (s.type === 'block' ? [i] : []));
+  const from = at[Math.floor(rng() * at.length)];
+  const to = at[at.indexOf(from) + Math.floor(rng() * (at.length - at.indexOf(from)))];
+  const props = frameProps({
+    tone: TONES[Math.floor(rng() * TONES.length)].value,
+    width: rng() < 0.5 ? 'narrow' : undefined,
+    align: rng() < 0.5 ? 'center' : undefined,
+  });
+  const edge: Segment = { type: 'gap', text: '\n\n' };
+  const inner: Segment[] = [edge, ...doc.segments.slice(from, to + 1), edge];
+  const framed: Segment = { type: 'block', block: { kind: 'frame', source: '', props, segments: inner } };
+  return { doc: { ...doc, segments: [...doc.segments.slice(0, from), framed, ...doc.segments.slice(to + 1)] }, typed };
 }
 
 /** What the editor reads back out of a file, block by block. */
@@ -269,7 +297,10 @@ const write = (doc: MdxDoc): string => serializeMdx(doc, allBlocks(doc));
 
 const CASES = 500;
 
-describe('generated documents', () => {
+describe.each([
+  ['generated documents', document, false],
+  ['generated documents, partly framed', framedDocument, true],
+] as const)('%s', (_name, document, framed) => {
   const seeds = Array.from({ length: CASES }, (_, i) => i + 1);
 
   it('reads back exactly what was typed', () => {
@@ -346,12 +377,8 @@ describe('generated documents', () => {
   it('never writes a heading the owner did not ask for', () => {
     for (const seed of seeds) {
       const { doc } = document(random(seed));
-      const wanted = doc.segments.filter(
-        (s) => s.type === 'block' && s.block.kind === 'heading',
-      ).length;
-      const got = parseMdx(write(doc)).segments.filter(
-        (s) => s.type === 'block' && s.block.kind === 'heading',
-      ).length;
+      const wanted = blocksOf(doc.segments).filter((b) => b.kind === 'heading').length;
+      const got = blocksOf(parseMdx(write(doc)).segments).filter((b) => b.kind === 'heading').length;
       expect(got, `seed ${seed}`).toBe(wanted);
     }
   });
@@ -364,6 +391,7 @@ describe('generated documents', () => {
     expect(escaped).toBeGreaterThan(30);
     expect(sample.some((mdx) => mdx.includes('\n\n'))).toBe(true);
     expect(sample.filter((mdx) => mdx.includes('](')).length).toBeGreaterThan(10);
+    expect(sample.every((mdx) => mdx.includes('<FramedSection'))).toBe(framed);
 
     // Nor one whose marks never needed to move.
     let spaceAtEdge = 0;

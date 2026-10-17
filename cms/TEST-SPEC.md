@@ -85,6 +85,7 @@ moment it lands.
 | F-9 | Frontmatter is preserved verbatim, fences included |
 | F-10 | `*` emphasis and `_` italic are distinguished by source marker (§4.3) |
 | F-11 | Editing one paragraph leaves block count and every opaque block unchanged |
+| F-11a | A `FramedSection` opens as a body within the body - its blocks, blank lines and gaps intact - and round-trips byte-identically; the fuzz gate runs every property again over the same documents partly framed. A frame she empties is kept, props and all, and the site renders nothing for it; one the controls cannot show (an unknown attribute, a frame inside a frame, a self-closing tag) stays opaque. Its controls offer exactly the props `FramedSection.astro` declares, in the site's own palette values (`frame.test.ts`) |
 
 `src/content/toml-struct.test.ts` · `src/content/frontmatter.test.ts` ·
 `src/content/parser-contract.test.ts`

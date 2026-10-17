@@ -4,6 +4,7 @@ import Header from "../../components/layout/Header.astro";
 import Footer from "../../components/layout/Footer.astro";
 import ContactPill from "../../components/layout/ContactPill.astro";
 import SoftImage from "../../components/ui/SoftImage.astro";
+import FramedSection from "../../components/ui/FramedSection.astro";
 import BreathDivider from "../../components/ui/BreathDivider.astro";
 import { getCollection, render } from "astro:content";
 import { blogPostingSchema, jsonLd } from "../../lib/seo";
@@ -102,7 +103,7 @@ const backdrop = imageSet("/img/bg/background.jpg", Number.POSITIVE_INFINITY);
 
         <section class="post-body container" aria-label="גוף הכתבה">
           <div class="prose">
-            <Content components={{ SoftImage }} />
+            <Content components={{ SoftImage, FramedSection }} />
           </div>
         </section>
 

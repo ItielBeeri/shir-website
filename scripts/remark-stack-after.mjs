@@ -29,17 +29,22 @@ const only = (node, layout) => ({
 const LEADS_IN = new Set(['heading', 'blankLine']);
 const PARAGRAPH = new Set(['paragraph', 'list']);
 
+const isFrame = (node) => node.type === 'mdxJsxFlowElement' && node.name === 'FramedSection';
+
+/** A FramedSection's contents are a body of their own: its image stacks inside it. */
+function stack(children) {
+  for (let i = 0; i < children.length; i += 1) {
+    const node = children[i];
+    if (isFrame(node)) stack(node.children);
+    if (!isStackAfter(node)) continue;
+    let end = i + 1;
+    while (end < children.length && LEADS_IN.has(children[end].type)) end += 1;
+    if (end < children.length && PARAGRAPH.has(children[end].type)) end += 1;
+    children[i] = only(node, 'wide');
+    children.splice(end, 0, only(node, 'narrow'));
+  }
+}
+
 export default function remarkStackAfter() {
-  return (tree) => {
-    const children = tree.children;
-    for (let i = 0; i < children.length; i += 1) {
-      const node = children[i];
-      if (!isStackAfter(node)) continue;
-      let end = i + 1;
-      while (end < children.length && LEADS_IN.has(children[end].type)) end += 1;
-      if (end < children.length && PARAGRAPH.has(children[end].type)) end += 1;
-      children[i] = only(node, 'wide');
-      children.splice(end, 0, only(node, 'narrow'));
-    }
-  };
+  return (tree) => stack(tree.children);
 }

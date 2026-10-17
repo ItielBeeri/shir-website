@@ -8,6 +8,7 @@ import Header from '../layout/Header.astro';
 import Footer from '../layout/Footer.astro';
 import ContactPill from '../layout/ContactPill.astro';
 import SoftImage from '../ui/SoftImage.astro';
+import FramedSection from '../ui/FramedSection.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
 import BreathDivider from '../ui/BreathDivider.astro';
 import CTAButton from '../ui/CTAButton.astro';
@@ -103,7 +104,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 
     <section class="therapy-body container" data-reveal>
       <div class="prose">
-        <Content components={{ SoftImage }} />
+        <Content components={{ SoftImage, FramedSection }} />
       </div>
     </section>
 

@@ -2,8 +2,8 @@
  * The editor's vocabulary, and nothing else.
  *
  * AGENTS.md §13: the editor may only offer constructs `.prose` styles - h2, h3,
- * `ul`, `ol`, the three emphasis marks, links and `SoftImage`. Everything
- * StarterKit would otherwise hand us (blockquote, code, strike, underline,
+ * `ul`, `ol`, the three emphasis marks, links, `SoftImage` and `FramedSection`.
+ * Everything StarterKit would otherwise hand us (blockquote, code, strike, underline,
  * rules, h1, h4-h6) is turned off here rather than merely hidden from the
  * toolbar, so a paste or a keyboard shortcut cannot introduce it either.
  *
@@ -12,8 +12,22 @@
  * Hebrew emphasis-by-weight, `i` carries real italic.
  */
 import { Extension, Mark, Node, mergeAttributes, wrappingInputRule } from '@tiptap/core';
+import type { NodeType } from '@tiptap/pm/model';
+import type { Selection, Transaction } from '@tiptap/pm/state';
+import { findWrapping } from '@tiptap/pm/transform';
 import StarterKit from '@tiptap/starter-kit';
 import { isLinkable } from '../lib/links';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    framedSection: {
+      /** Frames the blocks the selection touches, or takes away the frame it is in. */
+      toggleFramedSection: () => ReturnType;
+      /** Takes away the frame at `pos`, keeping everything it held. */
+      unwrapFramedSection: (pos: number) => ReturnType;
+    };
+  }
+}
 
 /**
  * A lone `*` is the owner's divider, kept as the character she typed
@@ -24,15 +38,17 @@ import { isLinkable } from '../lib/links';
  */
 const Kit = StarterKit.extend({
   addExtensions() {
-    return (this.parent?.() ?? []).map((extension) =>
-      extension.name === 'bulletList'
-        ? (extension as Node).extend({
-            addInputRules() {
-              return [wrappingInputRule({ find: /^\s*([-+])\s$/, type: this.type })];
-            },
-          })
-        : extension,
-    );
+    return (this.parent?.() ?? []).map((extension) => {
+      if (extension.name === 'bulletList')
+        return (extension as Node).extend({
+          addInputRules() {
+            return [wrappingInputRule({ find: /^\s*([-+])\s$/, type: this.type })];
+          },
+        });
+      // The body is the one place a frame may stand (FramedSectionNode).
+      if (extension.name === 'doc') return (extension as Node).extend({ content: '(block | frame)+' });
+      return extension;
+    });
   },
 });
 
@@ -71,6 +87,90 @@ export const SoftImageNode = Node.create({
   }),
   parseHTML: () => [{ tag: 'div[data-soft-image]' }],
   renderHTML: ({ HTMLAttributes }) => ['div', mergeAttributes(HTMLAttributes, { 'data-soft-image': '' })],
+});
+
+/** The frame's contents in its place, the first of them taking over the frame's gap. */
+export function unwrapFrame(tr: Transaction, pos: number): boolean {
+  const frame = tr.doc.nodeAt(pos);
+  if (frame?.type.name !== 'framedSection') return false;
+  tr.replaceWith(pos, pos + frame.nodeSize, frame.content);
+  tr.setNodeAttribute(pos, 'gap', frame.attrs.gap);
+  return true;
+}
+
+/**
+ * Takes away the frame the selection is in, or else frames the blocks of the
+ * body it touches - the whole list, when it starts inside one. `apply` false
+ * only asks whether it could.
+ */
+export function toggleFrame(tr: Transaction, type: NodeType, apply: boolean): boolean {
+  const { $from, $to } = tr.selection;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    if ($from.node(depth).type === type) return apply ? unwrapFrame(tr, $from.before(depth)) : true;
+  }
+  const range = $from.blockRange($to, (node) => node.type === tr.doc.type);
+  const wrapping = range && findWrapping(range, type);
+  if (!range || !wrapping) return false;
+  if (apply) {
+    // The blank lines before the first block now come before the frame.
+    const first = range.parent.child(range.startIndex);
+    tr.wrap(range, [{ type, attrs: { gap: first.attrs.gap } }, ...wrapping.slice(1)]);
+    tr.setNodeAttribute(range.start + 1, 'gap', null);
+  }
+  return true;
+}
+
+/**
+ * Whether Enter should make one more empty line here rather than the
+ * editor's default, which lifts an empty line out of its frame and so cuts the
+ * frame in two around it. An empty line is space inside a frame as anywhere
+ * in the body; only on the frame's last line does Enter step out of it - and
+ * never from its only line, which would take the frame with it.
+ */
+export function enterKeepsInFrame(selection: Selection, type: NodeType): boolean {
+  const { $from, empty } = selection;
+  if (!empty || $from.depth !== 2 || $from.parent.content.size) return false;
+  const frame = $from.node(1);
+  return frame.type === type && (frame.childCount === 1 || $from.index(1) < frame.childCount - 1);
+}
+
+/**
+ * A framed section (lib/frame.ts): blocks of the body, wrapped. Its props are
+ * edited in the node view; what it holds is edited like the rest of the body.
+ */
+export const FramedSectionNode = Node.create({
+  name: 'framedSection',
+  // Not 'block', which list items and a frame may hold: the body itself is
+  // the only place mdx-edit.ts reads a frame back from.
+  group: 'frame',
+  content: 'block+',
+  defining: true,
+  addAttributes: () => ({
+    tone: { default: undefined },
+    width: { default: undefined },
+    align: { default: undefined },
+  }),
+  parseHTML: () => [{ tag: 'section[data-framed-section]' }],
+  renderHTML: ({ HTMLAttributes }) => ['section', mergeAttributes(HTMLAttributes, { 'data-framed-section': '' }), 0],
+
+  addCommands() {
+    return {
+      toggleFramedSection:
+        () =>
+        ({ tr, dispatch }) =>
+          toggleFrame(tr, this.type, Boolean(dispatch)),
+      unwrapFramedSection:
+        (pos) =>
+        ({ tr, dispatch }) =>
+          dispatch ? unwrapFrame(tr, pos) : tr.doc.nodeAt(pos)?.type === this.type,
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: ({ editor }) => enterKeepsInFrame(editor.state.selection, this.type) && editor.commands.splitBlock(),
+    };
+  },
 });
 
 /**
@@ -118,10 +218,11 @@ const GapAttribute = Extension.create({
   addGlobalAttributes() {
     return [
       {
-        types: ['paragraph', 'heading', 'bulletList', 'orderedList', 'softImage', 'rawBlock'],
+        types: ['paragraph', 'heading', 'bulletList', 'orderedList', 'softImage', 'framedSection', 'rawBlock'],
         attributes: { gap: whitespace },
       },
-      { types: ['doc'], attributes: { trailing: whitespace } },
+      // A frame's is the space just inside its closing tag.
+      { types: ['doc', 'framedSection'], attributes: { trailing: whitespace } },
     ];
   },
 });
@@ -154,6 +255,7 @@ export const extensions = [
   Emphasis,
   Italic,
   SoftImageNode,
+  FramedSectionNode,
   RawBlock,
   RawInline,
   GapAttribute,

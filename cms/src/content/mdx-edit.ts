@@ -18,6 +18,8 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { mdxFromMarkdown } from "mdast-util-mdx";
 import { mdxjs } from "micromark-extension-mdxjs";
+import type { FrameProps } from "../lib/frame";
+import { FRAME_CLOSE, FRAME_NAME, parseFrameAttributes, renderFrameOpen } from "../lib/frame";
 
 export type Inline =
   | { type: "text"; value: string }
@@ -30,6 +32,11 @@ export type Block =
   | { kind: "paragraph"; source: string; inline: Inline[] }
   | { kind: "heading"; depth: number; source: string; inline: Inline[] }
   | { kind: "list"; ordered: boolean; source: string; items: Inline[][] }
+  /**
+   * A `<FramedSection>` holds a body of its own: its segments run from just
+   * inside the opening tag to just inside the closing one, gaps at both ends.
+   */
+  | { kind: "frame"; source: string; props: FrameProps; segments: Segment[] }
   | { kind: "opaque"; source: string };
 
 export type Segment =
@@ -647,9 +654,51 @@ export function blockToMarkdown(block: Block): string {
           );
         })
         .join("\n");
+    case "frame":
+      return `${renderFrameOpen(block.props)}${serializeSegments(block.segments)}${FRAME_CLOSE}`;
     case "opaque":
       return block.source;
   }
+}
+
+/** Every block re-rendered, every gap as it stands. */
+const serializeSegments = (segments: Segment[]): string =>
+  segments.map((seg) => (seg.type === "gap" ? seg.text : blockToMarkdown(seg.block))).join("");
+
+const isFrameNode = (node: any): boolean =>
+  node.type === "mdxJsxFlowElement" && node.name === FRAME_NAME;
+
+/** Each child a block, with whatever lies between two of them as a gap. */
+function segmentsFrom(children: any[], body: string, from: number, to: number): Segment[] {
+  const segments: Segment[] = [];
+  let cursor = from;
+  for (const node of children) {
+    const start = node.position.start.offset;
+    if (start > cursor)
+      segments.push({ type: "gap", text: body.slice(cursor, start) });
+    segments.push({ type: "block", block: blockFrom(node, body) });
+    cursor = node.position.end.offset;
+  }
+  if (cursor < to) segments.push({ type: "gap", text: body.slice(cursor, to) });
+  return segments;
+}
+
+/**
+ * A frame the editor can show: attributes it has controls for, and a closing
+ * tag of its own. A frame inside a frame is not something it offers, nor is a
+ * self-closing one, so either stays opaque and writes back as it was found.
+ * An empty one is hers - emptied, to be filled again.
+ */
+function frameFrom(node: any, body: string, source: string): Block | null {
+  const props = parseFrameAttributes(node.attributes);
+  const children: any[] = node.children;
+  if (!props || !source.endsWith(FRAME_CLOSE) || children.some(isFrameNode)) return null;
+  const start = node.position.start.offset;
+  // The tags themselves are rendered from `props`; only the whitespace just
+  // inside them belongs to the contents.
+  const close = node.position.end.offset - FRAME_CLOSE.length;
+  const open = start + body.slice(start, children[0]?.position.start.offset ?? close).trimEnd().length;
+  return { kind: "frame", source, props, segments: segmentsFrom(children, body, open, close) };
 }
 
 function blockFrom(node: any, body: string): Block {
@@ -698,6 +747,8 @@ function blockFrom(node: any, body: string): Block {
         ),
       };
     }
+    case "mdxJsxFlowElement":
+      return (isFrameNode(node) && frameFrom(node, body, source)) || { kind: "opaque", source };
     default:
       return { kind: "opaque", source };
   }
@@ -709,20 +760,7 @@ export function parseMdx(raw: string): MdxDoc {
   const body = raw.slice(frontmatter.length);
   const tree = parseBody(body);
 
-  const segments: Segment[] = [];
-  let cursor = 0;
-  for (const node of tree.children as any[]) {
-    const start = node.position.start.offset;
-    const end = node.position.end.offset;
-    if (start > cursor)
-      segments.push({ type: "gap", text: body.slice(cursor, start) });
-    segments.push({ type: "block", block: blockFrom(node, body) });
-    cursor = end;
-  }
-  if (cursor < body.length)
-    segments.push({ type: "gap", text: body.slice(cursor) });
-
-  return { frontmatter, segments };
+  return { frontmatter, segments: segmentsFrom(tree.children, body, 0, body.length) };
 }
 
 /**

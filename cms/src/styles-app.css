@@ -276,6 +276,42 @@
 .nv-width input[type='number'] { inline-size: 7rem; }
 .nv-width .muted { flex-basis: 100%; font-size: var(--fs-small); }
 .nv-raw code { display: block; font-size: var(--fs-small); color: var(--mist); word-break: break-all; }
+
+/* A framed section, shaped and tinted as the site draws it (lib/frame.ts). */
+.nv-frame {
+  margin-block: 14px;
+  padding: 10px 16px 2px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 6px 18px rgba(45, 42, 38, 0.06);
+}
+.nv-frame.is-tinted {
+  background: color-mix(in srgb, var(--frame-tone, var(--line)) 32%, var(--card));
+  border-color: color-mix(in srgb, var(--frame-tone, var(--line)) 70%, var(--card));
+}
+/* As on the site, a percentage alone would leave a strip on a phone. */
+.nv-frame.is-narrow { max-inline-size: max(70%, 22rem); margin-inline: auto; }
+.nv-frame.is-center .nv-frame-body { text-align: center; }
+.nv-frame.is-center .nv-frame-body :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+.nv-frame-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block-end: 8px;
+  margin-block-end: 12px;
+  border-block-end: 1px dashed var(--line);
+}
+.nv-frame-head .chip { display: inline-flex; align-items: center; gap: 6px; }
+/* Not a click target of its own: a press on it is a press on its chip. */
+.swatch {
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  pointer-events: none;
+}
 .opaque { background: var(--accent-soft); border-radius: 4px; padding: 0 3px; }
 
 /* --- chips, tags, paragraph lists ------------------------------------------ */

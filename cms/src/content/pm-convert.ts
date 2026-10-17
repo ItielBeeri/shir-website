@@ -14,9 +14,13 @@
  * one as a line of space (scripts/remark-blank-lines.mjs), so the editor has
  * to show it, and has to let her add one with Enter and remove it with
  * Backspace - which a count hidden in `gap` would not.
+ *
+ * **A framed section is a body within the body**, converted by the same code:
+ * its gaps, empty lines and lists behave exactly as the document's do.
  */
 import type { Block, Inline, MdxDoc, Segment } from './mdx-edit';
 import { parseSoftImage, renderSoftImage } from '../lib/softimage';
+import { frameProps } from '../lib/frame';
 
 export interface PmNode {
   type: string;
@@ -86,6 +90,13 @@ function blockToPm(block: Block, gap: string): PmNode {
           content: [{ type: 'paragraph', attrs: { gap: '' }, content: inlineToPm(item) }],
         })),
       };
+    case 'frame': {
+      const { content, trailing } = segmentsToPm(block.segments);
+      // An empty frame still needs a line for the caret; being empty, it
+      // writes back as nothing.
+      if (!content.length) content.push({ type: 'paragraph', attrs: { gap: '' } });
+      return { type: 'framedSection', attrs: { ...attrs, ...block.props, trailing }, content };
+    }
     case 'opaque': {
       const image = parseSoftImage(block.source);
       if (image) return { type: 'softImage', attrs: { ...attrs, ...image } };
@@ -113,10 +124,10 @@ function splitBlankLines(gap: string): { pieces: string[]; rest: string } {
   return { pieces, rest };
 }
 
-export function docToPm(doc: MdxDoc): PmNode {
+function segmentsToPm(segments: Segment[]): { content: PmNode[]; trailing: string } {
   const content: PmNode[] = [];
   let gap = '';
-  for (const segment of doc.segments) {
+  for (const segment of segments) {
     if (segment.type === 'gap') {
       gap += segment.text;
       continue;
@@ -132,7 +143,12 @@ export function docToPm(doc: MdxDoc): PmNode {
     gap = '';
   }
   // Whatever trailed the last block has nowhere else to live.
-  return { type: 'doc', attrs: { trailing: gap }, content };
+  return { content, trailing: gap };
+}
+
+export function docToPm(doc: MdxDoc): PmNode {
+  const { content, trailing } = segmentsToPm(doc.segments);
+  return { type: 'doc', attrs: { trailing }, content };
 }
 
 /* ------------------------------ from ProseMirror ----------------------------- */
@@ -243,6 +259,12 @@ function pmToBlock(node: PmNode): Block {
           stack: node.attrs?.stack === 'after' ? 'after' : undefined,
         }),
       };
+    case 'framedSection': {
+      const segments = pmToSegments(node.content ?? [], true);
+      const own = node.attrs?.trailing;
+      segments.push({ type: 'gap', text: typeof own === 'string' && hasBlankLine(own) ? own : DEFAULT_GAP });
+      return { kind: 'frame', source: '', props: frameProps(node.attrs ?? {}), segments };
+    }
     case 'rawBlock':
       return { kind: 'opaque', source: String(node.attrs?.source ?? '') };
     default:
@@ -252,6 +274,8 @@ function pmToBlock(node: PmNode): Block {
 
 /** Default separation for a block the owner just added. */
 const DEFAULT_GAP = '\n\n';
+
+const hasBlankLine = (gap: string): boolean => /\n[^\S\n]*\n/.test(gap);
 
 /**
  * A heading with no words is an empty line as well, because that is what the
@@ -273,14 +297,15 @@ const isEmptyLine = (block: Block): boolean =>
  * editor becomes a lie.
  *
  * A blank line always separates. One newline is enough only where the previous
- * block ends at its own line - a heading, or a JSX element the editor keeps
- * verbatim. After running text nothing but a heading can interrupt.
+ * block ends at its own line - a heading, a frame's closing tag, or a JSX
+ * element the editor keeps verbatim. After running text nothing but a heading
+ * can interrupt.
  */
 export function separates(gap: string, prev: Block | null, next: Block): boolean {
   if (!prev) return true;
-  if (/\n[^\S\n]*\n/.test(gap)) return true;
+  if (hasBlankLine(gap)) return true;
   if (!gap.includes('\n')) return false;
-  if (prev.kind === 'heading' || prev.kind === 'opaque') return true;
+  if (prev.kind === 'heading' || prev.kind === 'frame' || prev.kind === 'opaque') return true;
   return next.kind === 'heading';
 }
 
@@ -317,7 +342,14 @@ const textOf = (block: Block): string =>
 /** Two newlines, the least that separates the block the empty lines come before. */
 const separated = (own: string): string => '\n'.repeat(Math.max(0, 2 - newlines(own))) + own;
 
-export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
+/**
+ * The blocks of a body and the gap before each - the document's, or a
+ * frame's. A frame's tags stand on lines of their own with a blank line just
+ * inside each, however the frame was made: the block she framed brings the
+ * gap it had in the body, which for the body's first block is nothing at all,
+ * and would put her first words on the line of the opening tag.
+ */
+function pmToSegments(nodes: PmNode[], framed: boolean): Segment[] {
   const segments: Segment[] = [];
   let prev: Block | null = null;
   // Empty paragraphs are blank lines, written into the gap of whatever comes
@@ -326,7 +358,7 @@ export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
   // any document that does not end in a paragraph - so those write nothing.
   let pending = '';
 
-  (pm.content ?? []).forEach((node, i) => {
+  nodes.forEach((node, i) => {
     const own = typeof node.attrs?.gap === 'string' ? node.attrs.gap : i === 0 ? '' : DEFAULT_GAP;
     const block = pmToBlock(node);
     if (isEmptyLine(block)) {
@@ -343,10 +375,16 @@ export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
     let gap = pending ? pending + separated(own) : own;
     pending = '';
     if (!separates(gap, prev, block)) gap = widen(gap);
+    if (framed && !prev && !hasBlankLine(gap)) gap = DEFAULT_GAP;
     if (gap) segments.push({ type: 'gap', text: gap });
     segments.push({ type: 'block', block });
     prev = block;
   });
+  return segments;
+}
+
+export function pmToDoc(pm: PmNode, frontmatter: string): MdxDoc {
+  const segments = pmToSegments(pm.content ?? [], false);
 
   // A trailing empty paragraph is spacing after the last word, which markdown
   // has no way to mean; `pending` is deliberately dropped here so a file does

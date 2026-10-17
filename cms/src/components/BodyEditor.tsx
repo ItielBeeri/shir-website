@@ -7,18 +7,21 @@
  */
 import {
   EditorContent,
+  NodeViewContent,
   NodeViewWrapper,
   ReactNodeViewRenderer,
   useEditor,
   useEditorState,
 } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
-import { extensions, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
+import { extensions, FramedSectionNode, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
 import { LinkDialog } from './LinkDialog';
 import { ASPECTS, DEFAULT_WIDTH, PLACEMENTS, place, placementOf } from '../lib/softimage';
+import { ALIGNS, TONES, WIDTHS, frameProps } from '../lib/frame';
 import { useStore } from '../store';
 import { useEffect, useId, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { PmNode } from '../content/pm-convert';
 
 /* --------------------------------- node views -------------------------------- */
@@ -137,6 +140,69 @@ function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element
   );
 }
 
+/** `page` takes the colour of the page the frame is on, so its chip shows them all. */
+const PAGE_SWATCH = `conic-gradient(${TONES.flatMap((t) => t.swatch ?? []).join(', ')})`;
+
+/**
+ * Tinted as the site tints it, so the colour she picks is the colour she sees
+ * around her words; the controls sit above them, outside what she types.
+ */
+function FramedSectionView({ node, updateAttributes, editor, getPos }: any): JSX.Element {
+  const { tone, width, align } = frameProps(node.attrs);
+  const swatch = TONES.find((t) => t.value === tone)?.swatch;
+  const pressed = (on: boolean): Record<string, unknown> => ({
+    className: on ? 'chip is-on' : 'chip',
+    'aria-pressed': on,
+  });
+
+  return (
+    <NodeViewWrapper
+      as="section"
+      className={['nv-frame', tone && 'is-tinted', width === 'narrow' && 'is-narrow', align === 'center' && 'is-center']
+        .filter(Boolean)
+        .join(' ')}
+      style={swatch ? ({ '--frame-tone': swatch } as CSSProperties) : undefined}
+    >
+      <div className="nv-frame-head" contentEditable={false}>
+        <div className="nv-head">
+          <span className="muted">מסגרת</span>
+          <button
+            className="ghost"
+            onClick={() => editor.chain().focus().unwrapFramedSection(getPos()).run()}
+          >
+            הסרת המסגרת (הטקסט נשאר)
+          </button>
+        </div>
+        <div className="chips" role="group" aria-label="צבע המסגרת">
+          {TONES.map((t) => (
+            <button key={t.label} {...pressed(tone === t.value)} onClick={() => updateAttributes({ tone: t.value })}>
+              <span
+                className="swatch"
+                aria-hidden="true"
+                style={{ background: t.value === 'page' ? PAGE_SWATCH : t.swatch }}
+              />
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="chips" role="group" aria-label="רוחב ויישור">
+          {WIDTHS.map((w) => (
+            <button key={w.label} {...pressed(width === w.value)} onClick={() => updateAttributes({ width: w.value })}>
+              {w.label}
+            </button>
+          ))}
+          {ALIGNS.map((a) => (
+            <button key={a.label} {...pressed(align === a.value)} onClick={() => updateAttributes({ align: a.value })}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <NodeViewContent className="nv-frame-body" />
+    </NodeViewWrapper>
+  );
+}
+
 /**
  * A marker the maintainer left in the copy - `{/* PLACEHOLDER: ... *\/}` - which
  * sits inside a paragraph and was rendering as the first words of it. She was
@@ -162,11 +228,12 @@ function RawBlockView({ node }: any): JSX.Element {
   );
 }
 
-const hasView = new Set(['softImage', 'rawBlock', 'rawInline']);
+const hasView = new Set(['softImage', 'framedSection', 'rawBlock', 'rawInline']);
 
 const withViews = [
   ...extensions.filter((e) => !hasView.has(e.name)),
   SoftImageNode.extend({ addNodeView: () => ReactNodeViewRenderer(SoftImageView) }),
+  FramedSectionNode.extend({ addNodeView: () => ReactNodeViewRenderer(FramedSectionView) }),
   RawBlock.extend({ addNodeView: () => ReactNodeViewRenderer(RawBlockView) }),
   RawInline.extend({
     addNodeView: () => ReactNodeViewRenderer(RawInlineView, { as: 'span' }),
@@ -196,6 +263,7 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JS
       h3: e.isActive('heading', { level: 3 }),
       bullet: e.isActive('bulletList'),
       ordered: e.isActive('orderedList'),
+      frame: e.isActive('framedSection'),
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
     }),
@@ -236,6 +304,9 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JS
         ממוספרת
       </button>
       <button onClick={() => setPicking(true)}>תמונה</button>
+      <button {...toggle(on.frame)} onClick={() => editor.chain().focus().toggleFramedSection().run()}>
+        מסגרת
+      </button>
 
       <span className="tools-sep" aria-hidden="true" />
 

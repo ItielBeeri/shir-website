@@ -1,0 +1,95 @@
+---
+/**
+ * A framed section of body copy: the GlassCard look, wrapped by the owner
+ * around her own paragraphs, headings, lists and images from the CMS editor
+ * (cms/src/lib/frame.ts writes it, and holds the same three props).
+ *
+ * An unknown prop value renders the plain frame rather than failing the
+ * build: body copy is the owner's, and a typo in it must not hold back every
+ * other page from publishing.
+ *
+ * An empty frame renders nothing. The CMS keeps one she emptied, so she can
+ * fill it later without choosing its look again, and the page must not show
+ * a glass box with nothing in it meanwhile.
+ */
+interface Props {
+  /** A wash of colour over the glass. `page` follows the page's own accent. Absent: plain glass. */
+  tone?: 'page' | 'lavender' | 'teal' | 'rose' | 'peach' | 'moss';
+  /** `narrow` centres the frame at about two thirds of the text width. */
+  width?: 'narrow';
+  /** `center` centres the text inside the frame. */
+  align?: 'center';
+}
+
+const TONES = new Set(['page', 'lavender', 'teal', 'rose', 'peach', 'moss']);
+const { tone, width, align } = Astro.props;
+---
+
+{Astro.slots.has('default') && (
+  <section
+    class:list={[
+      'glass-card',
+      'framed-section',
+      width === 'narrow' && 'framed-section--narrow',
+      align === 'center' && 'framed-section--center',
+    ]}
+    data-tone={tone && TONES.has(tone) ? tone : undefined}
+    data-reveal
+  >
+    <slot />
+  </section>
+)}
+
+<style>
+  /*
+   * No `clear`, unlike the prose h2: framing a paragraph that runs beside a
+   * floated portrait would drop it below the photo and leave a hole where it
+   * stood. The card's own overflow already keeps it clear of the float's area,
+   * so it narrows beside it instead.
+   */
+  .framed-section {
+    margin-block: 2rem;
+  }
+
+  /* The frame's padding is the whole gap at either edge. */
+  .framed-section > :global(:first-child) {
+    margin-block-start: 0;
+  }
+
+  .framed-section > :global(:last-child) {
+    margin-block-end: 0;
+  }
+
+  /* A percentage alone would shrink it to a strip on a phone. */
+  .framed-section--narrow {
+    max-inline-size: max(34rem, 70%);
+    margin-inline: auto;
+  }
+
+  .framed-section--center {
+    text-align: center;
+  }
+
+  .framed-section--center :global(ul),
+  .framed-section--center :global(ol) {
+    list-style-position: inside;
+    padding-inline-start: 0;
+  }
+
+  /*
+   * Mixed into the glass rather than painted over it, so the watercolour
+   * still shows through. Every tone keeps body text above 4.5:1; check
+   * again before raising the share.
+   */
+  .framed-section[data-tone] {
+    background: color-mix(in srgb, var(--frame-tone) 32%, var(--color-glass));
+    border-color: color-mix(in srgb, var(--frame-tone) 60%, var(--color-glass-stroke));
+  }
+
+  .framed-section[data-tone='page']     { --frame-tone: var(--accent, var(--color-teal)); }
+  .framed-section[data-tone='lavender'] { --frame-tone: var(--color-lavender); }
+  .framed-section[data-tone='teal']     { --frame-tone: var(--color-teal); }
+  .framed-section[data-tone='rose']     { --frame-tone: var(--color-rose); }
+  .framed-section[data-tone='peach']    { --frame-tone: var(--color-peach); }
+  .framed-section[data-tone='moss']     { --frame-tone: var(--color-moss); }
+</style>
