@@ -12,6 +12,7 @@ import type { Screen } from '../model/types';
 import { FieldInput } from '../components/Fields';
 import { DraftOffer } from '../lib/unsaved';
 import { useTomlFields } from '../lib/toml-fields';
+import { useBarSave } from '../lib/bar-save';
 
 interface Props {
   screen: Screen;
@@ -61,6 +62,14 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
     }
   }
 
+  const saveRow = useBarSave<HTMLButtonElement>({
+    dirty: form.dirty,
+    busy,
+    blocked: form.missing.length > 0,
+    error,
+    save,
+  });
+
   if (error && !source) {
     return (
       <>
@@ -100,7 +109,7 @@ export function TomlForm({ screen, role, onSaved }: Props): JSX.Element {
           reported where she is not looking. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
-      <button className="primary" onClick={save} disabled={!form.dirty || busy || form.missing.length > 0}>
+      <button className="primary" ref={saveRow} onClick={save} disabled={!form.dirty || busy || form.missing.length > 0}>
         {busy ? 'שומר…' : 'שמירה'}
       </button>
       {form.missing.length > 0 && (

@@ -17,6 +17,7 @@ import type { FrontmatterValue } from '../content/frontmatter';
 import { useStore } from '../store';
 import { slugFor } from '../lib/slug';
 import { DraftOffer, useDraftKeeper } from '../lib/unsaved';
+import { useBarSave } from '../lib/bar-save';
 import type { Field } from '../model/types';
 
 /**
@@ -184,6 +185,8 @@ export function MdxEntry({
     }
   }
 
+  const saveRow = useBarSave({ dirty, busy, blocked: missing.length > 0, error, save });
+
   if (error && !source) return <p className="banner error">{error}</p>;
   if (!source || !pm) return <p className="muted">רגע, טוען…</p>;
 
@@ -231,7 +234,7 @@ export function MdxEntry({
           a message she never sees. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
-      <div className="save-row">
+      <div className="save-row" ref={saveRow}>
         <button className="primary" onClick={save} disabled={!dirty || busy || missing.length > 0}>
           {busy ? 'שומר…' : 'שמירה'}
         </button>

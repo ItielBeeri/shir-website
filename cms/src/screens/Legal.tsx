@@ -20,6 +20,7 @@ import { useStore } from '../store';
 import { CONSENT_PAIR_NOTE, lockForBannerKey, lockForSection } from '../model/locks';
 import { bannerProblems, legalProblems, measurementSection } from '../model/legal';
 import { todayInIsrael } from '../lib/today';
+import { useBarSave } from '../lib/bar-save';
 
 const DOCS = [
   { file: 'src/content/pages/accessibility.toml', title: 'הצהרת נגישות' },
@@ -181,6 +182,14 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
     }
   }
 
+  const saveRow = useBarSave({
+    dirty,
+    busy,
+    blocked: bannerIssues.length > 0 || (bannerChanged && !paired),
+    error,
+    save,
+  });
+
   if (error && !source) return <p className="banner error">{error}</p>;
   if (!source) return <p className="muted">רגע, טוען…</p>;
 
@@ -283,7 +292,7 @@ function LegalDoc({ file, role }: { file: string; role: 'owner' | 'maintainer' }
         </ul>
       )}
 
-      <div className="save-row">
+      <div className="save-row" ref={saveRow}>
         <button
           className="primary"
           onClick={save}

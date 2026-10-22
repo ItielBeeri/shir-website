@@ -21,6 +21,7 @@ import { setValue } from '../content/toml-edit';
 import { FieldInput } from '../components/Fields';
 import { DraftOffer } from '../lib/unsaved';
 import { useTomlFields } from '../lib/toml-fields';
+import { useBarSave } from '../lib/bar-save';
 import { screenById } from '../model/screens';
 import {
   appendRecommendation,
@@ -552,6 +553,10 @@ function KickerSettings({
   const fields = useMemo(() => KICKER_GROUPS.flatMap((g) => g.fields), []);
   const form = useTomlFields(FILE, fields, source);
   const [open, setOpen] = useState(false);
+  const save = async (): Promise<void> => {
+    if (await onSave(form.splice)) form.settle();
+  };
+  const saveRow = useBarSave({ dirty: form.dirty, busy, blocked: false, error, save });
 
   // Work kept from an earlier visit is offered inside; a closed row would hide it.
   const offered = form.draft.offered !== null;
@@ -601,14 +606,8 @@ function KickerSettings({
       ))}
 
       {error && <p className="banner error" role="alert">{error}</p>}
-      <div className="save-row">
-        <button
-          className="primary"
-          disabled={!form.dirty || busy}
-          onClick={async () => {
-            if (await onSave(form.splice)) form.settle();
-          }}
-        >
+      <div className="save-row" ref={saveRow}>
+        <button className="primary" disabled={!form.dirty || busy} onClick={save}>
           {busy ? 'שומר…' : 'שמירה'}
         </button>
         {!form.dirty && !busy && <span className="muted">אין שינויים לשמור.</span>}

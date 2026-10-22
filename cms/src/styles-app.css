@@ -557,6 +557,33 @@
   white-space: nowrap;
 }
 
+/* Outlined, so it reads as the step before the filled publish beside it. */
+.bar-save {
+  padding: 8px 12px;
+  min-block-size: var(--tap);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Both at once leave a phone's title no room, and the title is the page's h1:
+   the publish button gives up its words, which stay its accessible name. */
+.bar-publish .bar-glyph { display: none; }
+@media (max-width: 479px) {
+  .bar-save + .bar-publish .bar-glyph { display: inline; }
+  .bar-save + .bar-publish .bar-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .badge {
   display: inline-grid;
   place-items: center;

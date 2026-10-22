@@ -15,6 +15,7 @@ import { useStore } from '../store';
 import { deriveContact, isValidEmail, isValidHttpsUrl, isValidIsraeliMobile } from '../lib/contact';
 import { contactGroup, pathOf, plainFields, plainGroups } from '../model/site-fields';
 import type { Field } from '../model/types';
+import { useBarSave } from '../lib/bar-save';
 
 const FILE = 'src/content/site.toml';
 
@@ -113,6 +114,14 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
     }
   }
 
+  const saveRow = useBarSave({
+    dirty,
+    busy,
+    blocked: !phoneOk || !emailOk || problems.length > 0,
+    error,
+    save,
+  });
+
   if (!source) return <p className="muted">רגע, טוען…</p>;
 
   const derived = deriveContact(phone, email);
@@ -175,7 +184,7 @@ export function SiteDetails({ onSaved }: { onSaved: () => void }): JSX.Element {
           message at the top is a message she never scrolls back to see. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
-      <div className="save-row">
+      <div className="save-row" ref={saveRow}>
         <button
           className="primary"
           onClick={save}

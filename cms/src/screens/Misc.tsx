@@ -15,6 +15,7 @@ import { findSlot, setValue } from '../content/toml-edit';
 import { reorderArrayTables } from '../content/toml-struct';
 import { parse as parseToml } from 'smol-toml';
 import { describePath } from '../model/describe';
+import { useBarSave } from '../lib/bar-save';
 
 /* ---------------------------------- menu ------------------------------------ */
 
@@ -97,6 +98,8 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
     }
   }
 
+  const saveRow = useBarSave({ dirty, busy, blocked: false, error, save });
+
   if (!source) return <p className="muted">רגע, טוען…</p>;
 
   return (
@@ -171,7 +174,7 @@ export function NavEditor({ onSaved }: { onSaved: () => void }): JSX.Element {
           message at the top is a message she never scrolls back to see. */}
       {error && <p className="banner error" role="alert">{error}</p>}
 
-      <div className="save-row">
+      <div className="save-row" ref={saveRow}>
         <button className="primary" onClick={save} disabled={busy || !dirty}>
           {busy ? 'שומר…' : 'שמירה'}
         </button>

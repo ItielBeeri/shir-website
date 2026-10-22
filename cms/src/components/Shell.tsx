@@ -10,13 +10,15 @@
  * screen reader announces and what `page-has-heading-one` checks for - and the
  * one thing that is always true of a screen is where it is.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { screens } from '../model/screens';
 import { useStore } from '../store';
 import type { Route } from '../routes';
 import { routeTitle } from '../routes';
 import { DeployChip } from '../screens/Deploy';
+import { BarSaveSlot } from '../lib/bar-save';
+import type { BarSave } from '../lib/bar-save';
 
 const GLYPHS: Record<string, string> = {
   pencil: '✍', book: '📚', quote: '💬', image: '🖼', home: '🏠', person: '🙋',
@@ -52,6 +54,7 @@ export function Shell({
   const store = useStore();
   const drawer = useRef<HTMLDivElement>(null);
   const hamburger = useRef<HTMLButtonElement>(null);
+  const [barSave, setBarSave] = useState<BarSave | null>(null);
 
   /**
    * The drawer is a dialog, so it behaves like one: nothing behind it takes
@@ -116,9 +119,16 @@ export function Shell({
 
           {route.kind !== 'deploy' && <DeployChip onOpen={() => onGo({ kind: 'deploy' })} />}
 
+          {barSave && (
+            <button className="bar-save" onClick={barSave.press} disabled={barSave.busy}>
+              {barSave.busy ? 'שומר…' : 'שמירה'}
+            </button>
+          )}
+
           {store.pending.length > 0 && route.kind !== 'preview' && (
             <button className="bar-publish" onClick={() => onGo({ kind: 'preview' })}>
-              צפייה ופרסום
+              <span className="bar-glyph" aria-hidden="true">👁</span>
+              <span className="bar-label">צפייה ופרסום</span>
               <span className="badge">{store.pending.length}</span>
             </button>
           )}
@@ -215,7 +225,7 @@ export function Shell({
       )}
 
       <main className={route.kind === 'preview' ? 'app is-wide' : 'app'} id="main">
-        {children}
+        <BarSaveSlot.Provider value={setBarSave}>{children}</BarSaveSlot.Provider>
       </main>
     </>
   );
