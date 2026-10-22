@@ -286,9 +286,26 @@ describe('publish', () => {
   });
 
   it('G-10 refuses an empty publish and leaves master untouched', async () => {
+    // Saved and then put back: the draft has moved, but changes nothing.
+    await saveFiles(git, {
+      message: 'edit',
+      files: [{ path: 'src/content/site.toml', content: 'edited', encoding: 'utf-8' }],
+    });
+    await discardPath(git, { path: 'src/content/site.toml', message: 'undo' });
     const before = await git.getRefSha(TARGET_BRANCH);
     await expect(publish(git)).rejects.toThrow(/nothing to publish/);
     expect(await git.getRefSha(TARGET_BRANCH)).toBe(before);
+  });
+
+  it('answers a repeated publish as the one that landed', async () => {
+    await saveFiles(git, {
+      message: 'edit',
+      files: [{ path: 'src/content/site.toml', content: 'edited', encoding: 'utf-8' }],
+    });
+    const first = await publish(git);
+    const again = await publish(git);
+    expect(again).toEqual({ sha: first.sha, paths: [] });
+    expect(await git.getRefSha(TARGET_BRANCH)).toBe(first.sha);
   });
 
   it('refuses whole rather than partially when the draft strays outside content', async () => {

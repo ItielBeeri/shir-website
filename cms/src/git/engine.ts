@@ -332,10 +332,18 @@ export interface PublishResult {
 /**
  * Apply only the paths the draft changed onto master's current tree, then
  * fast-forward the draft onto the result.
+ *
+ * A draft already sitting on master is a publish that has landed - this
+ * request is a repeat of it, one the browser resent or another tab beat. It is
+ * answered as that publish, with no paths, rather than as an empty one: the
+ * owner was shown "nothing to publish" while her change went live.
  */
 export async function publish(t: GitTransport): Promise<PublishResult> {
-  const { master, base, changes, blobs } = await draftChanges(t);
-  if (changes.length === 0) throw new GitError('empty', 'nothing to publish');
+  const { draft, master, base, changes, blobs } = await draftChanges(t);
+  if (changes.length === 0) {
+    if (draft === master) return { sha: master, paths: [] };
+    throw new GitError('empty', 'nothing to publish');
+  }
 
   const message = publishMessage(changes, await draftMessages(t, base));
 

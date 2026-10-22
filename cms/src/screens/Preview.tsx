@@ -99,10 +99,13 @@ export function Preview({
   async function publish(): Promise<void> {
     setBusy(true);
     setError(null);
+    // A repeat of a publish that already landed comes back with no paths;
+    // what she pressed it on is still what the deploy screen should link to.
+    const pressed = store.pending;
     try {
       const { sha, paths } = await api.publish();
       await store.refreshPending();
-      onPublished(sha, paths);
+      onPublished(sha, paths.length > 0 ? paths : pressed);
     } catch (e) {
       setError(e instanceof FriendlyError ? e.message : 'לא הצלחתי לפרסם.');
     } finally {
