@@ -308,10 +308,10 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
   }
 
   /* Level with the picture it opens beside. A float takes no part in margin
-     collapsing, so after a blank line the heading's own margin would start
-     its text below the picture's top. */
+     collapsing, so after a blank line a heading's or frame's own margin would
+     start it below the picture's top. */
   @media not all and (max-width: 768px) {
-    .prose :global(:is(.soft-image--float, .soft-video--float):not(.soft-image--narrow-only, .soft-video--narrow-only) + :is(h2, h3)) {
+    .prose :global(:is(.soft-image--float, .soft-video--float):not(.soft-image--narrow-only, .soft-video--narrow-only) + :is(h2, h3, .framed-section)) {
       margin-block-start: 0;
     }
   }
