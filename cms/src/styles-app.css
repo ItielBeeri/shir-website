@@ -557,16 +557,23 @@
   white-space: nowrap;
 }
 
-/* Outlined, so it reads as the step before the filled publish beside it. */
+/* Filled like the form's own Save, which it repeats. A rule sets it apart
+   from the publish button of the same colour beside it. */
 .bar-save {
+  position: relative;
+  margin-inline-end: 6px;
   padding: 8px 12px;
   min-block-size: var(--tap);
   font-size: var(--fs-small);
-  font-weight: 600;
   white-space: nowrap;
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
+}
+.bar-save::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -8px;
+  inset-block: 8px;
+  inline-size: 1px;
+  background: var(--line);
 }
 
 /* Both at once leave a phone's title no room, and the title is the page's h1:

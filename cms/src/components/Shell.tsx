@@ -120,7 +120,7 @@ export function Shell({
           {route.kind !== 'deploy' && <DeployChip onOpen={() => onGo({ kind: 'deploy' })} />}
 
           {barSave && (
-            <button className="bar-save" onClick={barSave.press} disabled={barSave.busy}>
+            <button className="primary bar-save" onClick={barSave.press} disabled={barSave.busy}>
               {barSave.busy ? 'שומר…' : 'שמירה'}
             </button>
           )}
