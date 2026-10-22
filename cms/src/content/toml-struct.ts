@@ -3,7 +3,9 @@
  * which toml-edit's value splices cannot express.
  *
  * `images.toml` carries owner comments, so entries are appended and never
- * rewritten. `recommendations.toml` has none inside its entries, which is what
+ * rewritten; `videos.toml` has its shape, and comments inside its entries too,
+ * so a video's optional keys are set and cleared one line at a time.
+ * `recommendations.toml` has none inside its entries, which is what
  * lets its blocks be cut and recomposed for drag-to-reorder; if a comment is
  * ever added to one this approach has to change, and the round-trip gate will
  * say so. Everything above the first entry - its comments and the `[kicker]`
@@ -12,6 +14,7 @@
  * would travel with that entry.
  */
 import { parseTOML } from 'toml-eslint-parser';
+import { encodeLike } from './toml-edit';
 
 export interface ImageEntry {
   id: string;
@@ -44,15 +47,20 @@ export function renderImageEntry(entry: ImageEntry): string {
 
 export function appendImage(src: string, entry: ImageEntry): string {
   if (imageIds(src).includes(entry.id)) throw new Error(`image id in use: ${entry.id}`);
-  const gap = endsWithNewline(src) ? (src.endsWith('\n\n') ? '' : '\n') : '\n\n';
-  return src + gap + renderImageEntry(entry);
+  return appendTable(src, renderImageEntry(entry));
 }
 
+/** A block after the last, one blank line between them. */
+function appendTable(src: string, block: string): string {
+  const gap = endsWithNewline(src) ? (src.endsWith('\n\n') ? '' : '\n') : '\n\n';
+  return src + gap + block;
+}
+
+const standardTables = (src: string): any[] =>
+  (parseTOML(src).body[0] as any).body.filter((n: any) => n.type === 'TOMLTable' && n.kind === 'standard');
+
 export function imageIds(src: string): string[] {
-  const top = parseTOML(src).body[0] as any;
-  return top.body
-    .filter((n: any) => n.type === 'TOMLTable' && n.kind === 'standard')
-    .map((n: any) => String(n.resolvedKey[0]));
+  return standardTables(src).map((n: any) => String(n.resolvedKey[0]));
 }
 
 /**
@@ -60,16 +68,99 @@ export function imageIds(src: string): string[] {
  * comments and every other entry keep their exact bytes.
  */
 export function removeImage(src: string, id: string): string {
-  const top = parseTOML(src).body[0] as any;
-  const tables = top.body.filter((n: any) => n.type === 'TOMLTable' && n.kind === 'standard');
+  return removeTable(src, id, 'image');
+}
+
+function removeTable(src: string, id: string, what: string): string {
+  const tables = standardTables(src);
   const at = tables.findIndex((t: any) => String(t.resolvedKey[0]) === id);
-  if (at < 0) throw new Error(`no such image: ${id}`);
+  if (at < 0) throw new Error(`no such ${what}: ${id}`);
 
   const start = tables[at].range[0];
   const end = at + 1 < tables.length ? tables[at + 1].range[0] : src.length;
   const joined = src.slice(0, start) + src.slice(end);
   // Removing a block leaves the blank line that separated it on both sides.
   return joined.replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '\n');
+}
+
+/* --------------------------------- videos ---------------------------------- */
+
+export interface VideoTomlEntry {
+  id: string;
+  /** Site-absolute, e.g. "/video/x.mp4". */
+  file: string;
+  title: string;
+  description?: string;
+  /** YYYY-MM-DD. */
+  date: string;
+}
+
+/** Keys padded to the longest one, as the entries already there are. */
+export function renderVideoEntry(entry: VideoTomlEntry): string {
+  const rows: Array<[string, string]> = [
+    ['file', encodeLike('""', entry.file)],
+    ['title', encodeLike('""', entry.title)],
+    // `"""` whatever its length, so it keeps the line breaks she writes later.
+    ...(entry.description ? ([['description', encodeLike('""""""', entry.description)]] as Array<[string, string]>) : []),
+    ['date', encodeLike('""', entry.date)],
+  ];
+  const width = Math.max(...rows.map(([key]) => key.length));
+  return `[${entry.id}]\n${rows.map(([key, value]) => `${key.padEnd(width)} = ${value}\n`).join('')}`;
+}
+
+/** The ids of a manifest of keyed entries, images.toml's shape. */
+export const videoIds = imageIds;
+
+export function appendVideo(src: string, entry: VideoTomlEntry): string {
+  if (videoIds(src).includes(entry.id)) throw new Error(`video id in use: ${entry.id}`);
+  return appendTable(src, renderVideoEntry(entry));
+}
+
+export const removeVideo = (src: string, id: string): string => removeTable(src, id, 'video');
+
+/**
+ * Set one key of one entry, adding the line when the entry lacks it, or take
+ * the line away with `undefined`.
+ *
+ * A video's optional keys come and go as the owner changes her mind - a
+ * poster frame, then a gallery image instead - and rewriting the entry for
+ * each would cost the comments inside it, which carry instructions to her.
+ * A new line goes straight after the entry's last key, so a comment below it
+ * stays below it, and is padded to the alignment the entry already has.
+ */
+export function setEntryValue(
+  src: string,
+  id: string,
+  key: string,
+  value: string | number | undefined,
+): string {
+  const table = standardTables(src).find((t: any) => String(t.resolvedKey[0]) === id);
+  if (!table) throw new Error(`no such entry: ${id}`);
+  const pairs: any[] = table.body.filter((n: any) => n.type === 'TOMLKeyValue');
+  const pair = pairs.find((kv: any) => kv.key.keys.map((k: any) => k.name ?? k.value).join('.') === key);
+  // In the style the value already has, as every other edit here is.
+  const literal =
+    value === undefined ? '' : encodeLike(pair ? src.slice(...(pair.value.range as [number, number])) : '""', value);
+
+  const lineStart = (at: number): number => src.lastIndexOf('\n', at - 1) + 1;
+  const lineEnd = (at: number): number => {
+    const end = src.indexOf('\n', at);
+    return end < 0 ? src.length : end + 1;
+  };
+
+  if (pair) {
+    if (value === undefined) return src.slice(0, lineStart(pair.range[0])) + src.slice(lineEnd(pair.range[1]));
+    return src.slice(0, pair.value.range[0]) + literal + src.slice(pair.value.range[1]);
+  }
+  if (value === undefined) return src;
+
+  const last = pairs[pairs.length - 1];
+  const at = last ? lineEnd(last.range[1]) : lineEnd(table.range[0]);
+  const aligned = last ? src.slice(lineStart(last.range[0]), last.value.range[0]) : '';
+  const width = /^(\S+)(\s*)=\s*$/.test(aligned) ? aligned.indexOf('=') - 1 : key.length;
+  const line = `${key.padEnd(Math.max(width, key.length))} = ${literal}\n`;
+  const before = src.slice(0, at);
+  return `${before}${before.endsWith('\n') ? '' : '\n'}${line}${src.slice(at)}`;
 }
 
 export function renderRecommendationEntry(entry: RecommendationEntry): string {

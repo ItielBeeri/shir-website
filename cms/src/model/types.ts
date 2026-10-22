@@ -79,6 +79,8 @@ export type ScreenKind =
   | 'collection'
   /** The image gallery. */
   | 'images'
+  /** The videos, the gallery's counterpart. */
+  | 'videos'
   /** The recommendation cards. */
   | 'recommendations'
   /** The reorderable menu. */

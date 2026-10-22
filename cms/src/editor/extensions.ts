@@ -2,7 +2,8 @@
  * The editor's vocabulary, and nothing else.
  *
  * AGENTS.md §13: the editor may only offer constructs `.prose` styles - h2, h3,
- * `ul`, `ol`, the three emphasis marks, links, `SoftImage` and `FramedSection`.
+ * `ul`, `ol`, the three emphasis marks, links, `SoftImage`, `SoftVideo` and
+ * `FramedSection`.
  * Everything StarterKit would otherwise hand us (blockquote, code, strike, underline,
  * rules, h1, h4-h6) is turned off here rather than merely hidden from the
  * toolbar, so a paste or a keyboard shortcut cannot introduce it either.
@@ -87,6 +88,22 @@ export const SoftImageNode = Node.create({
   }),
   parseHTML: () => [{ tag: 'div[data-soft-image]' }],
   renderHTML: ({ HTMLAttributes }) => ['div', mergeAttributes(HTMLAttributes, { 'data-soft-image': '' })],
+});
+
+/** A body video, placed as an image is; it has no shape to choose. */
+export const SoftVideoNode = Node.create({
+  name: 'softVideo',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  addAttributes: () => ({
+    id: { default: '' },
+    float: { default: undefined },
+    width: { default: undefined },
+    stack: { default: undefined },
+  }),
+  parseHTML: () => [{ tag: 'div[data-soft-video]' }],
+  renderHTML: ({ HTMLAttributes }) => ['div', mergeAttributes(HTMLAttributes, { 'data-soft-video': '' })],
 });
 
 /** The frame's contents in its place, the first of them taking over the frame's gap. */
@@ -218,7 +235,7 @@ const GapAttribute = Extension.create({
   addGlobalAttributes() {
     return [
       {
-        types: ['paragraph', 'heading', 'bulletList', 'orderedList', 'softImage', 'framedSection', 'rawBlock'],
+        types: ['paragraph', 'heading', 'bulletList', 'orderedList', 'softImage', 'softVideo', 'framedSection', 'rawBlock'],
         attributes: { gap: whitespace },
       },
       // A frame's is the space just inside its closing tag.
@@ -255,6 +272,7 @@ export const extensions = [
   Emphasis,
   Italic,
   SoftImageNode,
+  SoftVideoNode,
   FramedSectionNode,
   RawBlock,
   RawInline,

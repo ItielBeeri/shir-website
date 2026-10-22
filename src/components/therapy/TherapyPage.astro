@@ -1,13 +1,15 @@
 ---
 /**
  * Shared template for every therapy page; the pages themselves are thin
- * wrappers. Body images come from the MDX, via the `components` map below.
+ * wrappers. Body images and videos come from the MDX, via the `components`
+ * map below.
  */
 import BaseLayout from '../layout/BaseLayout.astro';
 import Header from '../layout/Header.astro';
 import Footer from '../layout/Footer.astro';
 import ContactPill from '../layout/ContactPill.astro';
 import SoftImage from '../ui/SoftImage.astro';
+import SoftVideo from '../ui/SoftVideo.astro';
 import FramedSection from '../ui/FramedSection.astro';
 import SectionHeading from '../ui/SectionHeading.astro';
 import BreathDivider from '../ui/BreathDivider.astro';
@@ -104,7 +106,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
 
     <section class="therapy-body container" data-reveal>
       <div class="prose">
-        <Content components={{ SoftImage, FramedSection }} />
+        <Content components={{ SoftImage, SoftVideo, FramedSection }} />
       </div>
     </section>
 
@@ -293,7 +295,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
      it (an h2 here, a paragraph there) must not add its own on top - nor what
      follows an opening image that phones do not show there. */
   .prose > :global(:first-child),
-  .prose > :global(.soft-image--wide-only:first-child + *) {
+  .prose > :global(:is(.soft-image--wide-only, .soft-video--wide-only):first-child + *) {
     margin-block-start: 0;
   }
 
@@ -325,7 +327,7 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     overflow: hidden;
   }
 
-  .prose :global(figure:not(.soft-image)) {
+  .prose :global(figure:not(.soft-image, .soft-video)) {
     margin-block: 2rem;
     border-radius: var(--radius-card);
     overflow: hidden;

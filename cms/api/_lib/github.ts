@@ -171,6 +171,13 @@ export class GitHubTransport implements GitTransport {
     return blob.sha;
   }
 
+  /** A blob's bytes, by its sha - the pieces of a video, before they are joined. */
+  async readBlob(sha: string): Promise<Buffer | null> {
+    const blob = await this.call<{ content: string; encoding: string } | null>(`/git/blobs/${sha}`);
+    if (!blob) return null;
+    return Buffer.from(blob.content, blob.encoding === 'base64' ? 'base64' : 'utf8');
+  }
+
   async createTree(baseTreeSha: string, entries: NewTreeEntry[]): Promise<string> {
     const tree = await this.call<{ sha: string }>('/git/trees', {
       method: 'POST',

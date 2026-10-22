@@ -6,20 +6,87 @@ import { parse as parseSmol } from 'smol-toml';
 import {
   appendImage,
   appendRecommendation,
+  appendVideo,
   deleteRecommendation,
   imageIds,
   nextRecommendationId,
   recommendationIds,
   removeImage,
+  removeVideo,
   reorderArrayTables,
   arrayTableCount,
   reorderRecommendations,
   replaceRecommendation,
+  setEntryValue,
 } from './toml-struct';
 
 const CONTENT = join(__dirname, '../../../src/content');
 const images = () => readFileSync(join(CONTENT, 'images.toml'), 'utf8');
 const recs = () => readFileSync(join(CONTENT, 'recommendations.toml'), 'utf8');
+const videos = () => readFileSync(join(CONTENT, 'videos.toml'), 'utf8');
+
+describe('videos.toml', () => {
+  const LIVE = 'voice-opening-session';
+  const added = { id: 'test-clip', file: '/video/test-clip.mp4', title: 'בדיקה', date: '2026-10-19' };
+
+  it('appends without disturbing existing entries or comments', () => {
+    const src = videos();
+    const out = appendVideo(src, { ...added, description: 'שורה\nועוד "שורה"' });
+    expect(out.startsWith(src.replace(/\n*$/, ''))).toBe(true);
+    const before = parseSmol(src) as Record<string, unknown>;
+    const after = parseSmol(out) as Record<string, any>;
+    for (const id of Object.keys(before)) expect(after[id]).toEqual(before[id]);
+    expect(after['test-clip']).toEqual({ ...added, id: undefined, description: 'שורה\nועוד "שורה"' });
+  });
+
+  it('aligns a new entry as the file aligns its own', () => {
+    expect(appendVideo(videos(), added)).toContain(
+      '[test-clip]\nfile  = "/video/test-clip.mp4"\ntitle = "בדיקה"\ndate  = "2026-10-19"\n',
+    );
+  });
+
+  it('refuses a duplicate id, and removes exactly one entry', () => {
+    expect(() => appendVideo(videos(), { ...added, id: LIVE })).toThrow();
+    const out = removeVideo(appendVideo(videos(), added), 'test-clip');
+    expect(out).toBe(videos());
+  });
+
+  it('sets a key where it stands, in the style it was written in', () => {
+    const out = setEntryValue(videos(), LIVE, 'title', 'שם אחר');
+    expect((parseSmol(out) as any)[LIVE].title).toBe('שם אחר');
+    const before = videos().split('\n');
+    const changed = out.split('\n').filter((line, i) => line !== before[i]);
+    expect(changed).toEqual(['title       = "שם אחר"']);
+  });
+
+  /** The live file plus an entry of our own carrying a comment, as an owner's entry may. */
+  const withNote = (extra: { description?: string } = {}): string =>
+    `${appendVideo(videos(), { ...added, ...extra })}# הערה בתוך הערך\n`;
+
+  it('adds a missing key below the last one, above the comments, at the same alignment', () => {
+    const live = setEntryValue(videos(), LIVE, 'captions', '/video/voice-opening-session.he.vtt');
+    expect((parseSmol(live) as any)[LIVE].captions).toBe('/video/voice-opening-session.he.vtt');
+    expect(live).toContain('\ncaptions    = "/video/voice-opening-session.he.vtt"\n');
+    const own = setEntryValue(withNote(), 'test-clip', 'captions', '/video/test-clip.he.vtt');
+    expect(own).toContain('date  = "2026-10-19"\ncaptions = "/video/test-clip.he.vtt"\n# הערה בתוך הערך\n');
+  });
+
+  it('clears a key with all of its lines, a multi-line one included, and keeps the comments', () => {
+    const src = withNote({ description: 'שורה\nשנייה' });
+    const out = setEntryValue(src, 'test-clip', 'description', undefined);
+    expect((parseSmol(out) as any)['test-clip'].description).toBeUndefined();
+    expect(out.split('\n').length, 'both lines of the value go').toBe(src.split('\n').length - 2);
+    expect(out).toContain('# הערה בתוך הערך\n');
+    const live = setEntryValue(videos(), LIVE, 'poster_time', undefined);
+    expect((parseSmol(live) as any)[LIVE].poster_time).toBeUndefined();
+    expect(setEntryValue(live, LIVE, 'poster_time', undefined), 'clearing what is not there').toBe(live);
+  });
+
+  it('keeps a number a number', () => {
+    const out = setEntryValue(videos(), LIVE, 'poster_time', 12.5);
+    expect((parseSmol(out) as any)[LIVE].poster_time).toBe(12.5);
+  });
+});
 
 const rec = (id: string) => ({
   id,

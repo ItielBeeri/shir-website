@@ -30,6 +30,9 @@ export function describePath(path: string): string {
   if (path.startsWith('public/img/recommendations/')) return 'צילום מסך של המלצה';
   if (path.startsWith('public/img/_opt/')) return 'גרסאות מוקטנות של תמונות';
   if (path.startsWith('public/img/')) return 'תמונה';
+  if (path.startsWith('public/video/_opt/')) return 'גרסאות קלות של סרטונים';
+  if (path.startsWith('public/video/') && path.endsWith('.vtt')) return 'כתוביות של סרטון';
+  if (path.startsWith('public/video/')) return 'סרטון';
   if (path === 'src/content/pages/accessibility.toml') return 'הצהרת נגישות';
   if (path === 'src/content/pages/terms.toml') return 'תנאי שימוש ופרטיות';
   if (path === 'src/content/pages/consent.toml') return 'באנר ההסכמה';

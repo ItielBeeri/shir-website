@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { allBlocks, parseMdx, serializeMdx } from './mdx-edit';
 import { docToPm, pmToDoc } from './pm-convert';
 import type { PmNode } from './pm-convert';
+import { parseSoftVideo } from '../lib/softvideo';
 import { getSchema } from '@tiptap/core';
 import { extensions } from '../editor/extensions';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -74,6 +75,17 @@ describe('ProseMirror conversion', () => {
     const image = (pm.content ?? []).find((n) => n.type === 'softImage');
     expect(image).toBeTruthy();
     expect(image?.attrs).toMatchObject({ id: expect.any(String), aspect: expect.any(String) });
+  });
+
+  it('turns a SoftVideo into a node with editable props, and writes it back as it was', () => {
+    const src = readFileSync(join(CONTENT, 'therapies/voice.mdx'), 'utf8');
+    const pm = docToPm(parseMdx(src));
+    const video = (pm.content ?? []).find((n) => n.type === 'softVideo');
+    // Whatever placement the page has today: the owner moves it.
+    const written = parseSoftVideo(/^<SoftVideo\b.*$/m.exec(src)![0])!;
+    expect(video?.attrs).toMatchObject({ ...written });
+    expect(getSchema(extensions).nodes.softVideo, 'the editor schema has a place for it').toBeTruthy();
+    expect(roundTrip(src)).toBe(src);
   });
 
   it('keeps a construct it does not model as an untouchable block', () => {

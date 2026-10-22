@@ -1,8 +1,8 @@
 # cms — the owner's editing surface
 
 A Vite app on its own Vercel project at `admin.shir-amitai.com`. It commits to
-the same repository, as the signed-in user, and touches only `src/content/**`
-and `public/img/**`.
+the same repository, as the signed-in user, and touches only `src/content/**`,
+`public/img/**` and `public/video/**`.
 
 Design: `log/cms-plan.md` · Tests: `TEST-SPEC.md` · Repo rules: `AGENTS.md` §13.
 
@@ -115,6 +115,7 @@ falling back to something insecure.
 | `src/model/` | every editable field, with the Hebrew the owner reads |
 | `src/model/site-fields.ts` | the contact screen's own fields, so the one screen `App.tsx` draws by hand still reads them from the model |
 | `src/git/paths.ts` | **the permission model** — what may be written, and where |
+| `src/lib/videos.ts` | a video's upload: its recorded place erased, then sent in 3 MB pieces that the save joins into one blob, past the 4.5 MB function body limit |
 | `src/git/engine.ts` | save, publish, discard, restore, over an injectable transport |
 | `api/` | auth and the typed content API; the engine runs here |
 

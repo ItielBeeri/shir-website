@@ -17,6 +17,8 @@
 const WRITABLE: ReadonlyArray<{ prefix: string; extensions: readonly string[] }> = [
   { prefix: 'src/content/', extensions: ['.toml', '.mdx'] },
   { prefix: 'public/img/', extensions: ['.jpg', '.jpeg', '.png', '.webp'] },
+  // A caption file is WebVTT: cue text, which a browser never runs.
+  { prefix: 'public/video/', extensions: ['.mp4', '.m4v', '.mov', '.webm', '.vtt'] },
 ];
 
 /**
@@ -24,7 +26,19 @@ const WRITABLE: ReadonlyArray<{ prefix: string; extensions: readonly string[] }>
  * commits originals only; writing here would fight the bot and break the
  * digest contract that makes these URLs immutably cacheable (AGENTS.md §6.1).
  */
-const FORBIDDEN_PREFIXES = ['public/img/_opt/'] as const;
+const FORBIDDEN_PREFIXES = ['public/img/_opt/', 'public/video/_opt/'] as const;
+
+/**
+ * A video travels in pieces: a function takes at most 4.5 MB per request, and
+ * a phone records that in seconds. Each piece becomes a git blob of its own
+ * and the save joins them on the server (api/content/[action].ts). The cap
+ * sits below GitHub's 50 MB warning, since every original stays in the
+ * repository's history for good.
+ */
+export const VIDEO_UPLOAD = {
+  chunkBytes: 3_000_000,
+  maxBytes: 48_000_000,
+} as const;
 
 export const DRAFT_BRANCH = 'content-draft';
 export const TARGET_BRANCH = 'master';
@@ -111,16 +125,17 @@ export function pathRejection(path: string): string | null {
 export const isWritablePath = (path: string): boolean => pathRejection(path) === null;
 
 /**
- * Reading is wider than writing, by exactly one directory.
+ * Reading is wider than writing, by exactly the two derivative directories.
  *
- * `public/img/_opt/` belongs to the images workflow and the CMS must never
- * write there - that is what keeps the digest contract making those URLs
- * immutably cacheable (AGENTS.md §6.1). Reading them is a different act, and
- * it is how the editor shows a 400px thumbnail instead of pulling a
- * three-megapixel original onto a phone.
+ * `public/img/_opt/` and `public/video/_opt/` belong to the images workflow and
+ * the CMS must never write there - that is what keeps the digest contract
+ * making those URLs immutably cacheable (AGENTS.md §6.1). Reading them is a
+ * different act, and it is how the editor shows a 400px thumbnail instead of
+ * pulling a three-megapixel original onto a phone.
  */
 const READABLE_EXTRA: ReadonlyArray<{ prefix: string; extensions: readonly string[] }> = [
   { prefix: 'public/img/_opt/', extensions: ['.json', '.avif', '.webp'] },
+  { prefix: 'public/video/_opt/', extensions: ['.json', '.avif', '.webp', '.jpg'] },
 ];
 
 export function readRejection(path: string): string | null {
@@ -175,3 +190,6 @@ export const IMAGE_DIRS = {
   content: 'public/img/content/',
   recommendations: 'public/img/recommendations/',
 } as const;
+
+/** Videos and their caption files. */
+export const VIDEO_DIR = 'public/video/';

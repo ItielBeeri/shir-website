@@ -23,7 +23,7 @@ const files = tomlFiles();
 
 describe('toml-edit', () => {
   it('finds every content file', () => {
-    expect(files.length).toBe(10);
+    expect(files.length).toBe(11);
   });
 
   describe.each(files.map((f) => [f.split(/[\\/]/).pop() as string, f]))('%s', (_name, file) => {
@@ -77,6 +77,23 @@ describe('toml-edit', () => {
         expect(setStringArray(src, list.path, cursor as string[]), list.path.join('.')).toBe(src);
       }
     });
+  });
+
+  it('keeps a number as it was spelled, and a float a float', () => {
+    const src = 'a = 19.0\nb = 4.50\nc = 1_000\nd = 0xe5\n';
+    expect(setValues(src, [
+      { path: ['a'], value: 19 },
+      { path: ['b'], value: 4.5 },
+      { path: ['c'], value: 1000 },
+      { path: ['d'], value: 229 },
+    ])).toBe(src);
+    const changed = setValues(src, [
+      { path: ['a'], value: 21 },
+      { path: ['d'], value: 230 },
+    ]);
+    expect(changed).toContain('a = 21.0\n');
+    expect(changed).toContain('d = 230\n');
+    expect(parseSmol(changed)).toMatchObject({ a: 21, d: 230 });
   });
 
   it('keeps Hebrew comments when a value changes', () => {

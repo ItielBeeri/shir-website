@@ -36,25 +36,10 @@ import {
 } from '../../src/git/paths.js';
 import { isLegalFile, legalProblems } from '../../src/model/legal.js';
 import type { Role } from '../../src/model/legal.js';
-
-/**
- * A request that is wrong in itself, as opposed to one GitHub refused. The
- * distinction reaches the owner: an oversized image told her GitHub was
- * unreachable, which is neither true nor something she can act on.
- */
-class InvalidRequest extends Error {
-  constructor(
-    readonly code: string,
-    readonly detail?: string,
-  ) {
-    super(detail ?? code);
-    this.name = 'InvalidRequest';
-  }
-}
+import { InvalidRequest, asChunk, asFiles, joinChunks } from '../_lib/request.js';
+import type { IncomingFile } from '../_lib/request.js';
 
 const SESSION_DAYS = 180;
-/** Base64 of 8 MB, plus slack. Vercel caps the body well below this anyway. */
-const MAX_CONTENT = 12_000_000;
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const cfg = config();
@@ -123,9 +108,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
       }
 
+      case 'chunk': {
+        // One piece of a video, kept as a blob nothing points at until the
+        // save that joins it; git collects any that a cancelled upload leaves.
+        res.status(200).json({ sha: await git.createBlob(asChunk(body.content), 'base64') });
+        return;
+      }
+
       case 'save': {
         const remove = Array.isArray(body.remove) ? (body.remove as string[]).map(String) : [];
-        const files = asFiles(body.files, remove.length > 0);
+        const files = await joinChunks(git, asFiles(body.files, remove.length > 0));
         const message = String(body.message ?? 'עריכת תוכן');
         if (remove.some(isLegalFile)) {
           throw new InvalidRequest('legal-rejected', 'אי אפשר למחוק עמוד משפטי.');
@@ -272,26 +264,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // failure actionable: 403 means the installation lacks write access.
     res.status(502).json({ error: 'upstream', status: err.status });
   }
-}
-
-interface IncomingFile {
-  path: string;
-  content: string;
-  encoding: 'utf-8' | 'base64';
-}
-
-function asFiles(value: unknown, mayBeEmpty = false): IncomingFile[] {
-  if (!Array.isArray(value)) throw new InvalidRequest('empty');
-  if (value.length === 0 && !mayBeEmpty) throw new InvalidRequest('empty');
-  return value.map((raw) => {
-    const file = raw as Record<string, unknown>;
-    const path = String(file.path ?? '');
-    const content = String(file.content ?? '');
-    const encoding = file.encoding === 'base64' ? 'base64' : 'utf-8';
-    if (content.length > MAX_CONTENT) throw new InvalidRequest('too-large');
-    assertWritablePath(path);
-    return { path, content, encoding };
-  });
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * One store for the things every screen needs: who is signed in, the image
- * gallery, and what is waiting to be published.
+ * gallery and the videos, and what is waiting to be published.
  *
  * The gallery lives here rather than in the picker because an upload from
  * inside a form has to be visible to the next form that opens, without a
@@ -14,10 +14,15 @@ import type { PathChange } from './git/engine';
 import { derivativeFor, rawUrl } from './lib/images';
 import type { Derivatives } from './lib/images';
 import type { GalleryImage } from './content/gallery';
+import { posterFor } from './lib/videos';
+import type { VideoDerivatives } from './lib/videos';
+import type { VideoEntry } from './content/videos';
 import { WATCH_LIMIT_MS, settled } from './model/deploy';
 
 const GALLERY_FILE = 'src/content/images.toml';
 const DERIVATIVES_FILE = 'public/img/_opt/manifest.json';
+export const VIDEOS_FILE = 'src/content/videos.toml';
+const VIDEO_DERIVATIVES_FILE = 'public/video/_opt/manifest.json';
 
 export type Role = 'owner' | 'maintainer';
 
@@ -51,6 +56,25 @@ interface Store {
    * at; without one the original is served.
    */
   urlFor: (id: string, width?: number) => string | null;
+  videos: VideoEntry[];
+  refreshVideos: () => Promise<void>;
+  /**
+   * A new video and its entry, in one commit; returns the new id. The file
+   * has already travelled in pieces, and `chunks` names them.
+   */
+  addVideo: (input: {
+    id: string;
+    path: string;
+    chunks: string[];
+    title: string;
+    description: string;
+    date: string;
+    previewUrl: string;
+  }) => Promise<string>;
+  /** What to play: the site's own copy once it is built, else the original. */
+  videoUrlFor: (id: string) => string | null;
+  /** A poster thumbnail at about `width` px, or null - show a frame instead. */
+  videoPosterFor: (id: string, width: number) => string | null;
   saved: (paths?: string[]) => void;
   /** The publish on its way to the site, or null when nothing is in flight. */
   deploy: DeployWatch | null;
@@ -85,6 +109,9 @@ export function StoreProvider({
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [freshPreviews, setFresh] = useState<Record<string, string>>({});
   const [derivatives, setDerivatives] = useState<Derivatives | null>(null);
+  const [videos, setVideos] = useState<VideoEntry[]>([]);
+  const [freshVideos, setFreshVideos] = useState<Record<string, string>>({});
+  const [videoDerivatives, setVideoDerivatives] = useState<VideoDerivatives | null>(null);
   const [deploy, setDeploy] = useState<DeployWatch | null>(null);
   const [tick, setTick] = useState(0);
 
@@ -105,14 +132,26 @@ export function StoreProvider({
     setGallery(parseGallery(content));
   }, []);
 
+  const refreshVideos = useCallback(async () => {
+    const { content } = await api.read(VIDEOS_FILE);
+    if (!content) return;
+    const { parseVideos } = await import('./content/videos');
+    setVideos(parseVideos(content));
+  }, []);
+
   useEffect(() => {
     void refreshGallery().catch(() => undefined);
+    void refreshVideos().catch(() => undefined);
     // Advisory: without it every thumbnail is the original, which works.
     void api
       .read(DERIVATIVES_FILE)
       .then(({ content }) => content && setDerivatives(JSON.parse(content) as Derivatives))
       .catch(() => undefined);
-  }, [refreshGallery]);
+    void api
+      .read(VIDEO_DERIVATIVES_FILE)
+      .then(({ content }) => content && setVideoDerivatives(JSON.parse(content) as VideoDerivatives))
+      .catch(() => undefined);
+  }, [refreshGallery, refreshVideos]);
 
   const addImage = useCallback<Store['addImage']>(
     async ({ fileName, path, base64, alt, previewUrl }) => {
@@ -157,6 +196,71 @@ export function StoreProvider({
       return rawUrl(repo, 'content-draft', small ?? image.file);
     },
     [freshPreviews, gallery, repo, derivatives, pending],
+  );
+
+  const addVideo = useCallback<Store['addVideo']>(
+    async ({ id, path, chunks, title, description, date, previewUrl }) => {
+      const { content } = await api.read(VIDEOS_FILE);
+      if (content === null) throw new FriendlyError('לא הצלחתי לקרוא את רשימת הסרטונים.');
+
+      const [{ appendVideo }, { parseVideos }] = await Promise.all([
+        import('./content/toml-struct'),
+        import('./content/videos'),
+      ]);
+      const next = appendVideo(content, {
+        id,
+        file: path.replace(/^public/, ''),
+        title,
+        description: description || undefined,
+        date,
+      });
+
+      // One commit, as an image's: a video with no entry is invisible, and an
+      // entry with no video fails the build.
+      await api.save(`הוספת סרטון: ${title}`, [
+        { path, chunks },
+        { path: VIDEOS_FILE, content: next },
+      ]);
+
+      setVideos(parseVideos(next));
+      setFreshVideos((prev) => ({ ...prev, [id]: previewUrl }));
+      void refreshPending();
+      return id;
+    },
+    [refreshPending],
+  );
+
+  /**
+   * A video waiting to be published may have replaced the one its built copy
+   * was made from, as with a picture, so that one plays its original.
+   */
+  const settledVideo = useCallback(
+    (entry: VideoEntry) =>
+      !pending.some((c) => c.path === `public${entry.file}`) &&
+      videoDerivatives?.[entry.file],
+    [pending, videoDerivatives],
+  );
+
+  const videoUrlFor = useCallback<Store['videoUrlFor']>(
+    (id) => {
+      if (freshVideos[id]) return freshVideos[id];
+      const entry = videos.find((v) => v.id === id);
+      if (!entry) return null;
+      const built = settledVideo(entry);
+      return rawUrl(repo, 'content-draft', built ? `/video/_opt/${built.renditions[0].file}` : entry.file);
+    },
+    [freshVideos, videos, settledVideo, repo],
+  );
+
+  const videoPosterFor = useCallback<Store['videoPosterFor']>(
+    (id, width) => {
+      const entry = videos.find((v) => v.id === id);
+      if (!entry) return null;
+      if (entry.poster) return urlFor(entry.poster, width);
+      const poster = settledVideo(entry) ? posterFor(videoDerivatives, entry, width) : null;
+      return poster ? rawUrl(repo, 'content-draft', poster) : null;
+    },
+    [videos, urlFor, settledVideo, videoDerivatives, repo],
   );
 
   const watchDeploy = useCallback((sha: string, paths: PathChange[]) => {
@@ -208,6 +312,11 @@ export function StoreProvider({
       refreshGallery,
       addImage,
       urlFor,
+      videos,
+      refreshVideos,
+      addVideo,
+      videoUrlFor,
+      videoPosterFor,
       saved,
       deploy,
       watchDeploy,
@@ -225,6 +334,11 @@ export function StoreProvider({
       refreshGallery,
       addImage,
       urlFor,
+      videos,
+      refreshVideos,
+      addVideo,
+      videoUrlFor,
+      videoPosterFor,
       saved,
       deploy,
       watchDeploy,

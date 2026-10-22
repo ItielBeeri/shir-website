@@ -157,6 +157,8 @@ const ID_PATTERNS = [
   /(?:hero_image|teaser_image|portrait_image|cover):\s*["']([^"']+)["']/g,
   /portrait\s*=\s*["']([^"']+)["']/g,
   /<SoftImage[^>]*\bid=["']([^"']+)["']/g,
+  // A video's poster, in videos.toml.
+  /^poster\s*=\s*["']([^"']+)["']/gm,
 ];
 
 export function findUsage(id: string, files: Array<{ path: string; label: string; content: string }>): Usage[] {

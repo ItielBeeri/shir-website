@@ -14,10 +14,12 @@ import {
   useEditorState,
 } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
-import { extensions, FramedSectionNode, RawBlock, RawInline, SoftImageNode } from '../editor/extensions';
+import { extensions, FramedSectionNode, RawBlock, RawInline, SoftImageNode, SoftVideoNode } from '../editor/extensions';
 import { ImagePicker } from './ImagePicker';
+import { VideoPicker, VideoThumb } from './VideoPicker';
 import { LinkDialog } from './LinkDialog';
 import { ASPECTS, DEFAULT_WIDTH, PLACEMENTS, place, placementOf } from '../lib/softimage';
+import { VIDEO_PLACEMENTS } from '../lib/softvideo';
 import { ALIGNS, TONES, WIDTHS, frameProps } from '../lib/frame';
 import { useStore } from '../store';
 import { useEffect, useId, useState } from 'react';
@@ -140,6 +142,71 @@ function SoftImageView({ node, updateAttributes, deleteNode }: any): JSX.Element
   );
 }
 
+/** An image's controls, less its shape: the site shows a video in its own. */
+function SoftVideoView({ node, updateAttributes, deleteNode }: any): JSX.Element {
+  const store = useStore();
+  const id = useId();
+  const [picking, setPicking] = useState(false);
+  const title = store.videos.find((v) => v.id === node.attrs.id)?.title;
+  const placement = placementOf(node.attrs);
+
+  return (
+    <NodeViewWrapper className="nv-image">
+      <div className="nv-head">
+        <span className="muted">סרטון בתוך הטקסט</span>
+        <button className="ghost danger" onClick={deleteNode} aria-label="הסרת הסרטון">✕</button>
+      </div>
+
+      <button className="image-field" onClick={() => setPicking(true)}>
+        <VideoThumb id={node.attrs.id} width={80} />
+        <span className="image-field-text">
+          <span>{title || 'סרטון'}</span>
+          <span className="muted">להחלפה, לחצי כאן</span>
+        </span>
+      </button>
+
+      <div className="nv-controls">
+        <div className="chips">
+          {VIDEO_PLACEMENTS.map((p) => (
+            <button
+              key={p.value}
+              className={placement === p.value ? 'chip is-on' : 'chip'}
+              onClick={() => updateAttributes(place(p.value, node.attrs.width))}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {placement !== 'full' && (
+          <WidthField
+            value={node.attrs.width || DEFAULT_WIDTH}
+            onChange={(width) => updateAttributes({ width })}
+          />
+        )}
+        {(placement === 'start' || placement === 'end') && (
+          <div className="switch">
+            <input
+              id={`${id}-stack`}
+              type="checkbox"
+              checked={node.attrs.stack === 'after'}
+              onChange={(e) => updateAttributes({ stack: e.target.checked ? 'after' : undefined })}
+            />
+            <label htmlFor={`${id}-stack`}>בטלפון, להציג אחרי הפסקה הבאה (במחשב הוא נשאר בצד)</label>
+          </div>
+        )}
+      </div>
+
+      {picking && (
+        <VideoPicker
+          value={node.attrs.id}
+          onPick={(id) => updateAttributes({ id })}
+          onClose={() => setPicking(false)}
+        />
+      )}
+    </NodeViewWrapper>
+  );
+}
+
 /** `page` takes the colour of the page the frame is on, so its chip shows them all. */
 const PAGE_SWATCH = `conic-gradient(${TONES.flatMap((t) => t.swatch ?? []).join(', ')})`;
 
@@ -228,11 +295,12 @@ function RawBlockView({ node }: any): JSX.Element {
   );
 }
 
-const hasView = new Set(['softImage', 'framedSection', 'rawBlock', 'rawInline']);
+const hasView = new Set(['softImage', 'softVideo', 'framedSection', 'rawBlock', 'rawInline']);
 
 const withViews = [
   ...extensions.filter((e) => !hasView.has(e.name)),
   SoftImageNode.extend({ addNodeView: () => ReactNodeViewRenderer(SoftImageView) }),
+  SoftVideoNode.extend({ addNodeView: () => ReactNodeViewRenderer(SoftVideoView) }),
   FramedSectionNode.extend({ addNodeView: () => ReactNodeViewRenderer(FramedSectionView) }),
   RawBlock.extend({ addNodeView: () => ReactNodeViewRenderer(RawBlockView) }),
   RawInline.extend({
@@ -244,6 +312,7 @@ const withViews = [
 
 function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JSX.Element {
   const [picking, setPicking] = useState(false);
+  const [pickingVideo, setPickingVideo] = useState(false);
 
   /**
    * The toolbar reports where the caret is, not what was last pressed.
@@ -304,6 +373,7 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JS
         ממוספרת
       </button>
       <button onClick={() => setPicking(true)}>תמונה</button>
+      <button onClick={() => setPickingVideo(true)}>סרטון</button>
       <button {...toggle(on.frame)} onClick={() => editor.chain().focus().toggleFramedSection().run()}>
         מסגרת
       </button>
@@ -331,6 +401,12 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink: () => void }): JS
             editor.chain().focus().insertContent({ type: 'softImage', attrs: { id, aspect: '4/3' } }).run()
           }
           onClose={() => setPicking(false)}
+        />
+      )}
+      {pickingVideo && (
+        <VideoPicker
+          onPick={(id) => editor.chain().focus().insertContent({ type: 'softVideo', attrs: { id } }).run()}
+          onClose={() => setPickingVideo(false)}
         />
       )}
     </div>

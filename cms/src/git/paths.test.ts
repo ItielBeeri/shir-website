@@ -57,6 +57,33 @@ describe('writable paths', () => {
   it('rejects the generated derivative tree', () => {
     expect(pathRejection('public/img/_opt/manifest.json')).toMatch(/images workflow/);
     expect(pathRejection('public/img/_opt/portrait-2-900.abc.avif')).toMatch(/images workflow/);
+    expect(pathRejection('public/video/_opt/manifest.json')).toMatch(/images workflow/);
+    expect(pathRejection('public/video/_opt/clip-720.abc.mp4')).toMatch(/images workflow/);
+  });
+
+  it('allows videos as a phone saves them, and their captions', () => {
+    for (const p of [
+      'public/video/clip.mp4',
+      'public/video/IMG_0042.MOV',
+      'public/video/clip.m4v',
+      'public/video/screen.webm',
+      'public/video/clip.he.vtt',
+    ]) {
+      expect(pathRejection(p), p).toBeNull();
+    }
+  });
+
+  it('allows nothing else under public/video/', () => {
+    for (const p of [
+      'public/video/evil.html',
+      'public/video/evil.js',
+      'public/video/evil.svg',
+      'public/video/clip.mp4.html',
+      'public/video/noext',
+      'public/videoX/clip.mp4',
+    ]) {
+      expect(pathRejection(p), p).toBeTruthy();
+    }
   });
 
   it('B-8 rejects traversal and encoding tricks', () => {
@@ -132,6 +159,9 @@ describe('reading versus writing', () => {
     'public/img/_opt/manifest.json',
     'public/img/_opt/content/a-400.abc123.webp',
     'public/img/_opt/content/a-400.abc123.avif',
+    'public/video/_opt/manifest.json',
+    'public/video/_opt/clip-poster-360.abc123.webp',
+    'public/video/_opt/clip-poster-720.abc123.jpg',
   ];
 
   it.each(allowed)('%s may be read but never written', (path) => {
@@ -146,6 +176,9 @@ describe('reading versus writing', () => {
     'public/img/_opt/evil.svg',
     'public/img/_opt/nested/../../../secret.json',
     'public/img/_opt/no-extension',
+    // The editor plays a built video from the raw host, never through the API.
+    'public/video/_opt/clip-720.abc123.mp4',
+    'public/video/_opt/evil.html',
   ])('%s is not readable either', (path) => {
     expect(isReadablePath(path)).toBe(false);
     expect(() => assertReadablePath(path)).toThrow();

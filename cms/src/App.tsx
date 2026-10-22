@@ -25,6 +25,7 @@ const TomlForm = lazy(async () => ({ default: (await import('./screens/TomlForm'
 const MdxEntry = lazy(async () => ({ default: (await import('./screens/MdxEntry')).MdxEntry }));
 const Collection = lazy(async () => ({ default: (await import('./screens/Collection')).Collection }));
 const Images = lazy(async () => ({ default: (await import('./screens/Images')).Images }));
+const Videos = lazy(async () => ({ default: (await import('./screens/Videos')).Videos }));
 const Recommendations = lazy(async () => ({
   default: (await import('./screens/Recommendations')).Recommendations,
 }));
@@ -36,7 +37,7 @@ const NavEditor = lazy(async () => ({ default: (await import('./screens/Misc')).
 const Preview = lazy(async () => ({ default: (await import('./screens/Preview')).Preview }));
 
 const GLYPHS: Record<string, string> = {
-  pencil: '✍', book: '📚', quote: '💬', image: '🖼', home: '🏠', person: '🙋',
+  pencil: '✍', book: '📚', quote: '💬', image: '🖼', video: '🎬', home: '🏠', person: '🙋',
   leaf: '🌿', envelope: '✉', list: '☰', phone: '📞', scale: '⚖', question: '❓',
 };
 
@@ -114,7 +115,7 @@ export default function App(): JSX.Element {
         <div>
           <h1 style={{ fontWeight: 400 }}>עריכת האתר</h1>
           <p className="muted" style={{ maxInlineSize: '30ch', marginInline: 'auto' }}>
-            כאן אפשר לשנות טקסטים, תמונות, פוסטים והמלצות באתר.
+            כאן אפשר לשנות טקסטים, תמונות, סרטונים, פוסטים והמלצות באתר.
           </p>
           <p style={{ marginBlockStart: 24 }}>
             <a href="/api/auth/login"><button className="primary">התחברות</button></a>
@@ -375,6 +376,9 @@ function Screen({
 
     case 'images':
       return <Images />;
+
+    case 'videos':
+      return <Videos />;
 
     case 'recommendations':
       return <Recommendations />;

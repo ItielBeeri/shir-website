@@ -20,6 +20,7 @@
  */
 import type { Block, Inline, MdxDoc, Segment } from './mdx-edit';
 import { parseSoftImage, renderSoftImage } from '../lib/softimage';
+import { parseSoftVideo, renderSoftVideo } from '../lib/softvideo';
 import { frameProps } from '../lib/frame';
 
 export interface PmNode {
@@ -100,6 +101,8 @@ function blockToPm(block: Block, gap: string): PmNode {
     case 'opaque': {
       const image = parseSoftImage(block.source);
       if (image) return { type: 'softImage', attrs: { ...attrs, ...image } };
+      const video = parseSoftVideo(block.source);
+      if (video) return { type: 'softVideo', attrs: { ...attrs, ...video } };
       return { type: 'rawBlock', attrs: { ...attrs, source: block.source } };
     }
   }
@@ -254,6 +257,16 @@ function pmToBlock(node: PmNode): Block {
         source: renderSoftImage({
           id: String(node.attrs?.id ?? ''),
           aspect: String(node.attrs?.aspect ?? '4/3'),
+          float: (node.attrs?.float as 'start' | 'end' | undefined) || undefined,
+          width: node.attrs?.width ? String(node.attrs.width) : undefined,
+          stack: node.attrs?.stack === 'after' ? 'after' : undefined,
+        }),
+      };
+    case 'softVideo':
+      return {
+        kind: 'opaque',
+        source: renderSoftVideo({
+          id: String(node.attrs?.id ?? ''),
           float: (node.attrs?.float as 'start' | 'end' | undefined) || undefined,
           width: node.attrs?.width ? String(node.attrs.width) : undefined,
           stack: node.attrs?.stack === 'after' ? 'after' : undefined,

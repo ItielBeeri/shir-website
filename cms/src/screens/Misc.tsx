@@ -198,6 +198,7 @@ export function describeCommit(message: string): string {
   const subject = message.split('\n')[0].trim();
   if (subject.startsWith(PUBLISH_PREFIX)) return subject.slice(PUBLISH_PREFIX.length);
   if (/rebuild image derivatives/i.test(subject)) return 'עדכון אוטומטי של גרסאות התמונות';
+  if (/rebuild media derivatives/i.test(subject)) return 'עדכון אוטומטי של גרסאות התמונות והסרטונים';
   if (!/[֐-׿]/.test(subject)) return 'עדכון טכני של האתר';
   return subject.replace(/https?:\/\/\S+/g, '').trim();
 }

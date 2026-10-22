@@ -18,7 +18,7 @@ Operational guide for developers and coding agents. It describes the repo as it 
 
 Static website for **שיר אמיתי**, a holistic therapist (פסיכותרפיה · טיפול במגע · פתיחת קול). Hebrew-only, fully RTL, watercolor-themed, calm scroll choreography. Live at `https://www.shir-amitai.com`.
 
-**Stack:** Astro 4 (static) · MDX · Lenis + GSAP/ScrollTrigger · smol-toml + Zod · astro-icon · sharp (build-time) · pnpm 9.
+**Stack:** Astro 4 (static) · MDX · Lenis + GSAP/ScrollTrigger · smol-toml + Zod · astro-icon · sharp (build-time) · ffmpeg (video derivatives, CI) · pnpm 9.
 
 **Non-negotiable constraints** (failing any is a regression):
 1. **Hebrew-only** copy. The only Latin permitted on rendered surfaces: `mailto:`/`tel:`/`wa.me` hrefs and the visible email/phone strings, `©` + year digits, and the footer builder credit (§7).
@@ -37,16 +37,16 @@ src/
 ├── icons/         # optimized single-color SVGs (astro-icon iconDir)
 ├── content/       # see §5
 ├── lib/           # content.ts (TOML loader), seo.ts, blog.ts, recommendations.ts,
-│                  #   screenshots.ts, images.ts (derivative manifest)
+│                  #   screenshots.ts, images.ts · videos.ts (derivative manifests)
 ├── pages/         # one per route; therapy and legal pages are thin wrappers
-└── scripts/       # lenis-init.ts, scroll-reveal.ts, parallax.ts, home-scroll.ts
+└── scripts/       # lenis-init.ts, scroll-reveal.ts, parallax.ts, home-scroll.ts, video-player.ts
 public/
 ├── global.css     # THE stylesheet - see §4.1
 ├── fonts/         # self-hosted Heebo (hebrew + latin subsets)
-└── img/           # bg/ · content/ · recommendations/ · og-default.jpg
-    └── _opt/      # GENERATED derivatives + manifest.json (§6.1)
+├── img/           # bg/ · content/ · recommendations/ · og-default.jpg
+└── video/         # originals + captions; it and img/ each hold a GENERATED _opt/ + manifest.json (§6.1)
 cms/               # the owner's editing surface - see §13
-scripts/optimize-images.mjs · .github/workflows/images.yml    # both §6.1
+scripts/optimize-{images,videos}.mjs · .github/workflows/images.yml    # all §6.1
 ```
 
 Root: `astro.config.mjs`, `tsconfig.json` (`@/*` → `src/*`), `package.json`, `pnpm-lock.yaml` (committed), `.nvmrc`, `vercel.json` (§10.1).
@@ -63,7 +63,7 @@ pnpm dev        # http://localhost:4321
 pnpm build      # → dist/
 pnpm preview    # serve dist/ locally
 pnpm check      # astro check (types + content schemas)
-pnpm images     # rebuild derivatives - CI does this on push (§6.1)
+pnpm images     # rebuild derivatives; `pnpm videos` likewise, with ffmpeg - CI runs both (§6.1)
 ```
 
 `pnpm check` and `pnpm build` must both pass, clean, before any change is done.
@@ -94,7 +94,7 @@ Two roles, one webfont. `--font-display` is **Heebo**, the only downloaded face,
 - Let `dir="rtl"` flow do its work - don't fight it with `row-reverse`.
 - For directional transforms multiply by `--dir-x` (`-1` in RTL) instead of hardcoding a sign; see `.contact-pill` in `global.css`.
 - Mirror directional icons: "next" points left ←, "back" points right →. The mobile drawer is pinned to `inset-inline-end` and slides in from the **left** in RTL - the same edge as the hamburger, so it reads as coming out of the tap target.
-- Rare LTR islands (email/phone strings, builder credit) wrap in `dir="ltr"`.
+- Rare LTR islands (email/phone strings, builder credit, a video's timeline) wrap in `dir="ltr"`.
 
 ## 5. Content & data layer
 
@@ -110,12 +110,11 @@ Editable content lives in `src/content/` and is parsed at build time. **Componen
 | `site.toml` | **The single source of truth for brand name and contact details.** `seo.ts` and every layout component read it - never hardcode a phone number, address or URL. |
 | `nav.toml` | The single source of truth for page names and their order, for **both** the header and the footer. `header = false` makes an item footer-only. |
 | `images.toml` | Image manifest: stable id → `file` under `public/`, Hebrew `alt`, optional `credit`. Components take an **id** and render via `SoftImage`, never a raw path. This is why alt text is content, not a prop. |
-| `recommendations.toml` | Self-contained recommendations - screenshot path, alt, transcription, `relatedTherapies`, `active`. **File order is display order**; `loadRecommendations()` preserves it and callers must not re-sort. Retire one with `active = false` rather than deleting it. Its `[kicker]` tables set the line over every recommendations heading, shared and per place, via `recommendationsKicker()`; they must stay above the first entry (`cms/src/content/toml-struct.ts`). |
+| `videos.toml` | Its counterpart for `SoftVideo`: id → original `file` under `/video/`, Hebrew `title` (the play button's name) and `description` (the text alternative under the player), `date`, optional WebVTT `captions`, and a poster - a `poster_time`, a gallery `poster` id, or neither for an automatic frame. |
+| `recommendations.toml` | Self-contained recommendations - screenshot path, alt, transcription, `relatedTherapies`, `active`. **File order is display order**; `loadRecommendations()` preserves it and callers must not re-sort. Retire one with `active = false` rather than deleting it. Its `[kicker]` tables set the line over every recommendations heading, shared and per place, via `recommendationsKicker()`; they must stay above the first entry (`cms/src/content/toml-struct.ts`). `src/lib/screenshots.ts` sizes each card from its screenshot's measured text, so every capture reads at the same type size; read its header before touching the thresholds. |
 | `pages/*.toml` | Per-page copy: home, about, contact, 404, accessibility, terms. |
 | `therapies/*.mdx` | One per modality; filename is the slug and the URL. |
 | `blog/*.mdx` | Hebrew filenames. Ordering is centralized in `sortBlogPosts()` (`src/lib/blog.ts`) and shared by the blog index and home teaser - never re-sort at a call site. |
-
-`src/lib/screenshots.ts` measures recommendation screenshots with `sharp` at build time so every card renders its text at the same apparent size regardless of which phone took the capture. Its header comment explains the thresholds; read it before touching them.
 
 **Adding a modality** touches six places: the `accent` enum in `config.ts`, `BaseLayout`'s `theme` union, a `[data-theme]` row in `global.css`, `src/content/therapies/<slug>.mdx`, a 3-line `src/pages/<slug>.astro` wrapper, and `THERAPY_OPTIONS` in `cms/` (gated by test C-4). Add a `nav.toml` entry and the home triptych and footer pick it up automatically.
 
@@ -124,15 +123,16 @@ Editable content lives in `src/content/` and is parsed at build time. **Componen
 UI primitives (`ui/`, `layout/`) are the building blocks; page-level components compose them. **Pages never define visual primitives.** Each component's header comment states its contract - consult it rather than guessing.
 
 - **SoftImage** is the only sanctioned image renderer: takes an image **id**, applies the watercolor mask, sources `alt` from the manifest. Still size and optimize originals before committing - §6.1 shrinks files, it does not crop or art-direct.
+- **SoftVideo** is its counterpart, placed by the same `float` / `width` / `stack` props but never cropped: the box takes the video's own shape, capped at `--video-max-block`. Nothing loads or plays before the visitor presses play (`preload="none"`, a lazy poster `<picture>`); `video-player.ts` drives its controls, and without JS the native ones stand in.
 - **CTAButton** variants map to the §9 priority: `primary` = WhatsApp, `secondary` = phone, `tertiary` = email / read-more.
 - **Icon** takes either `label` (→ `role="img"`) or `decorative` (→ `aria-hidden`). New icons: single color, `stroke="currentColor"`, no fills, `stroke-width="1.5"`, rounded caps.
 - **ContactPill** and **BackgroundField** are singletons - reuse, don't reimplement.
 - **TherapyPage** and **LegalPage** are shared templates; their pages are thin wrappers. Add a page of that kind by adding a wrapper, not a new template.
-- **MDX body components** are passed in via `<Content components={{ SoftImage, FramedSection }} />` in `TherapyPage.astro`, `blog/[slug].astro` and `about.astro`; another one goes in all three maps. **FramedSection** is the GlassCard look as a block the owner wraps around her own copy; `remark-blank-lines` and `remark-stack-after` treat its contents as a body of their own, and so must any plugin that walks the body's blocks.
+- **MDX body components** are passed in via `<Content components={{ SoftImage, SoftVideo, FramedSection }} />` in `TherapyPage.astro`, `blog/[slug].astro` and `about.astro`; another one goes in all three maps. **FramedSection** is the GlassCard look as a block the owner wraps around her own copy; `remark-blank-lines` and `remark-stack-after` treat its contents as a body of their own, and so must any plugin that walks the body's blocks.
 
-### 6.1 Responsive images
+### 6.1 Responsive images and video
 
-`pnpm run images` (`scripts/optimize-images.mjs`) writes AVIF/WebP derivatives of every `images.toml` and `recommendations.toml` source into `public/img/_opt/`, plus a manifest. Derivatives are **committed**, and `.github/workflows/images.yml` rebuilds and commits them on every push touching an image - so an owner uploading through the GitHub web editor never runs anything. `src/lib/images.ts` is the only place derivative URLs are constructed. Four rules, each explained in full by the header comments:
+`pnpm run images` (`scripts/optimize-images.mjs`) writes AVIF/WebP derivatives of every `images.toml` and `recommendations.toml` source into `public/img/_opt/`, plus a manifest. Derivatives are **committed**, and `.github/workflows/images.yml` rebuilds and commits them on every push touching an image - so an owner uploading through the GitHub web editor never runs anything. `src/lib/images.ts` is the only place derivative URLs are constructed. `pnpm run videos` (`scripts/optimize-videos.mjs`, ffmpeg) does the same for `videos.toml` into `public/video/_opt/` - one 720p H.264 rendition and AVIF/WebP/JPEG poster frames, digest-named alike, their URLs built only in `src/lib/videos.ts` - and the same workflow runs it. Four rules, each explained in full by the header comments:
 
 - **Filenames carry the source digest.** That is what makes `_opt/` safe to cache immutably (§10.1) and what makes the script idempotent in CI, where mtimes are meaningless.
 - **`imageSources()` re-checks that digest and serves the original on a mismatch.** Hashing does *not* make this redundant - it covers the window before the workflow catches up. Remove neither.
@@ -165,17 +165,17 @@ Titles, meta, OG/Twitter, JSON-LD strings, `alt`, `aria-label`, buttons and link
 
 ## 10. Accessibility, SEO, performance
 
-**Accessibility (WCAG 2.1 AA, Lighthouse = 100):** semantic HTML; one `<h1>` per page and no skipped heading levels; keyboard-reachable controls with visible focus rings; Hebrew `aria-label` on icon-only buttons; meaningful `alt` (or `alt=""` for decorative); contrast ≥ 4.5:1 body, ≥ 3:1 large; skip link; hit targets ≥ 44×44 px; `prefers-reduced-motion` honored; the §8 motion toggle present. Test with keyboard and a Hebrew screen reader.
+**Accessibility (WCAG 2.1 AA, Lighthouse = 100):** semantic HTML; one `<h1>` per page and no skipped heading levels; keyboard-reachable controls with visible focus rings; Hebrew `aria-label` on icon-only buttons; meaningful `alt` (or `alt=""` for decorative); contrast ≥ 4.5:1 body, ≥ 3:1 large; skip link; hit targets ≥ 44×44 px; `prefers-reduced-motion` honored; the §8 motion toggle present; a video never starts by itself and carries a title, a description and, where anyone speaks, captions. Test with keyboard and a Hebrew screen reader.
 
 The site publishes a formal **הצהרת נגישות** at `/accessibility` (required by תקנה 35), which must describe the site as it actually is: **any change affecting accessibility requires updating `src/content/pages/accessibility.toml`, including its `updated` date.** `terms.toml` carries the same duty for anything touching privacy (§12).
 
-**SEO:** unique Hebrew `<title>` ≤ 60 chars (`BaseLayout` appends `" | שיר אמיתי"`), 140-160-char description, canonical, OG + Twitter with `og:locale="he_IL"`, `hreflang="he"`. JSON-LD comes from `src/lib/seo.ts`: `Person` + `HealthAndBeautyBusiness` on home, `Service` on therapy pages, `BlogPosting` on posts. `sitemap.xml` is generated by `@astrojs/sitemap`.
+**SEO:** unique Hebrew `<title>` ≤ 60 chars (`BaseLayout` appends `" | שיר אמיתי"`), 140-160-char description, canonical, OG + Twitter with `og:locale="he_IL"`, `hreflang="he"`. JSON-LD comes from `src/lib/seo.ts`: `Person` + `HealthAndBeautyBusiness` on home, `Service` on therapy pages, `BlogPosting` on posts, `VideoObject` from each SoftVideo. `sitemap.xml` is generated by `@astrojs/sitemap`.
 
 **Performance budget (home, gzipped):** HTML + critical CSS ≤ 30 KB · JS ≤ 60 KB · LCP image ≤ 120 KB · above-the-fold ≤ 250 KB. **The LCP element on every page is BackgroundField's `<img>`** - markup rather than a CSS background so the preload scanner finds it, carrying `fetchpriority="high"`. Reverting either costs ~25 mobile Lighthouse points, measured. Run `pnpm build && pnpm preview` + Lighthouse before finishing any change to home or a shared layout.
 
 ### 10.1 Caching
 
-`vercel.json` holds cache headers, plus the `ignoreCommand` that keeps `cms/` commits from redeploying the site (§13; `cms/vercel.json` mirrors it). Both run `scripts/vercel-ignore.sh`, which diffs against `VERCEL_GIT_PREVIOUS_SHA`, never `HEAD^` (Vercel builds only a push's tip), skips production only, and builds whenever that sha is unreachable - its header says why each matters. `git.deploymentEnabled` allowlists branches, because Hobby allows 100 deployments a day: the site builds `master` and `content-preview`, `cms/` only `master`. Saves to `content-draft` never build, nor does publishing wait for a build; the editor points `content-preview` at the draft's commit only when the owner asks for a preview, once per commit. It grants `immutable` to `/img/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
+`vercel.json` holds cache headers, plus the `ignoreCommand` that keeps `cms/` commits from redeploying the site (§13; `cms/vercel.json` mirrors it). Both run `scripts/vercel-ignore.sh`, which diffs against `VERCEL_GIT_PREVIOUS_SHA`, never `HEAD^` (Vercel builds only a push's tip), skips production only, and builds whenever that sha is unreachable - its header says why each matters. `git.deploymentEnabled` allowlists branches, because Hobby allows 100 deployments a day: the site builds `master` and `content-preview`, `cms/` only `master`. Saves to `content-draft` never build, nor does publishing wait for a build; the editor points `content-preview` at the draft's commit only when the owner asks for a preview, once per commit. It grants `immutable` to `/img/_opt/*`, `/video/_opt/*` and `/fonts/*` alone, because only those URLs are content-addressed - both `_opt` by digest (§6.1), fonts by discipline (**rename the file if you ever replace a font**). Everything else in `public/` is author-named and mutable and must keep Vercel's default `max-age=0, must-revalidate`. **Never add such a path.** A long `max-age` on a stable URL means an edit never reaches anyone who has already visited, `immutable` means not even a reload rescues them, and nothing done from the server reaches a copy in someone's browser.
 
 ## 11. Stop and ask
 
@@ -193,6 +193,6 @@ Two layers, gated differently because the law treats them differently. **Vercel 
 
 `cms/` is how the owner edits this site - a Vite app on its own Vercel project at `admin.shir-amitai.com`, with its own `package.json` and lockfile. **Deliberately not a pnpm workspace member**: a workspace root re-resolves and re-hoists the site's dependency tree, and the budgets in §10 are measured against the current one. §1 constraint 4 (static output, no server functions) describes the site; `cms/` is a different deployment and has them.
 
-It commits to `content-draft`, previews, then applies only the paths it changed onto `master` - never a whole-tree swap, which would revert the `images.yml` bot. Its server-side proxy is the permission model: writes outside `src/content/**` and `public/img/**` are rejected there, so §1.7-style "don't touch" rules need no owner discipline.
+It commits to `content-draft`, previews, then applies only the paths it changed onto `master` - never a whole-tree swap, which would revert the `images.yml` bot. Its server-side proxy is the permission model: writes outside `src/content/**`, `public/img/**` and `public/video/**` are rejected there, so §1.7-style "don't touch" rules need no owner discipline. A video exceeds a function's 4.5 MB request body, so it travels as 3 MB blobs that the save joins into one commit (`api/content/[action].ts`).
 
-**Anything owner-editable that changes shape - a TOML key, a frontmatter field, a folder layout, a `.prose` rule - must update `cms/` in the same commit**, or the editor writes content the site no longer renders. Its rich-text editor may only offer constructs `.prose` styles: h2, h3, `ul`, `ol`, the three emphasis marks, links, `SoftImage` and `FramedSection` (in the body only, never nested). No `h1` (the page template owns it), no fourth level. A link is made only through its link control - `[text](url)` typed as text still ships escaped - and one that leaves the site opens in a new tab and says so (`scripts/remark-external-links.mjs`), like every other outbound link.
+**Anything owner-editable that changes shape - a TOML key, a frontmatter field, a folder layout, a `.prose` rule - must update `cms/` in the same commit**, or the editor writes content the site no longer renders. Its rich-text editor may only offer constructs `.prose` styles: h2, h3, `ul`, `ol`, the three emphasis marks, links, `SoftImage`, `SoftVideo` and `FramedSection` (in the body only, never nested). No `h1` (the page template owns it), no fourth level. A link is made only through its link control - `[text](url)` typed as text still ships escaped - and one that leaves the site opens in a new tab and says so (`scripts/remark-external-links.mjs`), like every other outbound link.

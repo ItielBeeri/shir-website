@@ -93,6 +93,7 @@ moment it lands.
 | ID | Assertion |
 |---|---|
 | F-12 | Appending an `images.toml` entry leaves all existing entries and both header comments byte-identical |
+| F-12a | A `videos.toml` entry is appended, removed, and has one key set, added or cleared (a multi-line one with all its lines) leaving every other byte - the comments inside the entry included - as it was, at the alignment the entry already uses |
 | F-13 | Appending a `[[recommendations]]` block leaves existing blocks byte-identical |
 | F-14 | Reordering recommendations permutes blocks and changes nothing inside any block |
 | F-15 | Deleting a recommendation removes exactly its block and its blank-line separator |
@@ -129,7 +130,7 @@ F-19 is not hypothetical: `js-yaml` 5 rejects `psychotherapy.mdx` and
 | C-2 | Every key the model declares exists in the live files (no phantom fields) |
 | C-3 | Every field in `src/content/config.ts` (`therapies`, `blog`, `about`) is in the model, with a matching type and required-ness |
 | C-4 | The model's `accent` / `related_therapy` enums equal the Zod enums |
-| C-5 | Every `images.toml` id referenced by any content file exists; every `screenshot` path exists on disk |
+| C-5 | Every `images.toml` id referenced by any content file exists; every `screenshot` path exists on disk; every `SoftVideo` id exists in `videos.toml`, and every file, captions file and poster image an entry names exists |
 | C-6 | Every Hebrew label and help string in the model is non-empty and contains no Latin outside the §1 allowances |
 
 C-3 is parsed out of `config.ts` with the TypeScript compiler API - it imports
@@ -175,6 +176,7 @@ silently go dark.
 |---|---|
 | G-1 | A save creates exactly one commit on `content-draft`, authored as the signed-in user |
 | G-2 | An image upload commits the binary **and** its `images.toml` entry in one commit - never two |
+| G-2a | A video upload travels in pieces of at most 3 MB, each its own blob, and the save joins them into the one blob its path names, committed with its `videos.toml` entry in one commit. Only a video's path may arrive in pieces, and only as blob shas (`api/_lib/request.test.ts`) |
 | G-3 | A recommendation commits screenshot + TOML block in one commit |
 | G-4 | Publish applies **only** the paths the draft changed, onto master's current tree |
 | G-5 | With a derivative commit pushed to `public/img/_opt/` on master mid-session, publish **preserves** it (the whole-tree-swap regression) |
@@ -197,6 +199,7 @@ Tested against the **real** proxy, not a mock - it is the permission model.
 | B-1 | Write `src/pages/index.astro` | rejected server-side |
 | B-2 | Write `astro.config.mjs`, `package.json`, `AGENTS.md`, `vercel.json` | rejected |
 | B-3 | Write `.github/workflows/images.yml` | rejected |
+| B-3a | Write under `public/img/_opt/` or `public/video/_opt/`, or anything under `public/video/` but a video or a `.vtt` | rejected |
 | B-4 | Write `src/content/config.ts` | rejected |
 | B-5 | Write outside the repo (another repo, same token) | rejected |
 | B-6 | Push to `master` directly, bypassing publish | rejected |
@@ -263,6 +266,7 @@ asserts the absence of the concept rather than a user action.
 | A-4.2 | 4.2 fill the details | All frontmatter fields via labelled Hebrew inputs; `---` fences never seen |
 | A-4.3 | 4.3 cover image | Chosen from the picker; written as an id |
 | A-4.4 | 4.4 image in body | Inserted as a block with visual shape and side controls; emits a valid `SoftImage` |
+| A-4.4a | video in body | Chosen or uploaded from the picker, placed with the image's side controls but no shape; emits a valid `SoftVideo`. Its poster is chosen by pausing the video at the moment wanted, or from the gallery |
 | A-4.5 | 4.5 headings and paragraphs | Each construct the toolbar offers - the 8 in §4 of the plan, and links - produces exactly its markdown; **no h1 and no h4 control exists** |
 | A-4.6 | 4.6 post order | Drag to pin; resulting order matches `sortBlogPosts()` exactly (asserted against the real function) |
 | A-4.7 | 4.7 hide a post | Switch → `draft: true`; post leaves the index |

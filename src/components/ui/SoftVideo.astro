@@ -1,0 +1,716 @@
+---
+/**
+ * The only sanctioned video renderer, SoftImage's counterpart: takes an id from
+ * videos.toml, which holds its name, description and captions, and floats,
+ * centres and stacks exactly as SoftImage does.
+ *
+ * Nothing plays, and nothing but the poster is fetched, until the visitor
+ * presses play: `preload="none"`, and the poster is a lazy <picture> rather
+ * than the `poster` attribute, which is fetched eagerly and takes no srcset.
+ * Without JS the native controls stand in; scripts/video-player.ts drives
+ * these ones.
+ *
+ * The box always has the video's own shape, unlike a photo's: cropped to fit,
+ * a video loses whatever happens at its edges, and burned-in text goes first.
+ * And it never stands taller than --video-max-block, which a portrait video at
+ * the full width of the text otherwise would.
+ */
+import Icon from './Icon.astro';
+import { instanceId, video } from '../../lib/videos';
+import { clock, spoken } from '../../lib/duration';
+import { jsonLd, videoObjectSchema } from '../../lib/seo';
+
+interface Props {
+  /** Video id from videos.toml */
+  id: string;
+  float?: 'start' | 'end';
+  /**
+   * Width in px, e.g. "300". A float defaults to 280; a video that does not
+   * float fills the column unless given one, and is then centred at it.
+   */
+  width?: string;
+  /**
+   * Set by scripts/remark-stack-after.mjs, never authored: this copy renders
+   * only while floats float (`wide`) or only once they stack (`narrow`).
+   */
+  only?: 'wide' | 'narrow';
+  class?: string;
+}
+
+const { id, float, width: authoredWidth, only, class: className } = Astro.props;
+
+const v = video(id);
+if (!v) console.warn(`[SoftVideo] no playable video "${id}" in videos.toml - nothing rendered.`);
+
+const slotWidth = authoredWidth ?? (float ? '280' : undefined);
+const centred = !float && slotWidth !== undefined;
+const uid = instanceId(id);
+const ratio = v ? v.width / v.height : 16 / 9;
+
+const sizes = float
+  ? `(max-width: 768px) 100vw, ${slotWidth}px`
+  : `(max-width: ${slotWidth ?? 800}px) 100vw, ${slotWidth ?? 800}px`;
+
+/* A gallery image standing in as the poster is cropped to the video's shape;
+   as in SoftImage, `sizes` has to say how much wider than the slot it paints. */
+const cover =
+  v?.poster?.width && v.poster.height ? Math.max(1, v.poster.width / v.poster.height / ratio) : 1;
+const posterSizes = sizes
+  .split(',')
+  .map((entry) =>
+    entry.trim().replace(/(-?[\d.]+)(px|vw)$/, (_, n, unit) => `${Math.round(Number(n) * cover)}${unit}`),
+  )
+  .join(', ');
+
+/* No poster image yet - a fresh upload, or a newly chosen frame - so the
+   video shows its own frame, by media fragment, which needs its metadata. */
+const fragment = v && !v.poster ? `#t=${v.posterTime ?? 0}` : '';
+
+const startLabel = v
+  ? `הפעלת הסרטון: ${v.title}${v.duration ? `, ${spoken(v.duration)}` : ''}`
+  : '';
+const aboutId = `${uid}-about`;
+---
+
+{v && (
+  <figure
+    class:list={[
+      'soft-video',
+      float && 'soft-video--float',
+      float && `soft-video--float-${float}`,
+      centred && 'soft-video--centred',
+      only && `soft-video--${only}-only`,
+      className,
+    ]}
+    style={`--video-ratio: ${ratio.toFixed(4)};${slotWidth ? ` --video-width: ${slotWidth}px;` : ''}`}
+    data-soft-video
+  >
+    <div class="soft-video__frame" style={`aspect-ratio: ${v.width} / ${v.height}`}>
+      <video
+        class="soft-video__media"
+        controls
+        playsinline
+        preload={fragment ? 'metadata' : 'none'}
+        aria-label={v.title}
+        aria-describedby={v.description ? aboutId : undefined}
+        data-duration={v.duration}
+        data-fragment={fragment ? '' : undefined}
+      >
+        {v.sources.map((source) => <source src={`${source.src}${fragment}`} type={source.type} />)}
+        {v.captions && <track kind="captions" src={v.captions} srclang="he" label="עברית" />}
+      </video>
+
+      {v.poster && (
+        <picture class="soft-video__poster">
+          {v.poster.avif && <source type="image/avif" srcset={v.poster.avif} sizes={posterSizes} />}
+          {v.poster.webp && <source type="image/webp" srcset={v.poster.webp} sizes={posterSizes} />}
+          <img
+            class="soft-video__poster-img"
+            src={v.poster.src}
+            alt=""
+            width={v.poster.width || undefined}
+            height={v.poster.height || undefined}
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
+      )}
+
+      <p class="soft-video__caption" dir="rtl" hidden></p>
+
+      <button type="button" class="soft-video__start" aria-label={startLabel}>
+        <span class="soft-video__disc" aria-hidden="true">
+          <Icon name="play" decorative size={28} />
+        </span>
+        {v.duration && (
+          <span class="soft-video__badge" aria-hidden="true" dir="ltr">{clock(v.duration)}</span>
+        )}
+      </button>
+
+      {/* Video timelines run left to right in every language, as the player
+          of any Hebrew-speaking visitor's phone does; this is an LTR island. */}
+      <div class="soft-video__bar" dir="ltr">
+        <button
+          type="button"
+          class="soft-video__button soft-video__toggle"
+          data-action="play"
+          data-label-play="הפעלה"
+          data-label-pause="השהיה"
+          aria-label="הפעלה"
+        >
+          <Icon name="play" decorative size={22} class="soft-video__when-paused" />
+          <Icon name="pause" decorative size={22} class="soft-video__when-playing" />
+        </button>
+        <span class="soft-video__time" aria-hidden="true">
+          <span data-current>0:00</span><span class="soft-video__total"> / <span data-total>{v.duration ? clock(v.duration) : '-:--'}</span></span>
+        </span>
+        <input
+          class="soft-video__seek"
+          type="range"
+          min="0"
+          max={v.duration ?? 0}
+          step="0.1"
+          value="0"
+          aria-label="מיקום בסרטון"
+          aria-valuetext={v.duration ? `0 שניות מתוך ${spoken(v.duration)}` : undefined}
+        />
+        {v.audio && (
+          <button
+            type="button"
+            class="soft-video__button soft-video__mute"
+            data-action="mute"
+            aria-label="השתקה"
+            aria-pressed="false"
+          >
+            <Icon name="volume" decorative size={22} class="soft-video__when-sound" />
+            <Icon name="volume-off" decorative size={22} class="soft-video__when-muted" />
+          </button>
+        )}
+        {v.captions && (
+          <button
+            type="button"
+            class="soft-video__button soft-video__cc"
+            data-action="captions"
+            aria-label="כתוביות"
+            aria-pressed="false"
+          >
+            <Icon name="captions" decorative size={22} />
+          </button>
+        )}
+        <button
+          type="button"
+          class="soft-video__button soft-video__full"
+          data-action="fullscreen"
+          data-label-enter="מסך מלא"
+          data-label-exit="יציאה ממסך מלא"
+          aria-label="מסך מלא"
+        >
+          <Icon name="fullscreen" decorative size={22} class="soft-video__when-windowed" />
+          <Icon name="fullscreen-exit" decorative size={22} class="soft-video__when-full" />
+        </button>
+      </div>
+
+      <p class="soft-video__error" role="status" hidden>הסרטון לא נטען. אפשר לנסות שוב מאוחר יותר.</p>
+    </div>
+
+    {v.description && (
+      <details class="soft-video__about">
+        <summary class="soft-video__about-summary">תיאור הסרטון</summary>
+        <p class="soft-video__about-text" id={aboutId}>{v.description}</p>
+      </details>
+    )}
+
+    {/* Once per video and page: the stacked copy repeats the wide one. */}
+    {only !== 'narrow' && (
+      <Fragment
+        set:html={jsonLd(
+          videoObjectSchema({
+            name: v.title,
+            description: v.description,
+            date: v.date,
+            duration: v.duration,
+            contentUrl: v.sources[0].src,
+            thumbnail: v.thumbnail,
+          }),
+        )}
+      />
+    )}
+  </figure>
+)}
+
+<script>
+  import '@/scripts/video-player';
+</script>
+
+<style>
+  .soft-video {
+    position: relative;
+    inline-size: min(100%, var(--video-width, 100%), calc(var(--video-max-block) * var(--video-ratio)));
+    margin-block: 1.5rem;
+    margin-inline: auto;
+  }
+
+  .soft-video__frame {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    /* Shows only until the poster arrives, or behind a frame with none. */
+    background: color-mix(in srgb, var(--accent, var(--color-teal)) 40%, var(--color-paper));
+    box-shadow: var(--shadow-soft);
+    container-type: inline-size;
+    isolation: isolate;
+  }
+
+  /* The glass edge, drawn over the picture: a border would take two pixels
+     from the box and break its aspect ratio. */
+  .soft-video__frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--color-glass-stroke);
+    pointer-events: none;
+  }
+
+  /* Two classes deep: a page's `.prose img` gives every image margins and a
+     radius, and would otherwise win and push the poster down its own frame. */
+  .soft-video .soft-video__media,
+  .soft-video .soft-video__poster-img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    /* The box has the video's shape, so this crops nothing but a hairline. */
+    object-fit: cover;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* <picture> selects sources only, as in SoftImage. */
+  .soft-video__poster {
+    display: contents;
+  }
+
+  .soft-video__poster-img {
+    z-index: 1;
+    transition: transform var(--dur-slow) var(--ease-soft), opacity var(--dur-fast) var(--ease-soft);
+  }
+
+  .soft-video:hover .soft-video__poster-img {
+    transform: scale(1.03);
+  }
+
+  .soft-video__start {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  /* Inside the frame: its overflow would clip a ring drawn outside. */
+  .soft-video__start:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -5px;
+    border-radius: var(--radius-card);
+  }
+
+  .soft-video__disc {
+    display: grid;
+    place-items: center;
+    inline-size: clamp(52px, 20cqi, 68px);
+    block-size: clamp(52px, 20cqi, 68px);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-paper) 62%, transparent);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--accent, var(--color-teal)) 45%, transparent),
+      var(--shadow-soft);
+    transition: transform var(--dur-fast) var(--ease-soft);
+  }
+
+  /* A triangle's weight sits behind its point; this centres it to the eye.
+     Physical, because the play symbol never mirrors. */
+  .soft-video__disc :global(svg) {
+    translate: 2px 0;
+  }
+
+  .soft-video__start:hover .soft-video__disc,
+  .soft-video__start:focus-visible .soft-video__disc {
+    transform: scale(1.06);
+  }
+
+  .soft-video__badge,
+  .soft-video__error {
+    background: color-mix(in srgb, var(--color-paper) 70%, transparent);
+    backdrop-filter: blur(var(--blur-glass));
+    -webkit-backdrop-filter: blur(var(--blur-glass));
+    color: var(--color-ink);
+  }
+
+  .soft-video__badge {
+    position: absolute;
+    inset-block-end: 0.75rem;
+    inset-inline-end: 0.75rem;
+    padding: 0.1rem 0.6rem;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.6;
+  }
+
+  /*
+   * No panel over the picture: light controls on a scrim that fades out
+   * upwards, dark only along the bottom edge where they sit, and gone with
+   * them when the visitor stops moving. A glass panel, or a blur, would hide
+   * the bottom of the video for as long as it shows.
+   *
+   * One row where the player is wide enough, two where it is not: the
+   * timeline then takes a row of its own. Areas, not reordering, so focus
+   * still runs play, timeline, sound, captions, full screen.
+   */
+  .soft-video__bar {
+    position: absolute;
+    z-index: 3;
+    inset-inline: 0;
+    inset-block-end: 0;
+    display: none;
+    grid-template-columns: auto auto 1fr auto auto auto;
+    grid-template-areas:
+      'seek seek seek seek seek seek'
+      'play time . mute cc full';
+    align-items: center;
+    padding: 1.25rem 0.25rem 0.125rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--color-ink) 55%, transparent),
+      color-mix(in srgb, var(--color-ink) 22%, transparent) 55%,
+      transparent
+    );
+    color: var(--color-paper);
+    transition: opacity var(--dur-fast) var(--ease-soft);
+  }
+
+  /* Legible over a bright frame too, where the scrim alone is thin. */
+  .soft-video__bar :global(svg),
+  .soft-video__time {
+    filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--color-ink) 75%, transparent));
+  }
+
+  @container (min-width: 440px) {
+    .soft-video__bar {
+      grid-template-areas: 'play time seek mute cc full';
+    }
+  }
+
+  .soft-video__toggle { grid-area: play; }
+  .soft-video__time   { grid-area: time; }
+  .soft-video__seek   { grid-area: seek; }
+  .soft-video__mute   { grid-area: mute; }
+  .soft-video__cc     { grid-area: cc; }
+  .soft-video__full   { grid-area: full; }
+
+  .soft-video__button {
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-soft);
+  }
+
+  .soft-video__button:hover,
+  .soft-video__button[aria-pressed='true'] {
+    background: color-mix(in srgb, var(--color-paper) 22%, transparent);
+  }
+
+  /* Light, like the controls: an ink ring vanishes on the scrim. */
+  .soft-video__button:focus-visible,
+  .soft-video__seek:focus-visible {
+    outline: 2px solid var(--color-paper);
+    outline-offset: -2px;
+  }
+
+  .soft-video__time {
+    padding-inline: 0.25rem 0.5rem;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  @container (max-width: 240px) {
+    .soft-video__total { display: none; }
+  }
+
+  /* 44px tall for the finger, 4px for the eye. */
+  .soft-video__seek {
+    --progress: 0%;
+    -webkit-appearance: none;
+    appearance: none;
+    inline-size: 100%;
+    min-inline-size: 4rem;
+    block-size: 44px;
+    margin: 0;
+    padding-inline: 0.5rem;
+    background: transparent;
+    border-radius: 22px;
+    cursor: pointer;
+  }
+
+  .soft-video__seek::-webkit-slider-runnable-track {
+    block-size: 3px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      var(--color-paper) var(--progress),
+      color-mix(in srgb, var(--color-paper) 38%, transparent) var(--progress)
+    );
+  }
+
+  /* The ink ring holds the thumb apart from a frame as light as itself. */
+  .soft-video__seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    inline-size: 12px;
+    block-size: 12px;
+    margin-block-start: -4.5px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 45%, transparent);
+  }
+
+  .soft-video__seek::-moz-range-track {
+    block-size: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-paper) 38%, transparent);
+  }
+
+  .soft-video__seek::-moz-range-progress {
+    block-size: 3px;
+    border-radius: 2px;
+    background: var(--color-paper);
+  }
+
+  .soft-video__seek::-moz-range-thumb {
+    inline-size: 12px;
+    block-size: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 45%, transparent);
+  }
+
+  /* Captions are drawn here rather than by the browser, which would put them
+     under the control bar and style them its own way. */
+  .soft-video__caption {
+    position: absolute;
+    z-index: 3;
+    inset-inline: 0.75rem;
+    inset-block-end: 0.75rem;
+    inline-size: fit-content;
+    max-inline-size: calc(100% - 1.5rem);
+    margin-inline: auto;
+    padding: 0.2rem 0.75rem;
+    border-radius: 12px;
+    /* Text, so it keeps a backing a caption can be read on (4.5:1 over white). */
+    background: color-mix(in srgb, var(--color-ink) 75%, transparent);
+    color: var(--color-paper);
+    font-size: clamp(0.9rem, 4cqi, 1.15rem);
+    line-height: 1.45;
+    text-align: center;
+    white-space: pre-line;
+    transition: inset-block-end var(--dur-fast) var(--ease-soft);
+  }
+
+  /* Above the bar whenever it shows - which is also when it is idle but keyboard-focused. */
+  .soft-video.is-started:is(:not(.is-idle), :has(.soft-video__bar :focus-visible)) .soft-video__caption {
+    inset-block-end: 6rem;
+  }
+
+  @container (min-width: 440px) {
+    .soft-video.is-started:is(:not(.is-idle), :has(.soft-video__bar :focus-visible)) .soft-video__caption {
+      inset-block-end: 3.5rem;
+    }
+  }
+
+  .soft-video__error {
+    position: absolute;
+    z-index: 3;
+    inset-inline: 0.75rem;
+    inset-block-start: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 12px;
+    font-size: var(--fs-small);
+    text-align: center;
+  }
+
+  /* --- states, set by scripts/video-player.ts ------------------------------ */
+
+  .soft-video.is-started .soft-video__bar {
+    display: grid;
+  }
+
+  .soft-video.is-started .soft-video__poster-img,
+  .soft-video.is-started .soft-video__badge {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Once begun, nothing sits on the middle of the picture: a click on the
+     video itself plays and pauses it. The disc returns only to say it is
+     loading, and lets a click through to the video while it does. */
+  .soft-video.is-started .soft-video__start {
+    display: none;
+  }
+
+  .soft-video.is-started.is-waiting .soft-video__start {
+    display: grid;
+    pointer-events: none;
+  }
+
+  /* Keyboard focus inside keeps the bar showing: a control that receives
+     focus must be seen. Not any focus - a clicked button keeps it too, and
+     would pin the bar over the video for as long as it plays. */
+  .soft-video.is-idle .soft-video__bar:not(:has(:focus-visible)) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .soft-video.is-idle .soft-video__frame {
+    cursor: none;
+  }
+
+  .soft-video.is-waiting .soft-video__disc {
+    animation: soft-video-wait 1.4s var(--ease-breath) infinite;
+  }
+
+  @keyframes soft-video-wait {
+    50% { opacity: 0.55; }
+  }
+
+  /* :global, because each icon is Icon's own element and carries none of
+     this component's scope. */
+  .soft-video :global(.soft-video__when-playing),
+  .soft-video :global(.soft-video__when-muted),
+  .soft-video :global(.soft-video__when-full) {
+    display: none;
+  }
+
+  .soft-video.is-playing :global(.soft-video__when-playing),
+  .soft-video.is-muted :global(.soft-video__when-muted),
+  .soft-video.is-full :global(.soft-video__when-full) {
+    display: block;
+  }
+
+  .soft-video.is-playing :global(.soft-video__when-paused),
+  .soft-video.is-muted :global(.soft-video__when-sound),
+  .soft-video.is-full :global(.soft-video__when-windowed) {
+    display: none;
+  }
+
+  .soft-video__frame:fullscreen {
+    border-radius: 0;
+    background: var(--color-ink);
+  }
+
+  .soft-video__frame:fullscreen .soft-video__media {
+    object-fit: contain;
+  }
+
+  /* Without JS, the browser's own player. */
+  :global(.no-js) .soft-video .soft-video__start,
+  :global(.no-js) .soft-video .soft-video__poster-img,
+  :global(.no-js) .soft-video .soft-video__bar {
+    display: none;
+  }
+
+  /* --- the description ---------------------------------------------------- */
+
+  .soft-video__about {
+    margin-block-start: 0.5rem;
+    font-size: var(--fs-small);
+    color: var(--color-ink-soft);
+  }
+
+  .soft-video__about-summary {
+    display: block;
+    inline-size: fit-content;
+    min-block-size: 44px;
+    padding-block: 0.6rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .soft-video__about-summary:hover {
+    color: var(--color-ink);
+  }
+
+  .soft-video__about-summary:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  .soft-video__about-text {
+    white-space: pre-line;
+    line-height: var(--lh-body);
+    margin: 0;
+  }
+
+  /* --- placement, as SoftImage's ------------------------------------------ */
+
+  .soft-video--float {
+    margin-block: 0 1.5rem;
+  }
+
+  /* Physical first, logical second, as in SoftImage: `float: inline-*` is
+     Chrome 118+, and an older engine keeps the physical value. */
+  .soft-video--float-start {
+    float: right;
+    float: inline-start;
+    margin-inline: 0 1.5rem;
+  }
+
+  .soft-video--float-end {
+    float: left;
+    float: inline-end;
+    margin-inline: 1.5rem 0;
+  }
+
+  /* On a row of its own: a float above it would otherwise sit beside it. */
+  .soft-video--centred {
+    clear: both;
+  }
+
+  .soft-video--narrow-only {
+    display: none;
+  }
+
+  /* SoftImage's own query, so a video stacks exactly when a photo does. */
+  @media (max-width: 768px), (max-inline-size: 600px) {
+    .soft-video--float {
+      float: none;
+      inline-size: min(100%, calc(var(--video-max-block) * var(--video-ratio)));
+      margin-inline: auto;
+    }
+
+    .soft-video--wide-only {
+      display: none;
+    }
+
+    .soft-video--narrow-only {
+      display: block;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .soft-video__poster-img,
+    .soft-video__disc,
+    .soft-video__caption {
+      transition: none;
+    }
+    .soft-video:hover .soft-video__poster-img,
+    .soft-video__start:hover .soft-video__disc,
+    .soft-video__start:focus-visible .soft-video__disc {
+      transform: none;
+    }
+    .soft-video.is-waiting .soft-video__disc {
+      animation: none;
+    }
+  }
+</style>

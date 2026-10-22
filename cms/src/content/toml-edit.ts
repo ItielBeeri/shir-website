@@ -166,7 +166,15 @@ function encodeLiteral(value: string, multiline: boolean, leadingNewline: boolea
  */
 export function encodeLike(raw: string, value: TomlScalar): string {
   if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (typeof value === 'number') return String(value);
+  if (typeof value === 'number') {
+    // The same number keeps the spelling it was written in - `19.0` reads
+    // back as 19, and `String` would write the integer `19` for it.
+    if (Number(raw.replace(/_/g, '')) === value) return raw;
+    // A float stays a float to TOML when it changes to a whole number. (A hex
+    // integer can hold an `e`, which is not an exponent.)
+    const float = !/^[+-]?0[xob]/.test(raw) && /[.eE]/.test(raw);
+    return float && Number.isInteger(value) ? `${value}.0` : String(value);
+  }
 
   if (raw.startsWith('"""')) {
     return encodeMultilineBasic(value, raw.startsWith('"""\n'));

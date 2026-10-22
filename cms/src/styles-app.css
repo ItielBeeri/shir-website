@@ -155,11 +155,14 @@
   flex-direction: column;
   gap: 6px;
 }
-.thumb img { inline-size: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
+.thumb :is(img, video) { inline-size: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
 .thumb span { font-size: var(--fs-small); text-align: start; }
 .thumb.is-chosen { border-color: var(--accent); background: var(--accent-soft); }
 
-.upload-preview { inline-size: 100%; max-block-size: 40vh; object-fit: contain; border-radius: 10px; }
+.upload-preview { display: block; inline-size: 100%; max-block-size: 40vh; object-fit: contain; border-radius: 10px; background: var(--paper); }
+/* A video is carried to GitHub in pieces; this is how far it has got. */
+.upload-progress { display: flex; align-items: center; gap: 10px; }
+.upload-progress progress { flex: 1; accent-color: var(--accent); }
 
 .image-field {
   inline-size: 100%;
@@ -169,7 +172,7 @@
   text-align: start;
   padding: 10px;
 }
-.image-field img { inline-size: 72px; block-size: 72px; object-fit: cover; border-radius: 8px; }
+.image-field :is(img, video) { inline-size: 72px; block-size: 72px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .image-empty {
   inline-size: 72px;
   block-size: 72px;
@@ -197,7 +200,7 @@
   border-radius: var(--radius);
   padding: 10px;
 }
-.gallery-card > img { inline-size: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
+.gallery-card > :is(img, video) { display: block; inline-size: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
 .gallery-alt { margin: 8px 0; font-size: var(--fs-small); }
 .gallery-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .gallery-actions button, .gallery-actions .as-button { font-size: var(--fs-small); padding: 8px 10px; }

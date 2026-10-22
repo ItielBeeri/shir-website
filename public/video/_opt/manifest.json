@@ -1,0 +1,27 @@
+{
+  "/video/voice-opening-session.mp4": {
+    "key": "voice-opening-session",
+    "digest": "3769380f7900f204",
+    "width": 720,
+    "height": 1280,
+    "duration": 32.753,
+    "audio": true,
+    "renditions": [
+      {
+        "file": "voice-opening-session-720.3769380f7900f204.mp4",
+        "type": "video/mp4; codecs=\"avc1.640028, mp4a.40.2\"",
+        "bytes": 5666912
+      }
+    ],
+    "poster": {
+      "spec": "t=19.000",
+      "digest": "e90b1615421eeb75",
+      "time": 19,
+      "widths": [
+        360,
+        540,
+        720
+      ]
+    }
+  }
+}

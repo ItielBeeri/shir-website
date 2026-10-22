@@ -1,5 +1,6 @@
 /** JSON-LD builders. Brand and contact details come from site.toml, never from here. */
 import { loadToml } from './content';
+import { isoDuration } from './duration';
 import { z } from 'zod';
 
 export const SITE_URL = 'https://www.shir-amitai.com';
@@ -111,6 +112,30 @@ export function blogPostingSchema(opts: {
   };
 }
 
+/** Paths are site-absolute; `duration` in seconds. */
+export function videoObjectSchema(opts: {
+  name: string;
+  description?: string;
+  date: string;
+  duration?: number;
+  contentUrl: string;
+  thumbnail?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: opts.name,
+    description: opts.description ?? opts.name,
+    uploadDate: opts.date,
+    duration: opts.duration ? isoDuration(opts.duration) : undefined,
+    contentUrl: new URL(opts.contentUrl, SITE_URL).href,
+    thumbnailUrl: opts.thumbnail ? new URL(opts.thumbnail, SITE_URL).href : undefined,
+    author: { '@type': 'Person', name: PERSON_NAME },
+    inLanguage: 'he',
+  };
+}
+
+/** `<` escaped, so owner-written text containing `</script>` cannot end the tag. */
 export function jsonLd(schema: object): string {
-  return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+  return `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`;
 }

@@ -121,6 +121,14 @@ export const screens: Screen[] = [
     file: `${CONTENT}/images.toml`,
   },
   {
+    id: 'videos',
+    title: 'הסרטונים שלי',
+    blurb: 'העלאה, תמונות שער, תיאורים וכתוביות',
+    icon: 'video',
+    kind: 'videos',
+    file: `${CONTENT}/videos.toml`,
+  },
+  {
     id: 'home',
     title: 'דף הבית',
     icon: 'home',

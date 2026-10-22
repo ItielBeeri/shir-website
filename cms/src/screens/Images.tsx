@@ -15,50 +15,12 @@ import { useStore } from '../store';
 import { AltFields, UploadButton, UploadPanel, altMissing } from '../components/ImageUpload';
 import type { Chosen } from '../components/ImageUpload';
 import { findUsage, imagePathFor, processImage } from '../lib/images';
-import { screens } from '../model/screens';
-import { describePath } from './Misc';
+import { referencingFiles } from '../lib/references';
 import type { Usage } from '../lib/images';
 import { setValue } from '../content/toml-edit';
 import { removeImage } from '../content/toml-struct';
 
 const GALLERY = 'src/content/images.toml';
-
-/**
- * Everywhere an image id can appear, derived from the model rather than listed.
- *
- * A hard-coded list silently stops covering a page the day one is added, and
- * the check it feeds is what stops a delete from breaking the build. An id
- * reaches the site through a TOML field of type `image`, or through any MDX
- * file - its frontmatter or a `<SoftImage>` in its body.
- */
-async function referencingFiles(): Promise<Array<{ path: string; label: string; content: string }>> {
-  const tomls = screens
-    .filter((s) => s.file?.endsWith('.toml'))
-    .filter((s) => (s.groups ?? []).some((g) => g.fields.some((f) => f.type === 'image')))
-    .map((s) => ({ path: s.file as string, label: s.title }));
-
-  const singleMdx = screens
-    .filter((s) => s.file?.endsWith('.mdx'))
-    .map((s) => ({ path: s.file as string, label: s.title }));
-
-  const dirs = [...new Set(screens.map((s) => s.dir).filter(Boolean) as string[])];
-  const listed = (
-    await Promise.all(
-      dirs.map(async (dir) => {
-        const { files } = await api.list(dir);
-        return files
-          .filter((f) => f.endsWith('.mdx'))
-          .map((f) => ({ path: `${dir}/${f}`, label: describePath(`${dir}/${f}`) }));
-      }),
-    )
-  ).flat();
-
-  const all = [...tomls, ...singleMdx, ...listed];
-  const unique = all.filter((f, i) => all.findIndex((o) => o.path === f.path) === i);
-  return Promise.all(
-    unique.map(async (f) => ({ ...f, content: (await api.read(f.path)).content ?? '' })),
-  );
-}
 
 interface Editing {
   id: string;

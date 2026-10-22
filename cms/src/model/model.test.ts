@@ -5,7 +5,7 @@
  * what makes that enforceable rather than aspirational.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseToml } from 'smol-toml';
 import { DELIBERATELY_HIDDEN, screens } from './screens';
@@ -141,6 +141,30 @@ describe('content model', () => {
       ];
       for (const id of referenced) {
         expect(ids, `${file} references missing image id "${id}"`).toContain(id);
+      }
+    }
+  });
+
+  it('C-5 every video id the site references exists, and every file its entry names is there', () => {
+    const videos = parseToml(read('src/content/videos.toml')) as Record<string, Record<string, unknown>>;
+    const images = new Set(Object.keys(parseToml(read('src/content/images.toml'))));
+    for (const [id, video] of Object.entries(videos)) {
+      expect(typeof video.title === 'string' && video.title.trim(), `${id} has no title`).toBeTruthy();
+      for (const key of ['file', 'captions'] as const) {
+        const path = video[key];
+        if (typeof path === 'string') expect(existsSync(join(ROOT, 'public', path)), `${id}.${key}: ${path}`).toBe(true);
+      }
+      if (typeof video.poster === 'string') expect(images, `${id} poster`).toContain(video.poster);
+    }
+
+    const bodies = ['about', 'therapies', 'blog'].flatMap((dir) =>
+      readdirSync(join(ROOT, 'src/content', dir))
+        .filter((f) => f.endsWith('.mdx'))
+        .map((f) => `src/content/${dir}/${f}`),
+    );
+    for (const file of bodies) {
+      for (const [, id] of read(file).matchAll(/<SoftVideo[^>]*\bid="([^"]+)"/g)) {
+        expect(Object.keys(videos), `${file} references missing video id "${id}"`).toContain(id);
       }
     }
   });

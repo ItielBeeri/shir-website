@@ -72,6 +72,8 @@
   --radius-card:   28px;
   --radius-pill:   999px;
   --blur-glass:    18px;
+  /* The tallest a body video may stand, so a portrait one never fills the screen. */
+  --video-max-block: 80svh;
 
   --ease-soft:   cubic-bezier(0.22, 1, 0.36, 1);
   --ease-breath: cubic-bezier(0.45, 0, 0.55, 1);

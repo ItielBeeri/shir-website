@@ -1,10 +1,11 @@
-# Builds the responsive image derivatives and commits them back, so an owner
-# uploading through the GitHub web editor never has to run anything.
+# Builds the responsive image derivatives and the video renditions, and
+# commits them back, so an owner uploading through the GitHub web editor or
+# the CMS never has to run anything.
 #
 # The window between their commit and this one needs no coordination: the
-# manifest carries a digest of every source, so src/lib/images.ts declines
-# mismatched derivatives and the page falls back to the original - correct
-# immediately, merely unoptimised until this run lands.
+# manifests carry a digest of every source, so src/lib/images.ts and
+# src/lib/videos.ts decline mismatched derivatives and the page falls back to
+# the original - correct immediately, merely unoptimised until this run lands.
 name: images
 
 on:
@@ -12,12 +13,16 @@ on:
     branches: [master]
     paths:
       - 'public/img/**'
+      - 'public/video/**'
       - 'src/content/images.toml'
+      - 'src/content/videos.toml'
       - 'src/content/recommendations.toml'
       - 'scripts/optimize-images.mjs'
+      - 'scripts/optimize-videos.mjs'
       # Redundant under GITHUB_TOKEN, whose pushes cannot trigger a run - kept
       # so this job's own commit still cannot retrigger it under a PAT.
       - '!public/img/_opt/**'
+      - '!public/video/_opt/**'
   workflow_dispatch:
 
 permissions:
@@ -45,18 +50,29 @@ jobs:
 
       - run: pnpm run images
 
+      # ffmpeg only when a video needs encoding: the check reads the manifest
+      # and the sources and encodes nothing, so an image push stays quick.
+      - name: Install ffmpeg
+        run: |
+          if ! node scripts/optimize-videos.mjs --check; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+
+      - run: pnpm run videos
+
       # A malformed manifest or a dead screenshot path should fail here rather
       # than be committed and break the deploy.
       - run: pnpm run build
 
       - name: Commit derivatives
         run: |
-          if [ -z "$(git status --porcelain public/img/_opt)" ]; then
+          if [ -z "$(git status --porcelain public/img/_opt public/video/_opt)" ]; then
             echo "No derivative changes."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/img/_opt
-          git commit -m "chore: rebuild image derivatives"
+          git add public/img/_opt public/video/_opt
+          git commit -m "chore: rebuild media derivatives"
           git push

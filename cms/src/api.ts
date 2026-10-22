@@ -64,6 +64,7 @@ const MESSAGES: Record<string, string> = {
   misconfigured: 'המערכת עדיין לא הוגדרה במלואה.',
   'no-write-access': 'למערכת אין כרגע הרשאה לשמור שינויים באתר. זה משהו שאיתיאל צריך לאשר - שווה לפנות אליו.',
   'too-large': 'הקובץ גדול מדי בשביל האתר. אפשר לנסות תמונה קטנה יותר.',
+  'missing-chunk': 'חלק מהסרטון לא הגיע. אפשר לנסות להעלות אותו שוב.',
   'legal-rejected': 'השינוי הזה בעמוד המשפטי אינו אפשרי.',
 };
 
@@ -118,17 +119,26 @@ export const api = {
       ref ? `?ref=${encodeURIComponent(ref)}` : '',
     ),
 
-  /** `remove` rides along in the same commit, for an action that does both. */
+  /**
+   * `remove` rides along in the same commit, for an action that does both. A
+   * video names the pieces `chunk` stored instead of carrying its content.
+   */
   save: (
     message: string,
-    files: Array<{ path: string; content: string; encoding?: 'utf-8' | 'base64' }>,
+    files: Array<
+      | { path: string; content: string; encoding?: 'utf-8' | 'base64' }
+      | { path: string; chunks: string[] }
+    >,
     remove: string[] = [],
   ) =>
     call<{ sha: string; pending: PathChange[] }>('save', {
       message,
-      files: files.map((f) => ({ encoding: 'utf-8', ...f })),
+      files: files.map((f) => ('chunks' in f ? f : { encoding: 'utf-8', ...f })),
       remove,
     }),
+
+  /** One piece of a video, as base64; the sha goes to `save`. */
+  chunk: (content: string) => call<{ sha: string }>('chunk', { content }),
 
   pending: () => call<{ pending: PathChange[] }>('pending', {}),
 

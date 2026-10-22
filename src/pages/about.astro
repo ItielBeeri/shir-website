@@ -4,6 +4,7 @@ import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import ContactPill from '../components/layout/ContactPill.astro';
 import SoftImage from '../components/ui/SoftImage.astro';
+import SoftVideo from '../components/ui/SoftVideo.astro';
 import FramedSection from '../components/ui/FramedSection.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import BreathDivider from '../components/ui/BreathDivider.astro';
@@ -59,7 +60,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
           </div>
           <p class="about-intro-paragraph">{intro}</p>
         </div>
-        <Content components={{ SoftImage, FramedSection }} />
+        <Content components={{ SoftImage, SoftVideo, FramedSection }} />
         {more_links.trim() && (
           <!-- One line: whitespace between these expressions would render as spaces inside the sentence. -->
           <p class="about-more-links">{linksBefore}{linkParts.map((part) => part.link ? (
@@ -253,7 +254,7 @@ const therapies = (await getCollection('therapies')).sort((a, b) => a.data.order
     overflow: hidden;
   }
 
-  .prose :global(figure:not(.soft-image)) {
+  .prose :global(figure:not(.soft-image, .soft-video)) {
     margin-block: 2rem;
     border-radius: var(--radius-card);
     overflow: hidden;

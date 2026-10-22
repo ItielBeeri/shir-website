@@ -1,7 +1,7 @@
 /* A floated image has no room beside its text on a phone, so SoftImage stacks
    it full width above that text. `stack="after"` puts it after the paragraph
    that follows it instead - with the paragraph's heading, if it has one - and
-   leaves the wide layout as it is.
+   leaves the wide layout as it is. SoftVideo floats and stacks the same way.
 
    The image is rendered twice: in place, shown only while it floats
    (`only="wide"`), and after the paragraph, shown only once stacked
@@ -13,9 +13,11 @@
    Runs after remark-blank-lines, which reads node positions to count blank
    lines, and a copy carries the position of the original. */
 
+const MEDIA = new Set(['SoftImage', 'SoftVideo']);
+
 const isStackAfter = (node) =>
   node.type === 'mdxJsxFlowElement' &&
-  node.name === 'SoftImage' &&
+  MEDIA.has(node.name) &&
   node.attributes.some((a) => a.type === 'mdxJsxAttribute' && a.name === 'stack' && a.value === 'after');
 
 const only = (node, layout) => ({
