@@ -277,6 +277,12 @@ const backdrop = imageSet("/img/bg/background.jpg", Number.POSITIVE_INFINITY);
     color: var(--color-ink);
     margin-block: 2rem 0.75rem;
   }
+  /* Level with the picture it opens beside, as in TherapyPage. */
+  @media not all and (max-width: 768px) {
+    .prose :global(:is(.soft-image--float, .soft-video--float):not(.soft-image--narrow-only, .soft-video--narrow-only) + :is(h2, h3)) {
+      margin-block-start: 0;
+    }
+  }
   .prose :global(p) {
     margin-block-end: 1.25rem;
   }

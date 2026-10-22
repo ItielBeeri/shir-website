@@ -307,6 +307,15 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     margin-block: 1.5rem 0.75rem;
   }
 
+  /* Level with the picture it opens beside. A float takes no part in margin
+     collapsing, so after a blank line the heading's own margin would start
+     its text below the picture's top. */
+  @media not all and (max-width: 768px) {
+    .prose :global(:is(.soft-image--float, .soft-video--float):not(.soft-image--narrow-only, .soft-video--narrow-only) + :is(h2, h3)) {
+      margin-block-start: 0;
+    }
+  }
+
   .prose :global(p) {
     margin-block-end: 1.25rem;
   }
@@ -333,8 +342,19 @@ const relatedTherapies = allTherapies.filter((t) => t.slug !== entry.slug).slice
     overflow: hidden;
   }
 
-  /* A floated body image must not run past its own section. */
+  /* A floated body image must not run past its own section. One placed right
+     above a heading opens that heading's section instead: the heading wraps
+     beside it too, and the image clears what the section before left floating.
+     A stacked copy (remark-stack-after) never floats beside anything. */
   .prose :global(h2) {
+    clear: both;
+  }
+
+  .prose :global(:is(.soft-image--float, .soft-video--float):not(.soft-image--narrow-only, .soft-video--narrow-only) + h2) {
+    clear: none;
+  }
+
+  .prose :global(:is(.soft-image--float, .soft-video--float):has(+ h2)) {
     clear: both;
   }
 
